@@ -210,7 +210,7 @@ module.exports = {
             content: entity.everyone ? '@everyone' : ''
         }
 
-        await module.exports.sendMessage(guildId, content, null, instance.channelId.activity);
+        await module.exports.sendMessage(guildId, content, null, instance.channelId.importantAlerts);
     },
 
     sendStorageMonitorDisconnectNotificationMessage: async function (guildId, serverId, entityId) {
@@ -224,7 +224,7 @@ module.exports = {
             content: entity.everyone ? '@everyone' : ''
         }
 
-        await module.exports.sendMessage(guildId, content, null, instance.channelId.activity);
+        await module.exports.sendMessage(guildId, content, null, instance.channelId.importantAlerts);
     },
 
     sendStorageMonitorNotFoundMessage: async function (guildId, serverId, entityId) {
@@ -238,7 +238,7 @@ module.exports = {
             content: entity.everyone ? '@everyone' : ''
         }
 
-        await module.exports.sendMessage(guildId, content, null, instance.channelId.activity);
+        await module.exports.sendMessage(guildId, content, null, instance.channelId.importantAlerts);
     },
 
     sendSmartSwitchNotFoundMessage: async function (guildId, serverId, entityId) {
@@ -265,7 +265,7 @@ module.exports = {
             content: entity.everyone ? '@everyone' : ''
         }
 
-        await module.exports.sendMessage(guildId, content, null, instance.channelId.activity);
+        await module.exports.sendMessage(guildId, content, null, instance.channelId.importantAlerts);
     },
 
     sendSmartAlarmTriggerMessage: async function (guildId, serverId, entityId) {
@@ -279,7 +279,7 @@ module.exports = {
             content: entity.everyone ? '@everyone' : ''
         }
 
-        await module.exports.sendMessage(guildId, content, null, instance.channelId.activity);
+        await module.exports.sendMessage(guildId, content, null, instance.channelId.importantAlerts);
     },
 
     sendServerChangeStateMessage: async function (guildId, serverId, state) {

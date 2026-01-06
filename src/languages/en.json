@@ -85,6 +85,7 @@
     "channelNameAlarms": "alarms",
     "channelNameCommands": "commands",
     "channelNameEvents": "events",
+    "channelNameImportantAlerts": "important-alerts",
     "channelNameInformation": "information",
     "channelNameServers": "servers",
     "channelNameSettings": "settings",

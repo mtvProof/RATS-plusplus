@@ -85,6 +85,7 @@
     "channelNameAlarms": "alarmlar",
     "channelNameCommands": "komutlar",
     "channelNameEvents": "olaylar",
+    "channelNameImportantAlerts": "önemli-uyarılar",
     "channelNameInformation": "bilgi",
     "channelNameServers": "sunucular",
     "channelNameSettings": "ayarlar",

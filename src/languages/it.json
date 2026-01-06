@@ -85,6 +85,7 @@
     "channelNameAlarms": "sveglie",
     "channelNameCommands": "comandi",
     "channelNameEvents": "eventi",
+    "channelNameImportantAlerts": "avvisi-importanti",
     "channelNameInformation": "informazioni",
     "channelNameServers": "server",
     "channelNameSettings": "impostazioni",
