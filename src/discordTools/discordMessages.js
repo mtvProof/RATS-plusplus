@@ -485,6 +485,22 @@ module.exports = {
         }
     },
 
+    sendUpdateToolCupboardUpkeepInformationMessage: async function (rustplus) {
+        const instance = Client.client.getInstance(rustplus.guildId);
+
+        const content = {
+            embeds: [DiscordEmbeds.getUpdateToolCupboardUpkeepInformationEmbed(rustplus)]
+        }
+
+        const message = await module.exports.sendMessage(rustplus.guildId, content,
+            instance.informationMessageId.toolCupboardUpkeep, instance.channelId.information);
+
+        if (message.id !== instance.informationMessageId.toolCupboardUpkeep) {
+            instance.informationMessageId.toolCupboardUpkeep = message.id;
+            Client.client.setInstance(rustplus.guildId, instance);
+        }
+    },
+
     sendDiscordCommandResponseMessage: async function (rustplus, client, message, response) {
         const content = {
             embeds: [DiscordEmbeds.getDiscordCommandResponseEmbed(rustplus, response)]

@@ -144,6 +144,7 @@ module.exports = (client, guild) => {
             if (!instance.channelId.hasOwnProperty('alarms')) instance.channelId.alarms = null;
             if (!instance.channelId.hasOwnProperty('storageMonitors')) instance.channelId.storageMonitors = null;
             if (!instance.channelId.hasOwnProperty('activity')) instance.channelId.activity = null;
+            if (!instance.channelId.hasOwnProperty('importantAlerts')) instance.channelId.importantAlerts = null;
             if (!instance.channelId.hasOwnProperty('trackers')) instance.channelId.trackers = null;
         }
 
@@ -153,7 +154,8 @@ module.exports = (client, guild) => {
                 server: null,
                 event: null,
                 team: null,
-                battlemetricsPlayers: null
+                battlemetricsPlayers: null,
+                toolCupboardUpkeep: null
             }
         }
         else {
@@ -163,6 +165,7 @@ module.exports = (client, guild) => {
             if (!instance.informationMessageId.hasOwnProperty('team')) instance.informationMessageId.team = null;
             if (!instance.informationMessageId.hasOwnProperty('team'))
                 instance.informationMessageId.battlemetricsPlayers = null;
+            if (!instance.informationMessageId.hasOwnProperty('toolCupboardUpkeep')) instance.informationMessageId.toolCupboardUpkeep = null;
         }
 
         if (!instance.hasOwnProperty('activeServer')) instance.activeServer = null;

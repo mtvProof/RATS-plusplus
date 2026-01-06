@@ -970,6 +970,105 @@ module.exports = {
         return embed;
     },
 
+    getUpdateToolCupboardUpkeepInformationEmbed: function (rustplus) {
+        const guildId = rustplus.guildId;
+        const instance = Client.client.getInstance(guildId);
+        const serverId = rustplus.serverId;
+
+        const title = Client.client.intlGet(guildId, 'toolCupboardUpkeeps');
+        const footer = { text: instance.serverList[serverId].title };
+
+        let totalCharacters = title.length + instance.serverList[serverId].title.length;
+        let fieldCharacters = 0;
+        let fieldIndex = 0;
+        let toolCupboardStr = [''];
+
+        // Get all storage monitors that are tool cupboards
+        const toolCupboards = [];
+        if (instance.serverList[serverId].storageMonitors) {
+            for (const entityId in instance.serverList[serverId].storageMonitors) {
+                const monitor = instance.serverList[serverId].storageMonitors[entityId];
+                
+                // Only include reachable tool cupboards
+                if (monitor.type === 'toolCupboard' && monitor.reachable) {
+                    toolCupboards.push({
+                        entityId: entityId,
+                        name: monitor.name,
+                        monitor: monitor,
+                        expiry: rustplus.storageMonitors[entityId]?.expiry || 0
+                    });
+                }
+            }
+        }
+
+        // Sort by expiry time (ascending - lowest first)
+        toolCupboards.sort((a, b) => a.expiry - b.expiry);
+
+        // Build the list
+        for (const cupboard of toolCupboards) {
+            const expiry = cupboard.expiry;
+            const now = Math.floor(Date.now() / 1000);
+            const secondsUntilDecay = expiry - now;
+            
+            // Calculate hours and minutes
+            const hours = Math.floor(secondsUntilDecay / 3600);
+            const minutes = Math.floor((secondsUntilDecay % 3600) / 60);
+            
+            // Determine the status dot: green if > 24 hours, red if < 24 hours
+            const statusDot = hours > 24 ? Constants.ONLINE_EMOJI : Constants.OFFLINE_EMOJI;
+            
+            // Format the time display
+            let timeStr = '';
+            if (secondsUntilDecay <= 0) {
+                timeStr = 'DECAYED';
+            } else if (hours > 0) {
+                timeStr = `${hours}h ${minutes}m`;
+            } else {
+                timeStr = `${minutes}m`;
+            }
+            
+            // Create the entry with proper formatting for lists
+            let entry = `${statusDot} ${cupboard.name}: \`${timeStr}\`\n`;
+            
+            if (totalCharacters + entry.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
+                break;
+            }
+            
+            if (fieldCharacters + entry.length >= Constants.EMBED_MAX_FIELD_VALUE_CHARACTERS) {
+                fieldCharacters = 0;
+                fieldIndex += 1;
+                toolCupboardStr.push('');
+            }
+            
+            toolCupboardStr[fieldIndex] += entry;
+            totalCharacters += entry.length;
+            fieldCharacters += entry.length;
+        }
+
+        const embed = module.exports.getEmbed({
+            title: title,
+            color: Constants.COLOR_DEFAULT,
+            footer: footer,
+            timestamp: true
+        });
+
+        if (toolCupboards.length === 0) {
+            embed.setDescription(Client.client.intlGet(guildId, 'noToolCupboards'));
+        } else {
+            let fieldCounter = 0;
+            for (const field of toolCupboardStr) {
+                embed.addFields({
+                    name: fieldCounter === 0 ? Client.client.intlGet(guildId, 'upkeepStatus') : '\u200B',
+                    value: field === '' ? '\u200B' : field,
+                    inline: false
+                });
+                fieldCounter += 1;
+            }
+        }
+
+        return embed;
+    },
+
     getDiscordCommandResponseEmbed: function (rustplus, response) {
         const instance = Client.client.getInstance(rustplus.guildId);
 
