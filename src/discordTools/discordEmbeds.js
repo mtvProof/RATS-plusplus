@@ -1048,6 +1048,7 @@ module.exports = {
         const embed = module.exports.getEmbed({
             title: title,
             color: Constants.COLOR_DEFAULT,
+            thumbnail: 'attachment://tool_cupboard.png',
             footer: footer,
             timestamp: true
         });

@@ -489,7 +489,10 @@ module.exports = {
         const instance = Client.client.getInstance(rustplus.guildId);
 
         const content = {
-            embeds: [DiscordEmbeds.getUpdateToolCupboardUpkeepInformationEmbed(rustplus)]
+            embeds: [DiscordEmbeds.getUpdateToolCupboardUpkeepInformationEmbed(rustplus)],
+            files: [new Discord.AttachmentBuilder(
+                Path.join(__dirname, '..', 'resources/images/electrics/tool_cupboard.png')
+            )]
         }
 
         const message = await module.exports.sendMessage(rustplus.guildId, content,
