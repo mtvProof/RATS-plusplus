@@ -263,7 +263,7 @@ module.exports = async (client, interaction) => {
     else if (interaction.customId.startsWith('TrackerEdit')) {
         const ids = JSON.parse(interaction.customId.replace('TrackerEdit', ''));
         const tracker = instance.trackers[ids.trackerId];
-        const trackerName = interaction.fields.getTextInputValue('TrackerName');
+        const trackerCoordinates = interaction.fields.getTextInputValue('TrackerCoordinates');
         const trackerBattlemetricsId = interaction.fields.getTextInputValue('TrackerBattlemetricsId');
         const trackerClanTag = interaction.fields.getTextInputValue('TrackerClanTag');
 
@@ -272,11 +272,8 @@ module.exports = async (client, interaction) => {
             return;
         }
 
-        tracker.name = trackerName;
-        if (trackerClanTag !== tracker.clanTag) {
-            tracker.clanTag = trackerClanTag;
-            client.battlemetricsIntervalCounter = 0;
-        }
+        tracker.name = trackerCoordinates;
+        tracker.clanTag = trackerClanTag;
 
         if (trackerBattlemetricsId !== tracker.battlemetricsId) {
             if (client.battlemetricsInstances.hasOwnProperty(trackerBattlemetricsId)) {
@@ -302,7 +299,7 @@ module.exports = async (client, interaction) => {
 
         client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
             id: `${verifyId}`,
-            value: `${trackerName}, ${tracker.battlemetricsId}, ${tracker.clanTag}`
+            value: `${trackerClanTag} (${trackerCoordinates}), ${tracker.battlemetricsId}`
         }));
 
         await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);

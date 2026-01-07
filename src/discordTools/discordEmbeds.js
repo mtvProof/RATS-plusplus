@@ -131,8 +131,6 @@ module.exports = {
         description += `__**${Client.client.intlGet(guildId, 'streamerMode')}:**__ `;
         description += (!bmInstance ? Constants.NOT_FOUND_EMOJI : (bmInstance.streamerMode ?
             Client.client.intlGet(guildId, 'onCap') : Client.client.intlGet(guildId, 'offCap'))) + '\n';
-        description += `__**${Client.client.intlGet(guildId, 'clanTag')}:**__ `;
-        description += tracker.clanTag !== '' ? `\`${tracker.clanTag}\`` : '';
 
         let totalCharacters = description.length;
         let fieldIndex = 0
@@ -230,7 +228,7 @@ module.exports = {
         }
 
         return module.exports.getEmbed({
-            title: `${tracker.name}`,
+            title: `${tracker.clanTag !== '' ? tracker.clanTag + ' ' : ''}(${tracker.name})`,
             color: Constants.COLOR_DEFAULT,
             description: description,
             thumbnail: `${tracker.img}`,

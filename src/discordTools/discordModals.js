@@ -274,8 +274,8 @@ module.exports = {
 
         modal.addComponents(
             new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
-                customId: 'TrackerName',
-                label: Client.client.intlGet(guildId, 'name'),
+                customId: 'TrackerCoordinates',
+                label: Client.client.intlGet(guildId, 'coordinates'),
                 value: tracker.name,
                 style: Discord.TextInputStyle.Short
             })),

@@ -487,6 +487,7 @@
     "morePlayers": "{players} ...{number} more.",
     "mutedCap": "MUTED",
     "name": "Name",
+    "coordinates": "Coordinates",
     "nameChangeHistory": "Name Change History",
     "new": "New",
     "newVendingMachine": "New Vending Machine located at {location}.",

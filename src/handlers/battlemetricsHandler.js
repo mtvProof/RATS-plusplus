@@ -79,8 +79,6 @@ module.exports = {
                         }
                         if (name === null) continue;
 
-                        name = (content.clanTag !== '' ? `${content.clanTag} ` : '') + `${name}`;
-
                         if (player.name !== name) {
                             await module.exports.trackerNewNameDetected(client, guildId, trackerId, battlemetricsId,
                                 player.name, name);
