@@ -1098,13 +1098,14 @@ module.exports = {
                     if (watchlistItems.hasOwnProperty(order.itemId)) {
                         // Check if this location is already in the list
                         const existingLoc = watchlistItems[order.itemId].locations.find(loc =>
-                            loc.location === vendingMachine.location.location && loc.itemId === order.itemId
+                            loc.location === vendingMachine.location.location && loc.currencyId === order.currencyId
                         );
                         
                         if (!existingLoc) {
                             watchlistItems[order.itemId].locations.push({
                                 location: vendingMachine.location.location,
                                 itemId: order.itemId,
+                                currencyId: order.currencyId,
                                 price: order.priceEach,
                                 quantity: order.quantityAvailable
                             });
@@ -1130,7 +1131,8 @@ module.exports = {
                 itemData.locations.sort((a, b) => a.price - b.price);
 
                 for (const location of itemData.locations) {
-                    const locationLine = `  • ${location.location}: \`${location.price}\` scrap\n`;
+                    const currencyName = Client.client.items.getName(location.currencyId);
+                    const locationLine = `  • ${location.location}: \`${location.price}\` ${currencyName}\n`;
                     
                     if (totalCharacters + description.length + locationLine.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
                         break;
