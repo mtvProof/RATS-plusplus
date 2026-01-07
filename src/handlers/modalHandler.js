@@ -307,58 +307,113 @@ module.exports = async (client, interaction) => {
     else if (interaction.customId.startsWith('TrackerAddPlayer')) {
         const ids = JSON.parse(interaction.customId.replace('TrackerAddPlayer', ''));
         const tracker = instance.trackers[ids.trackerId];
-        const id = interaction.fields.getTextInputValue('TrackerAddPlayerId');
+        const input = interaction.fields.getTextInputValue('TrackerAddPlayerInput');
 
         if (!tracker) {
             interaction.deferUpdate();
             return;
         }
 
-        const isSteamId64 = id.length === Constants.STEAMID64_LENGTH ? true : false;
+        const isSteamId64 = input.length === Constants.STEAMID64_LENGTH ? true : false;
+        const isBattlemetricsId = !isNaN(input) && input.length > 0 && !isSteamId64 ? true : false;
         const bmInstance = client.battlemetricsInstances[tracker.battlemetricsId];
 
-        if ((isSteamId64 && tracker.players.some(e => e.steamId === id)) ||
-            (!isSteamId64 && tracker.players.some(e => e.playerId === id && e.steamId === null))) {
-            interaction.deferUpdate();
-            return;
-        }
-
-        let name = null;
-        let steamId = null;
-        let playerId = null;
-
-        if (isSteamId64) {
-            steamId = id;
-            name = await Scrape.scrapeSteamProfileName(client, id);
-
-            if (name && bmInstance) {
-                playerId = Object.keys(bmInstance.players).find(e => bmInstance.players[e]['name'] === name);
-                if (!playerId) playerId = null;
+        // If user entered a Steam ID or Battlemetrics ID
+        if (isSteamId64 || isBattlemetricsId) {
+            if ((isSteamId64 && tracker.players.some(e => e.steamId === input)) ||
+                (!isSteamId64 && tracker.players.some(e => e.playerId === input && e.steamId === null))) {
+                interaction.deferUpdate();
+                return;
             }
-        }
-        else {
-            playerId = id;
-            if (bmInstance.players.hasOwnProperty(id)) {
-                name = bmInstance.players[id]['name'];
+
+            let name = null;
+            let steamId = null;
+            let playerId = null;
+
+            if (isSteamId64) {
+                steamId = input;
+                name = await Scrape.scrapeSteamProfileName(client, input);
+
+                if (name && bmInstance) {
+                    playerId = Object.keys(bmInstance.players).find(e => bmInstance.players[e]['name'] === name);
+                    if (!playerId) playerId = null;
+                }
             }
             else {
-                name = '-';
+                playerId = input;
+                if (bmInstance.players.hasOwnProperty(input)) {
+                    name = bmInstance.players[input]['name'];
+                }
+                else {
+                    name = '-';
+                }
+            }
+
+            tracker.players.push({
+                name: name,
+                steamId: steamId,
+                playerId: playerId
+            });
+            client.setInstance(interaction.guildId, instance);
+
+            client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
+                id: `${verifyId}`,
+                value: `${input}`
+            }));
+
+            await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);
+        }
+        // User entered a player name - search for matching players
+        else {
+            if (!bmInstance || !bmInstance.lastUpdateSuccessful) {
+                interaction.deferUpdate();
+                return;
+            }
+
+            // Search for players with matching name
+            const foundPlayerIds = [];
+            for (const playerId of Object.keys(bmInstance.players)) {
+                if (bmInstance.players[playerId]['name'].toLowerCase().includes(input.toLowerCase())) {
+                    // Don't add if player already in tracker
+                    if (!tracker.players.some(e => e.playerId === playerId)) {
+                        foundPlayerIds.push(playerId);
+                    }
+                }
+            }
+
+            // If no players found
+            if (foundPlayerIds.length === 0) {
+                await interaction.deferUpdate();
+                return;
+            }
+
+            // If only one player found, add them directly
+            if (foundPlayerIds.length === 1) {
+                const playerId = foundPlayerIds[0];
+                const name = bmInstance.players[playerId]['name'];
+
+                tracker.players.push({
+                    name: name,
+                    steamId: null,
+                    playerId: playerId
+                });
+                client.setInstance(interaction.guildId, instance);
+
+                client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
+                    id: `${verifyId}`,
+                    value: `${name}`
+                }));
+
+                await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);
+            }
+            // If multiple players found, show selection menu
+            else {
+                await DiscordMessages.sendTrackerPlayerSelectionMessage(
+                    interaction, client, ids.trackerId, foundPlayerIds.slice(0, 25) // Discord button limit is 5 per row, max 25 total
+                );
+                return;
             }
         }
-
-        tracker.players.push({
-            name: name,
-            steamId: steamId,
-            playerId: playerId
-        });
-        client.setInstance(interaction.guildId, instance);
-
-        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
-            id: `${verifyId}`,
-            value: `${id}`
-        }));
-
-        await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);
     }
     else if (interaction.customId.startsWith('TrackerRemovePlayer')) {
         const ids = JSON.parse(interaction.customId.replace('TrackerRemovePlayer', ''));

@@ -91,6 +91,78 @@ module.exports = {
         }
     },
 
+    sendTrackerPlayerSelectionMessage: async function (interaction, client, trackerId, playerIds) {
+        const guildId = interaction.guildId;
+        const instance = client.getInstance(guildId);
+        const tracker = instance.trackers[trackerId];
+        const bmInstance = client.battlemetricsInstances[tracker.battlemetricsId];
+
+        const embed = DiscordEmbeds.getEmbed({
+            title: client.intlGet(guildId, 'trackerSelectPlayer'),
+            color: Constants.COLOR_DEFAULT,
+            description: client.intlGet(guildId, 'trackerSelectPlayerDesc')
+        });
+
+        const fields = [];
+        let fieldValue = '';
+        for (let i = 0; i < playerIds.length; i++) {
+            const playerId = playerIds[i];
+            const playerName = bmInstance.players[playerId]['name'];
+            const status = bmInstance.players[playerId]['status'] ? Constants.ONLINE_EMOJI : Constants.OFFLINE_EMOJI;
+            
+            const line = `${i + 1}. ${status} ${playerName}\n`;
+            if ((fieldValue + line).length > Constants.EMBED_MAX_FIELD_VALUE_CHARACTERS) {
+                fields.push(fieldValue);
+                fieldValue = line;
+            } else {
+                fieldValue += line;
+            }
+        }
+        if (fieldValue) fields.push(fieldValue);
+
+        embed.fields = [{
+            name: client.intlGet(guildId, 'matchingPlayers'),
+            value: fields[0] || client.intlGet(guildId, 'empty'),
+            inline: false
+        }];
+
+        const buttons = [];
+        const maxButtons = Math.min(playerIds.length, 25);
+        
+        for (let i = 0; i < maxButtons; i++) {
+            const playerId = playerIds[i];
+            const playerName = bmInstance.players[playerId]['name'];
+            const buttonLabel = playerName.substring(0, 80); // Discord button label limit
+            
+            buttons.push(
+                new Discord.ButtonBuilder()
+                    .setCustomId(`TrackerSelectPlayer${JSON.stringify({ trackerId: trackerId, playerId: playerId })}`)
+                    .setLabel(buttonLabel)
+                    .setStyle(Discord.ButtonStyle.Primary)
+            );
+        }
+
+        const rows = [];
+        for (let i = 0; i < buttons.length; i += 5) {
+            rows.push(new Discord.ActionRowBuilder().addComponents(buttons.slice(i, i + 5)));
+        }
+
+        const channel = await client.channels.fetch(instance.channelId.trackers);
+        if (!channel) return;
+
+        const message = await channel.send({
+            embeds: [embed],
+            components: rows
+        });
+
+        // Auto-delete message after 5 minutes
+        setTimeout(() => {
+            if (message && !message.deleted) {
+                message.delete().catch(() => {});
+            }
+        }, 5 * 60 * 1000);
+    },
+
     sendSmartSwitchMessage: async function (guildId, serverId, entityId, interaction = null) {
         const instance = Client.client.getInstance(guildId);
         const entity = instance.serverList[serverId].switches[entityId];

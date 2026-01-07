@@ -1133,6 +1133,48 @@ module.exports = async (client, interaction) => {
         const modal = DiscordModals.getTrackerRemovePlayerModal(guildId, ids.trackerId);
         await interaction.showModal(modal);
     }
+    else if (interaction.customId.startsWith('TrackerSelectPlayer')) {
+        const ids = JSON.parse(interaction.customId.replace('TrackerSelectPlayer', ''));
+        const tracker = instance.trackers[ids.trackerId];
+        const playerId = ids.playerId;
+
+        if (!tracker) {
+            await interaction.message.delete();
+            return;
+        }
+
+        const bmInstance = client.battlemetricsInstances[tracker.battlemetricsId];
+        if (!bmInstance || !bmInstance.lastUpdateSuccessful) {
+            await interaction.deferUpdate();
+            await interaction.message.delete();
+            return;
+        }
+
+        // Check if player already in tracker
+        if (tracker.players.some(e => e.playerId === playerId)) {
+            await interaction.deferUpdate();
+            await interaction.message.delete();
+            return;
+        }
+
+        // Add player to tracker
+        const playerName = bmInstance.players[playerId]['name'];
+        tracker.players.push({
+            name: playerName,
+            steamId: null,
+            playerId: playerId
+        });
+        client.setInstance(guildId, instance);
+
+        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
+            id: `${verifyId}`,
+            value: `${playerName}`
+        }));
+
+        await interaction.deferUpdate();
+        await interaction.message.delete();
+        await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);
+    }
     else if (interaction.customId.startsWith('TrackerInGame')) {
         const ids = JSON.parse(interaction.customId.replace('TrackerInGame', ''));
         const tracker = instance.trackers[ids.trackerId];
