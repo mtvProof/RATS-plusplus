@@ -1106,8 +1106,8 @@ module.exports = {
                                 location: vendingMachine.location.location,
                                 itemId: order.itemId,
                                 currencyId: order.currencyId,
-                                price: order.priceEach,
-                                quantity: order.quantityAvailable
+                                price: order.costPerItem,
+                                quantity: order.amountInStock
                             });
                         }
                     }
