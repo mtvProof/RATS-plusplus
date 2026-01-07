@@ -418,29 +418,70 @@ module.exports = async (client, interaction) => {
     else if (interaction.customId.startsWith('TrackerRemovePlayer')) {
         const ids = JSON.parse(interaction.customId.replace('TrackerRemovePlayer', ''));
         const tracker = instance.trackers[ids.trackerId];
-        const id = interaction.fields.getTextInputValue('TrackerRemovePlayerId');
-
-        const isSteamId64 = id.length === Constants.STEAMID64_LENGTH ? true : false;
+        const input = interaction.fields.getTextInputValue('TrackerRemovePlayerInput');
 
         if (!tracker) {
             interaction.deferUpdate();
             return;
         }
 
-        if (isSteamId64) {
-            tracker.players = tracker.players.filter(e => e.steamId !== id);
+        const isSteamId64 = input.length === Constants.STEAMID64_LENGTH ? true : false;
+        const isBattlemetricsId = !isNaN(input) && input.length > 0 && !isSteamId64 ? true : false;
+
+        // If user entered a Steam ID or Battlemetrics ID
+        if (isSteamId64 || isBattlemetricsId) {
+            if (isSteamId64) {
+                tracker.players = tracker.players.filter(e => e.steamId !== input);
+            }
+            else {
+                tracker.players = tracker.players.filter(e => e.playerId !== input || e.steamId !== null);
+            }
+            client.setInstance(interaction.guildId, instance);
+
+            client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
+                id: `${verifyId}`,
+                value: `${input}`
+            }));
+
+            await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);
         }
+        // User entered a player name - search for matching players in tracker
         else {
-            tracker.players = tracker.players.filter(e => e.playerId !== id || e.steamId !== null);
+            // Find players in tracker matching the name
+            const matchingPlayers = [];
+            for (const player of tracker.players) {
+                if (player.name.toLowerCase().includes(input.toLowerCase())) {
+                    matchingPlayers.push(player);
+                }
+            }
+
+            // If no players found
+            if (matchingPlayers.length === 0) {
+                await interaction.deferUpdate();
+                return;
+            }
+
+            // If only one player found, remove them directly
+            if (matchingPlayers.length === 1) {
+                const playerToRemove = matchingPlayers[0];
+                tracker.players = tracker.players.filter(p => p !== playerToRemove);
+                client.setInstance(interaction.guildId, instance);
+
+                client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
+                    id: `${verifyId}`,
+                    value: `${playerToRemove.name}`
+                }));
+
+                await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);
+            }
+            // If multiple players found, show selection menu
+            else {
+                await DiscordMessages.sendTrackerPlayerRemovalSelectionMessage(
+                    interaction, client, ids.trackerId, matchingPlayers
+                );
+                return;
+            }
         }
-        client.setInstance(interaction.guildId, instance);
-
-        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
-            id: `${verifyId}`,
-            value: `${id}`
-        }));
-
-        await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);
     }
 
     client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'userModalInteractionSuccess', {

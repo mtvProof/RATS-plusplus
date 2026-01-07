@@ -334,9 +334,9 @@ module.exports = {
 
         modal.addComponents(
             new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
-                customId: 'TrackerRemovePlayerId',
-                label: `${Client.client.intlGet(guildId, 'steamId')} / ` +
-                    `${Client.client.intlGet(guildId, 'battlemetricsId')}`,
+                customId: 'TrackerRemovePlayerInput',
+                label: `${Client.client.intlGet(guildId, 'steamId')} / ${Client.client.intlGet(guildId, 'battlemetricsId')} / ${Client.client.intlGet(guildId, 'playerName')}`,
+                placeholder: Client.client.intlGet(guildId, 'trackerRemovePlayerPlaceholder'),
                 value: '',
                 style: Discord.TextInputStyle.Short
             }))

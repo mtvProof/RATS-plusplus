@@ -1175,6 +1175,29 @@ module.exports = async (client, interaction) => {
         await interaction.message.delete();
         await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);
     }
+    else if (interaction.customId.startsWith('TrackerRemoveSelectedPlayer')) {
+        const ids = JSON.parse(interaction.customId.replace('TrackerRemoveSelectedPlayer', ''));
+        const tracker = instance.trackers[ids.trackerId];
+
+        if (!tracker || ids.playerIndex >= tracker.players.length) {
+            await interaction.message.delete();
+            return;
+        }
+
+        // Remove player from tracker
+        const playerToRemove = tracker.players[ids.playerIndex];
+        tracker.players = tracker.players.filter((_, index) => index !== ids.playerIndex);
+        client.setInstance(guildId, instance);
+
+        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
+            id: `${verifyId}`,
+            value: `${playerToRemove.name}`
+        }));
+
+        await interaction.deferUpdate();
+        await interaction.message.delete();
+        await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);
+    }
     else if (interaction.customId.startsWith('TrackerInGame')) {
         const ids = JSON.parse(interaction.customId.replace('TrackerInGame', ''));
         const tracker = instance.trackers[ids.trackerId];

@@ -163,6 +163,72 @@ module.exports = {
         }, 5 * 60 * 1000);
     },
 
+    sendTrackerPlayerRemovalSelectionMessage: async function (interaction, client, trackerId, playersToRemove) {
+        const guildId = interaction.guildId;
+        const instance = client.getInstance(guildId);
+
+        const embed = DiscordEmbeds.getEmbed({
+            title: client.intlGet(guildId, 'trackerSelectPlayerRemove'),
+            color: Constants.COLOR_DEFAULT,
+            description: client.intlGet(guildId, 'trackerSelectPlayerRemoveDesc')
+        });
+
+        const fields = [];
+        let fieldValue = '';
+        for (let i = 0; i < playersToRemove.length; i++) {
+            const player = playersToRemove[i];
+            const line = `${i + 1}. ${player.name}\n`;
+            if ((fieldValue + line).length > Constants.EMBED_MAX_FIELD_VALUE_CHARACTERS) {
+                fields.push(fieldValue);
+                fieldValue = line;
+            } else {
+                fieldValue += line;
+            }
+        }
+        if (fieldValue) fields.push(fieldValue);
+
+        embed.fields = [{
+            name: client.intlGet(guildId, 'matchingPlayers'),
+            value: fields[0] || client.intlGet(guildId, 'empty'),
+            inline: false
+        }];
+
+        const buttons = [];
+        const maxButtons = Math.min(playersToRemove.length, 25);
+        
+        for (let i = 0; i < maxButtons; i++) {
+            const player = playersToRemove[i];
+            const buttonLabel = player.name.substring(0, 80); // Discord button label limit
+            
+            buttons.push(
+                new Discord.ButtonBuilder()
+                    .setCustomId(`TrackerRemoveSelectedPlayer${JSON.stringify({ trackerId: trackerId, playerIndex: i })}`)
+                    .setLabel(buttonLabel)
+                    .setStyle(Discord.ButtonStyle.Danger)
+            );
+        }
+
+        const rows = [];
+        for (let i = 0; i < buttons.length; i += 5) {
+            rows.push(new Discord.ActionRowBuilder().addComponents(buttons.slice(i, i + 5)));
+        }
+
+        const channel = await client.channels.fetch(instance.channelId.trackers);
+        if (!channel) return;
+
+        const message = await channel.send({
+            embeds: [embed],
+            components: rows
+        });
+
+        // Auto-delete message after 5 minutes
+        setTimeout(() => {
+            if (message && !message.deleted) {
+                message.delete().catch(() => {});
+            }
+        }, 5 * 60 * 1000);
+    },
+
     sendSmartSwitchMessage: async function (guildId, serverId, entityId, interaction = null) {
         const instance = Client.client.getInstance(guildId);
         const entity = instance.serverList[serverId].switches[entityId];
