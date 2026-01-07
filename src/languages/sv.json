@@ -767,6 +767,8 @@
     "upkeepStatus": "Underhållsstatus",
     "toolCupboardUpkeeps": "Underhål för Verktygsskåp",
     "noToolCupboards": "Inga verktygsskåp övervakas för närvarande.",
+    "marketWatchlist": "Marknadens bevakningslista",
+    "noWatchlistItems": "Inga objekt på bevakningslistan.",
     "userAddedToBlacklist": "{user} was added to blacklist.",
     "userAlreadyInBlacklist": "{user} already in blacklist.",
     "userButtonInteraction": "Button Interaction - Guild: {guild}, Channel: {channel}, User: {user}, CustomId: {customid}, VerifyId: {id}.",

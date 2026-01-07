@@ -767,6 +767,8 @@
     "upkeepStatus": "État du Maintien",
     "toolCupboardUpkeeps": "Maintenances des Armoires d'Outils",
     "noToolCupboards": "Aucune armoire à outils n'est actuellement surveillée.",
+    "marketWatchlist": "Liste de suivi du marché",
+    "noWatchlistItems": "Aucun article sur la liste de suivi.",
     "userAddedToBlacklist": "{user} à été ajouté à la blackliste.",
     "userAlreadyInBlacklist": "{user} est déjà dans la blackliste.",
     "userButtonInteraction": "Bouton Interaction - Guilde: {guild}, Channel: {channel}, Utilisateur: {user}, Idperso: {customid}, Vérification d'Id: {id}.",

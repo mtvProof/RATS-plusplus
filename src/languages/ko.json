@@ -767,6 +767,8 @@
     "upkeepStatus": "유지 상태",
     "toolCupboardUpkeeps": "도구 찬장 유지 시간",
     "noToolCupboards": "현재 모니터링되는 도구 찬장이 없습니다.",
+    "marketWatchlist": "시장 감시 목록",
+    "noWatchlistItems": "감시 목록에 항목이 없습니다.",
     "userAddedToBlacklist": "{user} was added to blacklist.",
     "userAlreadyInBlacklist": "{user} already in blacklist.",
     "userButtonInteraction": "Button Interaction - Guild: {guild}, Channel: {channel}, User: {user}, CustomId: {customid}, VerifyId: {id}.",

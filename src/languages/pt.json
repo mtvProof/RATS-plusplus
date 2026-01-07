@@ -767,6 +767,8 @@
     "upkeepStatus": "Status de Manutenção",
     "toolCupboardUpkeeps": "Manutenção do Armário de Ferramentas",
     "noToolCupboards": "Nenhum armário de ferramentas está sendo monitorado no momento.",
+    "marketWatchlist": "Lista de Observação do Mercado",
+    "noWatchlistItems": "Nenhum item na lista de observação.",
     "userAddedToBlacklist": "{user} foi adicionado à lista negra.",
     "userAlreadyInBlacklist": "{user} já está na lista negra.",
     "userButtonInteraction": "Interação de botão - Guilda: {guild}, Canal: {channel}, Utilizador: {user}, CustomId: {customid}, VerifyId: {id}.",

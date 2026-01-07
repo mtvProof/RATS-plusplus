@@ -767,6 +767,8 @@
     "upkeepStatus": "Status konserwacji",
     "toolCupboardUpkeeps": "Utrzymanie Szafki Narzędziowej",
     "noToolCupboards": "Żadne szafki narzędziowe nie są aktualnie monitorowane.",
+    "marketWatchlist": "Lista obserwacji rynku",
+    "noWatchlistItems": "Brak artykułów na liście obserwacji.",
     "userAddedToBlacklist": "{user} was added to blacklist.",
     "userAlreadyInBlacklist": "{user} already in blacklist.",
     "userButtonInteraction": "Button Interaction - Guild: {guild}, Channel: {channel}, User: {user}, CustomId: {customid}, VerifyId: {id}.",

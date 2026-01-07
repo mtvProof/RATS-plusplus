@@ -767,6 +767,8 @@
     "upkeepStatus": "Bakım Durumu",
     "toolCupboardUpkeeps": "Takı Dolabı Bakımı",
     "noToolCupboards": "Şu anda izlenen takı dolabı yok.",
+    "marketWatchlist": "Market İzleme Listesi",
+    "noWatchlistItems": "İzleme listesinde öğe yok.",
     "userAddedToBlacklist": "{user} kara listeye eklendi.",
     "userAlreadyInBlacklist": "{user} zaten kara listede.",
     "userButtonInteraction": "Button Interaction - Guild: {guild}, Channel: {channel}, User: {user}, CustomId: {customid}, VerifyId: {id}.",

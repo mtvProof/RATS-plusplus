@@ -767,6 +767,8 @@
     "upkeepStatus": "Статус содержания",
     "toolCupboardUpkeeps": "Содержание Шкафа Инструментов",
     "noToolCupboards": "В настоящее время нет мониторируемых шкафов инструментов.",
+    "marketWatchlist": "Список отслеживания рынка",
+    "noWatchlistItems": "Нет элементов в списке наблюдения.",
     "userAddedToBlacklist": "{user} добавлен в чёрный список.",
     "userAlreadyInBlacklist": "{user} уже в чёрном списке.",
     "userButtonInteraction": "Кнопка взаимодействия - Гильдия: {guild}, Канал: {channel}, Пользователь: {user}, CustomId: {customid}, VerifyId: {id}.",

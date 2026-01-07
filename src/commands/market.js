@@ -22,6 +22,7 @@ const Builder = require('@discordjs/builders');
 
 const Constants = require('../util/constants.js');
 const DiscordEmbeds = require('../discordTools/discordEmbeds.js');
+const DiscordMessages = require('../discordTools/discordMessages.js');
 
 module.exports = {
     name: 'market',
@@ -288,6 +289,11 @@ module.exports = {
                     await client.interactionEditReply(interaction, DiscordEmbeds.getActionInfoEmbed(0, str,
                         instance.serverList[rustplus.serverId].title));
                     rustplus.log(client.intlGet(interaction.guildId, 'infoCap'), str);
+
+                    // Update the market watchlist message if this is a sell order
+                    if (orderType === 'sell') {
+                        await DiscordMessages.sendUpdateMarketWatchlistInformationMessage(rustplus);
+                    }
                 }
 
                 client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'slashCommandValueChange', {
@@ -348,6 +354,11 @@ module.exports = {
                     await client.interactionEditReply(interaction, DiscordEmbeds.getActionInfoEmbed(0, str,
                         instance.serverList[rustplus.serverId].title));
                     rustplus.log(client.intlGet(interaction.guildId, 'infoCap'), str);
+
+                    // Update the market watchlist message if this is a sell order
+                    if (orderType === 'sell') {
+                        await DiscordMessages.sendUpdateMarketWatchlistInformationMessage(rustplus);
+                    }
                 }
                 else {
                     const str = client.intlGet(interaction.guildId, 'notExistInSubscription', {

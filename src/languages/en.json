@@ -768,6 +768,8 @@
     "upkeepStatus": "Upkeep Status",
     "toolCupboardUpkeeps": "ToolCupboard Upkeeps",
     "noToolCupboards": "No tool cupboards are currently being monitored.",
+    "marketWatchlist": "Market Watchlist",
+    "noWatchlistItems": "No items on watchlist.",
     "userAddedToBlacklist": "{user} was added to blacklist.",
     "userAlreadyInBlacklist": "{user} already in blacklist.",
     "userButtonInteraction": "Button Interaction - Guild: {guild}, Channel: {channel}, User: {user}, CustomId: {customid}, VerifyId: {id}.",

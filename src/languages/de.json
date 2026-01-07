@@ -767,6 +767,8 @@
     "upkeepStatus": "Wartungsstatus",
     "toolCupboardUpkeeps": "Werkzeugspeicher Wartungen",
     "noToolCupboards": "Keine Werkzeugspeicher werden derzeit überwacht.",
+    "marketWatchlist": "Markt-Beobachtungsliste",
+    "noWatchlistItems": "Keine Artikel auf der Beobachtungsliste.",
     "userAddedToBlacklist": "{user} wurde zur Blacklist hinzugefügt.",
     "userAlreadyInBlacklist": "{user} ist bereits auf der Blacklist.",
     "userButtonInteraction": "Schaltflächen-Interaktion - Discord-Server: {guild}, Kanal: {channel}, Benutzer: {user}, Benutzerdefinierte ID: {customid}, Kontroll-ID: {id}.",

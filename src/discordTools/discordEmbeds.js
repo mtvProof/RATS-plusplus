@@ -1068,6 +1068,96 @@ module.exports = {
         return embed;
     },
 
+    getUpdateMarketWatchlistInformationEmbed: function (rustplus) {
+        const guildId = rustplus.guildId;
+        const instance = Client.client.getInstance(guildId);
+        const serverId = rustplus.serverId;
+
+        const title = Client.client.intlGet(guildId, 'marketWatchlist');
+        const footer = { text: instance.serverList[serverId].title };
+
+        let totalCharacters = title.length + instance.serverList[serverId].title.length;
+        let fieldIndex = 0;
+        let watchlistItems = {};
+
+        // Collect all watchlist items (sell orders)
+        for (const itemId of instance.marketSubscriptionList.sell) {
+            const itemName = Client.client.items.getName(itemId);
+            watchlistItems[itemId] = {
+                name: itemName,
+                locations: []
+            };
+        }
+
+        // Find vending machines selling watchlist items
+        if (rustplus.mapMarkers.vendingMachines) {
+            for (const vendingMachine of rustplus.mapMarkers.vendingMachines) {
+                if (!vendingMachine.hasOwnProperty('sellOrders')) continue;
+
+                for (const order of vendingMachine.sellOrders) {
+                    if (watchlistItems.hasOwnProperty(order.itemId)) {
+                        // Check if this location is already in the list
+                        const existingLoc = watchlistItems[order.itemId].locations.find(loc =>
+                            loc.location === vendingMachine.location.location && loc.itemId === order.itemId
+                        );
+                        
+                        if (!existingLoc) {
+                            watchlistItems[order.itemId].locations.push({
+                                location: vendingMachine.location.location,
+                                itemId: order.itemId,
+                                price: order.priceEach,
+                                quantity: order.quantityAvailable
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Build description with all items and their locations
+        let description = '';
+        let hasItems = false;
+
+        for (const [itemId, itemData] of Object.entries(watchlistItems)) {
+            hasItems = true;
+            const itemNameLine = `**${itemData.name}**\n`;
+            description += itemNameLine;
+
+            if (itemData.locations.length === 0) {
+                description += `*Not currently available for sale*\n\n`;
+            } else {
+                // Sort locations by price (ascending)
+                itemData.locations.sort((a, b) => a.price - b.price);
+
+                for (const location of itemData.locations) {
+                    const locationLine = `  • ${location.location}: \`${location.price}\` scrap\n`;
+                    
+                    if (totalCharacters + description.length + locationLine.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
+                        break;
+                    }
+                    description += locationLine;
+                }
+                description += '\n';
+            }
+
+            if (totalCharacters + description.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
+                break;
+            }
+        }
+
+        const commandSyntax = `/market subscribe order:sell name:Item Name`;
+
+        const embed = module.exports.getEmbed({
+            title: title,
+            color: Constants.COLOR_DEFAULT,
+            description: hasItems && description.trim().length > 0 ? description.trim() : Client.client.intlGet(guildId, 'noWatchlistItems'),
+            footer: { text: `${footer.text} • ${commandSyntax}` },
+            timestamp: true
+        });
+
+        return embed;
+    },
+
     getDiscordCommandResponseEmbed: function (rustplus, response) {
         const instance = Client.client.getInstance(rustplus.guildId);
 

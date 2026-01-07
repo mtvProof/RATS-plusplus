@@ -767,6 +767,8 @@
     "upkeepStatus": "Stato di Manutenzione",
     "toolCupboardUpkeeps": "Manutenzione Cassone Attrezzi",
     "noToolCupboards": "Nessun cassone attrezzi è attualmente monitorato.",
+    "marketWatchlist": "Elenco di controllo del mercato",
+    "noWatchlistItems": "Nessun elemento nell'elenco di controllo.",
     "userAddedToBlacklist": "{user} was added to blacklist.",
     "userAlreadyInBlacklist": "{user} already in blacklist.",
     "userButtonInteraction": "Button Interaction - Guild: {guild}, Channel: {channel}, User: {user}, CustomId: {customid}, VerifyId: {id}.",
