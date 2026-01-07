@@ -1132,7 +1132,7 @@ module.exports = {
 
                 for (const location of itemData.locations) {
                     const currencyName = Client.client.items.getName(location.currencyId);
-                    const locationLine = `  • ${location.location}: \`${location.price}\` ${currencyName}\n`;
+                    const locationLine = `  • ${location.location}: ${location.quantity} at \`${location.price}\` ${currencyName} each\n`;
                     
                     if (totalCharacters + description.length + locationLine.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
                         break;
