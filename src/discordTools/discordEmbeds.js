@@ -808,6 +808,8 @@ module.exports = {
             let status = '';
             let location = (player.isOnline || player.isAlive) ? `${player.pos.string}\n` : '-\n';
 
+            const totalPlaytimeFormatted = player.getTotalActivePlaytimeFormatted('dhs');
+
             if (player.isOnline) {
                 const isAfk = player.getAfkSeconds() >= Constants.AFK_TIME_SECONDS;
                 const afkTime = player.getAfkTime('dhs');
@@ -817,16 +819,15 @@ module.exports = {
                     Constants.DEAD_EMOJI;
                 status += (Object.keys(instance.serverListLite[rustplus.serverId]).includes(player.steamId)) ?
                     Constants.PAIRED_EMOJI : '';
-                status += (isAfk) ? ` ${afkTime}\n` : '\n';
+                status += (isAfk) ? ` ${afkTime} (${totalPlaytimeFormatted})\n` : ` (${totalPlaytimeFormatted})\n`;
             }
             else {
-                const offlineTime = player.getOfflineTime('s');
+                const offlineTime = player.getOfflineTime('dhs');
                 status += Constants.OFFLINE_EMOJI;
                 status += (player.isAlive) ? Constants.SLEEPING_EMOJI : Constants.DEAD_EMOJI;
                 status += (Object.keys(instance.serverListLite[rustplus.serverId]).includes(player.steamId)) ?
                     Constants.PAIRED_EMOJI : '';
-                status += (offlineTime !== null) ? offlineTime : '';
-                status += '\n';
+                status += (offlineTime !== null) ? ` ${offlineTime} (${totalPlaytimeFormatted})\n` : ` (${totalPlaytimeFormatted})\n`;
             }
 
             if (totalCharacters + (name.length + status.length + location.length) >=

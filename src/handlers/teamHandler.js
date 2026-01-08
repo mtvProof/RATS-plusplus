@@ -38,6 +38,11 @@ module.exports = {
         const newPlayers = rustplus.team.getNewPlayers(teamInfo);
         const leftPlayers = rustplus.team.getLeftPlayers(teamInfo);
 
+        // Update playtime for all players
+        for (const player of rustplus.team.players) {
+            player.updateActivePlaytime();
+        }
+
         for (const steamId of leftPlayers) {
             const player = rustplus.team.getPlayer(steamId);
             const str = client.intlGet(guildId, 'playerLeftTheTeam', { name: player.name });

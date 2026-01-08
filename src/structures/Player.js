@@ -40,6 +40,8 @@ class Player {
         this._teamLeader = false;
         this._afkSeconds = 0;
         this._wentOfflineTime = null;
+        this._totalActivePlaytimeSeconds = 0;
+        this._lastActivePlaytimeUpdate = new Date();
 
         this.updatePos();
     }
@@ -73,6 +75,10 @@ class Player {
     set afkSeconds(afkSeconds) { this._afkSeconds = afkSeconds; }
     get wentOfflineTime() { return this._wentOfflineTime; }
     set wentOfflineTime(wentOfflineTime) { this._wentOfflineTime = wentOfflineTime; }
+    get totalActivePlaytimeSeconds() { return this._totalActivePlaytimeSeconds; }
+    set totalActivePlaytimeSeconds(seconds) { this._totalActivePlaytimeSeconds = seconds; }
+    get lastActivePlaytimeUpdate() { return this._lastActivePlaytimeUpdate; }
+    set lastActivePlaytimeUpdate(date) { this._lastActivePlaytimeUpdate = date; }
 
     /* Change checkers */
     isSteamIdChanged(player) { return (this.steamId !== player.steamId.toString()); }
@@ -164,6 +170,25 @@ class Player {
         if (this.wentOfflineTime === null) return null;
         const seconds = (new Date() - this.wentOfflineTime) / 1000;
         return (Time.secondsToFullScale(seconds, ignore));
+    }
+
+    getTotalActivePlaytimeSeconds() {
+        return this._totalActivePlaytimeSeconds;
+    }
+
+    getTotalActivePlaytimeFormatted(ignore = '') {
+        return Time.secondsToFullScale(this._totalActivePlaytimeSeconds, ignore);
+    }
+
+    updateActivePlaytime() {
+        const isAfk = this.getAfkSeconds() >= Constants.AFK_TIME_SECONDS;
+        
+        if (this.isOnline && !isAfk) {
+            const secondsSinceLastUpdate = (new Date() - this.lastActivePlaytimeUpdate) / 1000;
+            this._totalActivePlaytimeSeconds += secondsSinceLastUpdate;
+        }
+        
+        this.lastActivePlaytimeUpdate = new Date();
     }
 
     async assignLeader() {
