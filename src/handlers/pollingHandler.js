@@ -54,6 +54,9 @@ module.exports = {
     },
 
     handlers: async function (rustplus, client, info, mapMarkers, teamInfo, time) {
+        // Check for map wipe and clear playtimes if needed
+        rustplus.checkForMapWipeAndClearPlaytimes();
+
         await TeamHandler.handler(rustplus, client, teamInfo.teamInfo);
         rustplus.team.updateTeam(teamInfo.teamInfo);
 

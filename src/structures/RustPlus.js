@@ -108,6 +108,7 @@ class RustPlus extends RustPlusLib {
         this.time = null;           /* Stores the Time structure. */
         this.team = null;           /* Stores the Team structure. */
         this.mapMarkers = null;     /* Stores the MapMarkers structure. */
+        this.lastMapSeed = null;    /* Tracks map seed to detect wipes. */
 
         this.loadRustPlusEvents();
     }
@@ -197,6 +198,27 @@ class RustPlus extends RustPlusLib {
         this.playerConnections[steamId].unshift(savedString);
     }
 
+    checkForMapWipeAndClearPlaytimes() {
+        if (!this.info) return;
+
+        if (this.lastMapSeed === null) {
+            this.lastMapSeed = this.info.seed;
+            return;
+        }
+
+        if (this.info.isSeedChanged({ seed: this.lastMapSeed })) {
+            this.lastMapSeed = this.info.seed;
+            
+            // Clear all playtimes for this server on wipe
+            const instance = Client.client.getInstance(this.guildId);
+            const server = instance.serverList[this.serverId];
+            if (server) {
+                server.playerPlaytimes = {};
+                Client.client.setInstance(this.guildId, instance);
+                this.log(Client.client.intlGet(null, 'infoCap'), 'Map seed changed - playtime stats cleared for wipe');
+            }
+        }
+    }
     updateDeaths(steamId, data) {
         const time = Timer.getCurrentDateTime();
         data['time'] = time;

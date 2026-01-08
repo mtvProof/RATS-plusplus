@@ -40,8 +40,17 @@ class Player {
         this._teamLeader = false;
         this._afkSeconds = 0;
         this._wentOfflineTime = null;
-        this._totalActivePlaytimeSeconds = 0;
         this._lastActivePlaytimeUpdate = new Date();
+
+        // Load playtime from instance file for this server
+        const Client = require('../../index.ts');
+        const instance = Client.client.getInstance(rustplus.guildId);
+        const server = instance.serverList[rustplus.serverId];
+        if (server && server.playerPlaytimes && server.playerPlaytimes[this._steamId]) {
+            this._totalActivePlaytimeSeconds = server.playerPlaytimes[this._steamId];
+        } else {
+            this._totalActivePlaytimeSeconds = 0;
+        }
 
         this.updatePos();
     }
@@ -189,6 +198,22 @@ class Player {
         }
         
         this.lastActivePlaytimeUpdate = new Date();
+        
+        // Persist playtime to instance file
+        this.persistPlaytime();
+    }
+
+    persistPlaytime() {
+        const Client = require('../../index.ts');
+        const instance = Client.client.getInstance(this._rustplus.guildId);
+        const server = instance.serverList[this._rustplus.serverId];
+        if (server) {
+            if (!server.playerPlaytimes) {
+                server.playerPlaytimes = {};
+            }
+            server.playerPlaytimes[this._steamId] = this._totalActivePlaytimeSeconds;
+            Client.client.setInstance(this._rustplus.guildId, instance);
+        }
     }
 
     async assignLeader() {
