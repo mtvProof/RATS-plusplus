@@ -28,6 +28,7 @@ module.exports = {
             await DiscordMessages.sendUpdateTeamInformationMessage(rustplus);
             await DiscordMessages.sendUpdateToolCupboardUpkeepInformationMessage(rustplus);
             await DiscordMessages.sendUpdateMarketWatchlistInformationMessage(rustplus);
+            await DiscordMessages.sendUpdateLootInformationMessage(rustplus);
         }
 
         if (rustplus.informationIntervalCounter === 5) {

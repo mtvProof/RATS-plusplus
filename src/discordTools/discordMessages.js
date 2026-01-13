@@ -658,6 +658,22 @@ module.exports = {
         }
     },
 
+    sendUpdateLootInformationMessage: async function (rustplus) {
+        const instance = Client.client.getInstance(rustplus.guildId);
+
+        const content = {
+            embeds: [DiscordEmbeds.getUpdateLootInformationEmbed(rustplus)]
+        }
+
+        const message = await module.exports.sendMessage(rustplus.guildId, content,
+            instance.informationMessageId.loot, instance.channelId.information);
+
+        if (message.id !== instance.informationMessageId.loot) {
+            instance.informationMessageId.loot = message.id;
+            Client.client.setInstance(rustplus.guildId, instance);
+        }
+    },
+
     sendDiscordCommandResponseMessage: async function (rustplus, client, message, response) {
         const content = {
             embeds: [DiscordEmbeds.getDiscordCommandResponseEmbed(rustplus, response)]

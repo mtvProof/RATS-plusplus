@@ -53,7 +53,8 @@ module.exports = (client, guild) => {
                 team: null,
                 battlemetricsPlayers: null,
                 toolCupboardUpkeep: null,
-                marketWatchlist: null
+                marketWatchlist: null,
+                loot: null
             },
             activeServer: null,
             serverList: {},
@@ -169,6 +170,7 @@ module.exports = (client, guild) => {
                 instance.informationMessageId.battlemetricsPlayers = null;
             if (!instance.informationMessageId.hasOwnProperty('toolCupboardUpkeep')) instance.informationMessageId.toolCupboardUpkeep = null;
             if (!instance.informationMessageId.hasOwnProperty('marketWatchlist')) instance.informationMessageId.marketWatchlist = null;
+            if (!instance.informationMessageId.hasOwnProperty('loot')) instance.informationMessageId.loot = null;
         }
 
         if (!instance.hasOwnProperty('activeServer')) instance.activeServer = null;

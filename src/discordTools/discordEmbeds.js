@@ -808,18 +808,19 @@ module.exports = {
             let status = '';
             let location = (player.isOnline || player.isAlive) ? `${player.pos.string}\n` : '-\n';
 
-            const totalPlaytimeFormatted = player.getTotalActivePlaytimeFormatted('dhs');
+            const totalPlaytimeFormatted = player.getTotalActivePlaytimeFormatted();
 
             if (player.isOnline) {
                 const isAfk = player.getAfkSeconds() >= Constants.AFK_TIME_SECONDS;
                 const afkTime = player.getAfkTime('dhs');
+                const onlineTime = player.getOnlineTime('dhs');
 
                 status += (isAfk) ? Constants.AFK_EMOJI : Constants.ONLINE_EMOJI;
                 status += (player.isAlive) ? ((isAfk) ? Constants.SLEEPING_EMOJI : Constants.ALIVE_EMOJI) :
                     Constants.DEAD_EMOJI;
                 status += (Object.keys(instance.serverListLite[rustplus.serverId]).includes(player.steamId)) ?
                     Constants.PAIRED_EMOJI : '';
-                status += (isAfk) ? ` ${afkTime} (${totalPlaytimeFormatted})\n` : ` (${totalPlaytimeFormatted})\n`;
+                status += (isAfk) ? ` ${afkTime} (${totalPlaytimeFormatted})\n` : ` ${onlineTime} (${totalPlaytimeFormatted})\n`;
             }
             else {
                 const offlineTime = player.getOfflineTime('dhs');
@@ -1097,6 +1098,9 @@ module.exports = {
 
                 for (const order of vendingMachine.sellOrders) {
                     if (watchlistItems.hasOwnProperty(order.itemId)) {
+                        // Skip items with 0 quantity in stock
+                        if (order.amountInStock <= 0) continue;
+                        
                         // Check if this location is already in the list
                         const existingLoc = watchlistItems[order.itemId].locations.find(loc =>
                             loc.location === vendingMachine.location.location && loc.currencyId === order.currencyId
@@ -1121,27 +1125,26 @@ module.exports = {
         let hasItems = false;
 
         for (const [itemId, itemData] of Object.entries(watchlistItems)) {
+            // Skip items with no in-stock locations
+            if (itemData.locations.length === 0) continue;
+            
             hasItems = true;
             const itemNameLine = `**${itemData.name}**\n`;
             description += itemNameLine;
 
-            if (itemData.locations.length === 0) {
-                description += `*Not currently available for sale*\n\n`;
-            } else {
-                // Sort locations by price (ascending)
-                itemData.locations.sort((a, b) => a.price - b.price);
+            // Sort locations by price (ascending)
+            itemData.locations.sort((a, b) => a.price - b.price);
 
-                for (const location of itemData.locations) {
-                    const currencyName = Client.client.items.getName(location.currencyId);
-                    const locationLine = `  • ${location.location}: ${location.quantity} at \`${location.price}\` ${currencyName} each\n`;
-                    
-                    if (totalCharacters + description.length + locationLine.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
-                        break;
-                    }
-                    description += locationLine;
+            for (const location of itemData.locations) {
+                const currencyName = Client.client.items.getName(location.currencyId);
+                const locationLine = `  • ${location.location}: ${location.quantity} at \`${location.price}\` ${currencyName} each\n`;
+                
+                if (totalCharacters + description.length + locationLine.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
+                    break;
                 }
-                description += '\n';
+                description += locationLine;
             }
+            description += '\n';
 
             if (totalCharacters + description.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
                 break;
@@ -1155,6 +1158,91 @@ module.exports = {
             color: Constants.COLOR_DEFAULT,
             description: hasItems && description.trim().length > 0 ? description.trim() : Client.client.intlGet(guildId, 'noWatchlistItems'),
             footer: { text: `${footer.text} • ${commandSyntax}` },
+            timestamp: true
+        });
+
+        return embed;
+    },
+
+    getUpdateLootInformationEmbed: function (rustplus) {
+        const guildId = rustplus.guildId;
+        const instance = Client.client.getInstance(guildId);
+        const serverId = rustplus.serverId;
+
+        const title = 'Loot';
+        const footer = { text: instance.serverList[serverId].title };
+
+        // Categories to track
+        const categories = {
+            'Bunker': { name: 'Bunker', items: {}, hasMonitors: false },
+            'Components': { name: 'Components', items: {}, hasMonitors: false },
+            'Resources': { name: 'Resources', items: {}, hasMonitors: false },
+            'Boom': { name: 'Boom', items: {}, hasMonitors: false },
+            'Teas': { name: 'Teas', items: {}, hasMonitors: false }
+        };
+
+        // Collect all storage monitors and categorize them
+        for (const entityId in instance.serverList[serverId].storageMonitors) {
+            const monitor = instance.serverList[serverId].storageMonitors[entityId];
+            const monitorName = monitor.name.toLowerCase();
+
+            // Determine which category this monitor belongs to
+            let category = null;
+            for (const [key, categoryData] of Object.entries(categories)) {
+                if (monitorName.startsWith(key.toLowerCase())) {
+                    category = key;
+                    break;
+                }
+            }
+
+            // If a match was found, mark that this category has monitors
+            if (category) {
+                categories[category].hasMonitors = true;
+
+                // Get the storage contents and add to category if available
+                if (rustplus.storageMonitors.hasOwnProperty(entityId)) {
+                    const storage = rustplus.storageMonitors[entityId];
+                    if (storage.items && storage.items.length > 0) {
+                        for (const item of storage.items) {
+                            const itemName = Client.client.items.getName(item.itemId);
+                            if (!categories[category].items.hasOwnProperty(itemName)) {
+                                categories[category].items[itemName] = 0;
+                            }
+                            categories[category].items[itemName] += item.quantity;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Build the description with all categories
+        let description = '';
+
+        for (const [categoryKey, categoryData] of Object.entries(categories)) {
+            const itemCount = Object.keys(categoryData.items).length;
+            
+            if (!categoryData.hasMonitors) {
+                description += `**${categoryData.name}**\n*No Monitors Connected*\n\n`;
+            } else if (itemCount === 0) {
+                description += `**${categoryData.name}**\n*Empty*\n\n`;
+            } else {
+                description += `**${categoryData.name}**\n`;
+                
+                // Sort items by name
+                const sortedItems = Object.entries(categoryData.items).sort((a, b) => a[0].localeCompare(b[0]));
+                
+                for (const [itemName, quantity] of sortedItems) {
+                    description += `  • ${itemName}: \`${quantity}\`\n`;
+                }
+                description += '\n';
+            }
+        }
+
+        const embed = module.exports.getEmbed({
+            title: title,
+            color: Constants.COLOR_DEFAULT,
+            description: description.trim(),
+            footer: { text: footer.text },
             timestamp: true
         });
 

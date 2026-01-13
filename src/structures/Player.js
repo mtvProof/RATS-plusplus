@@ -40,6 +40,7 @@ class Player {
         this._teamLeader = false;
         this._afkSeconds = 0;
         this._wentOfflineTime = null;
+        this._cameOnlineTime = player.isOnline ? new Date() : null;
         this._lastActivePlaytimeUpdate = new Date();
 
         // Load playtime from instance file for this server
@@ -84,6 +85,8 @@ class Player {
     set afkSeconds(afkSeconds) { this._afkSeconds = afkSeconds; }
     get wentOfflineTime() { return this._wentOfflineTime; }
     set wentOfflineTime(wentOfflineTime) { this._wentOfflineTime = wentOfflineTime; }
+    get cameOnlineTime() { return this._cameOnlineTime; }
+    set cameOnlineTime(cameOnlineTime) { this._cameOnlineTime = cameOnlineTime; }
     get totalActivePlaytimeSeconds() { return this._totalActivePlaytimeSeconds; }
     set totalActivePlaytimeSeconds(seconds) { this._totalActivePlaytimeSeconds = seconds; }
     get lastActivePlaytimeUpdate() { return this._lastActivePlaytimeUpdate; }
@@ -120,10 +123,13 @@ class Player {
     updatePlayer(player) {
         if (this.isGoneOffline(player)) {
             this.wentOfflineTime = new Date();
+            this.cameOnlineTime = null;
         }
 
         if (this.isGoneOnline(player)) {
             this.lastMovement = new Date();
+            this.cameOnlineTime = new Date();
+            this._lastActivePlaytimeUpdate = new Date();
             this.afkSeconds = 0;
         }
 
@@ -179,6 +185,15 @@ class Player {
         if (this.wentOfflineTime === null) return null;
         const seconds = (new Date() - this.wentOfflineTime) / 1000;
         return (Time.secondsToFullScale(seconds, ignore));
+    }
+
+    getOnlineSeconds() {
+        if (this.cameOnlineTime === null) return 0;
+        return (new Date() - this.cameOnlineTime) / 1000;
+    }
+    getOnlineTime(ignore = '') {
+        if (this.cameOnlineTime === null) return '0s';
+        return Time.secondsToFullScale(this.getOnlineSeconds(), ignore);
     }
 
     getTotalActivePlaytimeSeconds() {
