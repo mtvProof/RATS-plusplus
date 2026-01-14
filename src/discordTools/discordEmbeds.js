@@ -808,28 +808,41 @@ module.exports = {
             let status = '';
             let location = (player.isOnline || player.isAlive) ? `${player.pos.string}\n` : '-\n';
 
-            const totalPlaytimeFormatted = player.getTotalActivePlaytimeFormatted();
-
             if (player.isOnline) {
                 const isAfk = player.getAfkSeconds() >= Constants.AFK_TIME_SECONDS;
                 const afkTime = player.getAfkTime('dhs');
-                const onlineTime = player.getOnlineTime('dhs');
 
                 status += (isAfk) ? Constants.AFK_EMOJI : Constants.ONLINE_EMOJI;
                 status += (player.isAlive) ? ((isAfk) ? Constants.SLEEPING_EMOJI : Constants.ALIVE_EMOJI) :
                     Constants.DEAD_EMOJI;
                 status += (Object.keys(instance.serverListLite[rustplus.serverId]).includes(player.steamId)) ?
                     Constants.PAIRED_EMOJI : '';
-                status += (isAfk) ? ` ${afkTime} (${totalPlaytimeFormatted})\n` : ` ${onlineTime} (${totalPlaytimeFormatted})\n`;
+                status += (isAfk) ? ` ${afkTime}\n` : '\n';
             }
             else {
-                const offlineTime = player.getOfflineTime('dhs');
+                const offlineTime = player.getOfflineTime('s');
                 status += Constants.OFFLINE_EMOJI;
                 status += (player.isAlive) ? Constants.SLEEPING_EMOJI : Constants.DEAD_EMOJI;
                 status += (Object.keys(instance.serverListLite[rustplus.serverId]).includes(player.steamId)) ?
                     Constants.PAIRED_EMOJI : '';
-                status += (offlineTime !== null) ? ` ${offlineTime} (${totalPlaytimeFormatted})\n` : ` (${totalPlaytimeFormatted})\n`;
+                status += (offlineTime !== null) ? ` ${offlineTime}\n` : '\n';
             }
+
+            // Add playtime info
+            const playtimeSeconds = player.totalActivePlaytimeSeconds;
+            const playtimeDays = Math.floor(playtimeSeconds / 86400);
+            const playtimeHours = Math.floor((playtimeSeconds % 86400) / 3600);
+            const playtimeMinutes = Math.floor((playtimeSeconds % 3600) / 60);
+            
+            let playtimeStr = '';
+            if (playtimeDays > 0) {
+                playtimeStr = `${playtimeDays}d ${playtimeHours}h ${playtimeMinutes}m`;
+            } else if (playtimeHours > 0) {
+                playtimeStr = `${playtimeHours}h ${playtimeMinutes}m`;
+            } else {
+                playtimeStr = `${playtimeMinutes}m`;
+            }
+            status += `(${playtimeStr})\n`;
 
             if (totalCharacters + (name.length + status.length + location.length) >=
                 Constants.EMBED_MAX_TOTAL_CHARACTERS) {
@@ -1010,17 +1023,20 @@ module.exports = {
             const now = Math.floor(Date.now() / 1000);
             const secondsUntilDecay = expiry - now;
             
-            // Calculate hours and minutes
-            const hours = Math.floor(secondsUntilDecay / 3600);
+            // Calculate days, hours and minutes
+            const days = Math.floor(secondsUntilDecay / 86400);
+            const hours = Math.floor((secondsUntilDecay % 86400) / 3600);
             const minutes = Math.floor((secondsUntilDecay % 3600) / 60);
             
             // Determine the status dot: green if > 24 hours, red if < 24 hours
-            const statusDot = hours > 24 ? Constants.ONLINE_EMOJI : Constants.OFFLINE_EMOJI;
+            const statusDot = secondsUntilDecay > 86400 ? Constants.ONLINE_EMOJI : Constants.OFFLINE_EMOJI;
             
             // Format the time display
             let timeStr = '';
             if (secondsUntilDecay <= 0) {
                 timeStr = 'DECAYED';
+            } else if (days > 0) {
+                timeStr = `${days}d ${hours}h ${minutes}m`;
             } else if (hours > 0) {
                 timeStr = `${hours}h ${minutes}m`;
             } else {

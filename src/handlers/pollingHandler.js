@@ -57,8 +57,8 @@ module.exports = {
         // Check for map wipe and clear playtimes if needed
         rustplus.checkForMapWipeAndClearPlaytimes();
 
-        await TeamHandler.handler(rustplus, client, teamInfo.teamInfo);
         rustplus.team.updateTeam(teamInfo.teamInfo);
+        await TeamHandler.handler(rustplus, client, teamInfo.teamInfo);
 
         await SmartSwitchHandler.handler(rustplus, client, time.time);
         TimeHandler.handler(rustplus, client, time.time);
