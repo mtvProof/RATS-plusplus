@@ -828,22 +828,6 @@ module.exports = {
                 status += (offlineTime !== null) ? ` ${offlineTime}\n` : '\n';
             }
 
-            // Add playtime info
-            const playtimeSeconds = player.totalActivePlaytimeSeconds;
-            const playtimeDays = Math.floor(playtimeSeconds / 86400);
-            const playtimeHours = Math.floor((playtimeSeconds % 86400) / 3600);
-            const playtimeMinutes = Math.floor((playtimeSeconds % 3600) / 60);
-            
-            let playtimeStr = '';
-            if (playtimeDays > 0) {
-                playtimeStr = `${playtimeDays}d ${playtimeHours}h ${playtimeMinutes}m`;
-            } else if (playtimeHours > 0) {
-                playtimeStr = `${playtimeHours}h ${playtimeMinutes}m`;
-            } else {
-                playtimeStr = `${playtimeMinutes}m`;
-            }
-            status += `(${playtimeStr})\n`;
-
             if (totalCharacters + (name.length + status.length + location.length) >=
                 Constants.EMBED_MAX_TOTAL_CHARACTERS) {
                 break;
