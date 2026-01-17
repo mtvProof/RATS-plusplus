@@ -1125,26 +1125,28 @@ module.exports = {
         let hasItems = false;
 
         for (const [itemId, itemData] of Object.entries(watchlistItems)) {
-            // Skip items with no in-stock locations
-            if (itemData.locations.length === 0) continue;
-            
             hasItems = true;
             const itemNameLine = `**${itemData.name}**\n`;
             description += itemNameLine;
 
-            // Sort locations by price (ascending)
-            itemData.locations.sort((a, b) => a.price - b.price);
+            // If no in-stock locations, show "No Matching Offers"
+            if (itemData.locations.length === 0) {
+                description += `*No Matching Offers*\n\n`;
+            } else {
+                // Sort locations by price (ascending)
+                itemData.locations.sort((a, b) => a.price - b.price);
 
-            for (const location of itemData.locations) {
-                const currencyName = Client.client.items.getName(location.currencyId);
-                const locationLine = `  • ${location.location}: ${location.quantity} at \`${location.price}\` ${currencyName} each\n`;
-                
-                if (totalCharacters + description.length + locationLine.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
-                    break;
+                for (const location of itemData.locations) {
+                    const currencyName = Client.client.items.getName(location.currencyId);
+                    const locationLine = `  • ${location.location}: ${location.quantity} at \`${location.price}\` ${currencyName} each\n`;
+                    
+                    if (totalCharacters + description.length + locationLine.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
+                        break;
+                    }
+                    description += locationLine;
                 }
-                description += locationLine;
+                description += '\n';
             }
-            description += '\n';
 
             if (totalCharacters + description.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
                 break;
