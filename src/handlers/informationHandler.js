@@ -31,7 +31,7 @@ module.exports = {
             await DiscordMessages.sendUpdateLootInformationMessage(rustplus);
         }
 
-        if (rustplus.informationIntervalCounter === 5) {
+        if (rustplus.informationIntervalCounter === 2) {
             rustplus.informationIntervalCounter = 0;
         }
         else {

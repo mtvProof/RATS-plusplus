@@ -298,7 +298,7 @@ module.exports = {
         const message = await module.exports.sendMessage(guildId, content, entity.messageId,
             instance.channelId.storageMonitors, interaction);
 
-        if (!interaction) {
+        if (!interaction && message) {
             instance.serverList[serverId].storageMonitors[entityId].messageId = message.id;
             Client.client.setInstance(guildId, instance);
         }
