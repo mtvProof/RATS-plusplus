@@ -70,6 +70,8 @@ module.exports = async (client, interaction) => {
         const ids = JSON.parse(interaction.customId.replace('ServerEdit', ''));
         const server = instance.serverList[ids.serverId];
         const battlemetricsId = interaction.fields.getTextInputValue('ServerBattlemetricsId');
+        const oilRigCrateUnlockTimeRaw = interaction.fields.getTextInputValue('ServerOilRigCrateUnlockTime');
+        const oilRigCrateUnlockTime = parseInt(oilRigCrateUnlockTimeRaw);
 
         if (battlemetricsId !== server.battlemetricsId) {
             if (battlemetricsId === '') {
@@ -90,11 +92,16 @@ module.exports = async (client, interaction) => {
                 }
             }
         }
+
+        if (!Number.isNaN(oilRigCrateUnlockTime) && oilRigCrateUnlockTime >= 0 &&
+            (oilRigCrateUnlockTime * 1000) !== server.oilRigLockedCrateUnlockTimeMs) {
+            server.oilRigLockedCrateUnlockTimeMs = oilRigCrateUnlockTime * 1000;
+        }
         client.setInstance(guildId, instance);
 
         client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
             id: `${verifyId}`,
-            value: `${server.battlemetricsId}`
+            value: `${server.battlemetricsId}, ${server.oilRigLockedCrateUnlockTimeMs}`
         }));
 
         await DiscordMessages.sendServerMessage(interaction.guildId, ids.serverId);

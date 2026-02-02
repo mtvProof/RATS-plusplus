@@ -526,6 +526,50 @@ module.exports = async (client, interaction) => {
         const modal = DiscordModals.getCustomTimersEditModal(guildId, ids.serverId);
         await interaction.showModal(modal);
     }
+    else if (interaction.customId === 'CreateTrackerTrackers') {
+        if (!instance.activeServer) {
+            await client.interactionUpdate(interaction, {
+                content: client.intlGet(guildId, 'noActiveServer'),
+                components: []
+            });
+            return;
+        }
+
+        const server = instance.serverList[instance.activeServer];
+
+        if (!server) {
+            await client.interactionUpdate(interaction, {
+                content: client.intlGet(guildId, 'serverNotFound'),
+                components: []
+            });
+            return;
+        }
+
+        interaction.deferUpdate();
+
+        const trackerId = client.findAvailableTrackerId(guildId);
+
+        instance.trackers[trackerId] = {
+            name: 'Tracker',
+            serverId: instance.activeServer,
+            battlemetricsId: server.battlemetricsId,
+            title: server.title,
+            img: server.img,
+            clanTag: '',
+            everyone: false,
+            inGame: true,
+            players: [],
+            messageId: null
+        }
+        client.setInstance(guildId, instance);
+
+        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
+            id: `${verifyId}`,
+            value: `${trackerId}`
+        }));
+
+        await DiscordMessages.sendTrackerMessage(guildId, trackerId);
+    }
     else if (interaction.customId.startsWith('CreateTracker')) {
         const ids = JSON.parse(interaction.customId.replace('CreateTracker', ''));
         const server = instance.serverList[ids.serverId];
@@ -584,6 +628,45 @@ module.exports = async (client, interaction) => {
         }));
 
         await DiscordMessages.sendSmartSwitchGroupMessage(guildId, ids.serverId, groupId);
+    }
+    else if (interaction.customId === 'CreateGroupSwitchGroups') {
+        if (!instance.activeServer) {
+            await client.interactionUpdate(interaction, {
+                content: client.intlGet(guildId, 'noActiveServer'),
+                components: []
+            });
+            return;
+        }
+
+        const server = instance.serverList[instance.activeServer];
+
+        if (!server) {
+            await client.interactionUpdate(interaction, {
+                content: client.intlGet(guildId, 'serverNotFound'),
+                components: []
+            });
+            return;
+        }
+
+        interaction.deferUpdate();
+
+        const groupId = client.findAvailableGroupId(guildId, instance.activeServer);
+
+        server.switchGroups[groupId] = {
+            name: 'Group',
+            command: `${groupId}`,
+            switches: [],
+            image: 'smart_switch.png',
+            messageId: null
+        }
+        client.setInstance(guildId, instance);
+
+        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
+            id: `${verifyId}`,
+            value: `${groupId}`
+        }));
+
+        await DiscordMessages.sendSmartSwitchGroupMessage(guildId, instance.activeServer, groupId);
     }
     else if (interaction.customId.startsWith('ServerDisconnect') ||
         interaction.customId.startsWith('ServerReconnecting')) {
@@ -939,6 +1022,52 @@ module.exports = async (client, interaction) => {
         }
 
         await interaction.message.delete();
+    }
+    else if (interaction.customId.startsWith('GroupToggleSwitch')) {
+        const ids = JSON.parse(interaction.customId.replace('GroupToggleSwitch', ''));
+        const server = instance.serverList[ids.serverId];
+
+        if (!server || (server && !server.switchGroups.hasOwnProperty(ids.groupId))) {
+            await interaction.message.delete();
+            return;
+        }
+
+        if (!server.switches.hasOwnProperty(ids.switchId)) {
+            await interaction.message.delete();
+            return;
+        }
+
+        interaction.deferUpdate();
+
+        if (rustplus && rustplus.serverId === ids.serverId) {
+            const sw = server.switches[ids.switchId];
+            const newState = !sw.active;
+
+            if (instance.generalSettings.smartSwitchNotifyInGameWhenChangedFromDiscord) {
+                const user = interaction.user.username;
+                const name = sw.name;
+                const status = newState ? client.intlGet(guildId, 'onCap') : client.intlGet(guildId, 'offCap');
+                const str = client.intlGet(guildId, 'userTurnedOnOffSmartSwitchFromDiscord', {
+                    user: user,
+                    name: name,
+                    status: status
+                });
+
+                await rustplus.sendInGameMessage(str);
+            }
+
+            client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
+                id: `${verifyId}`,
+                value: `${ids.switchId} -> ${newState}`
+            }));
+
+            await rustplus.turnSmartSwitchAsync(ids.switchId, newState);
+
+            // Update the switch group message after a short delay to allow state to update
+            setTimeout(async () => {
+                await DiscordMessages.sendSmartSwitchGroupMessage(guildId, ids.serverId, ids.groupId);
+            }, 500);
+        }
     }
     else if (interaction.customId.startsWith('GroupTurnOn') ||
         interaction.customId.startsWith('GroupTurnOff')) {

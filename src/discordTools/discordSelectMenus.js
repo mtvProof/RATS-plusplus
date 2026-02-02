@@ -142,6 +142,13 @@ module.exports = {
                         value: 'RPP'
                     },
                     {
+                        label: 'RATS++',
+                        description: Client.client.intlGet(guildId, 'trademarkShownBeforeMessage', {
+                            trademark: 'RATS++'
+                        }),
+                        value: 'RATS++'
+                    },
+                    {
                         label: Client.client.intlGet(guildId, 'notShowingCap'),
                         description: Client.client.intlGet(guildId, 'hideTrademark'),
                         value: 'NOT SHOWING'

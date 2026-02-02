@@ -1159,7 +1159,7 @@ module.exports = {
             title: title,
             color: Constants.COLOR_DEFAULT,
             description: hasItems && description.trim().length > 0 ? description.trim() : Client.client.intlGet(guildId, 'noWatchlistItems'),
-            footer: { text: `${footer.text} • ${commandSyntax}` },
+            footer: { text: `${commandSyntax}` },
             timestamp: true
         });
 

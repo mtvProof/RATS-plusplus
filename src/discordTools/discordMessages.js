@@ -324,6 +324,40 @@ module.exports = {
         }
     },
 
+    sendSwitchGroupsCreateButtonMessage: async function (guildId, serverId) {
+        const instance = Client.client.getInstance(guildId);
+
+        const content = {
+            content: Client.client.intlGet(guildId, 'clickToCreateGroup'),
+            components: [DiscordButtons.getSwitchGroupsCreateButton(guildId, serverId)]
+        }
+
+        const message = await module.exports.sendMessage(guildId, content, instance.switchGroupsMessageId,
+            instance.channelId.switchGroups);
+
+        if (message) {
+            instance.switchGroupsMessageId = message.id;
+            Client.client.setInstance(guildId, instance);
+        }
+    },
+
+    sendTrackersCreateButtonMessage: async function (guildId) {
+        const instance = Client.client.getInstance(guildId);
+
+        const content = {
+            content: Client.client.intlGet(guildId, 'clickToCreateTracker'),
+            components: [DiscordButtons.getTrackersCreateButton(guildId)]
+        }
+
+        const message = await module.exports.sendMessage(guildId, content, instance.trackersMessageId,
+            instance.channelId.trackers);
+
+        if (message) {
+            instance.trackersMessageId = message.id;
+            Client.client.setInstance(guildId, instance);
+        }
+    },
+
     sendStorageMonitorRecycleMessage: async function (guildId, serverId, entityId, items) {
         const instance = Client.client.getInstance(guildId);
 

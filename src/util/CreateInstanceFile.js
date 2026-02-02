@@ -56,6 +56,8 @@ module.exports = (client, guild) => {
                 marketWatchlist: null,
                 loot: null
             },
+            switchGroupsMessageId: null,
+            trackersMessageId: null,
             activeServer: null,
             serverList: {},
             serverListLite: {},
@@ -172,6 +174,9 @@ module.exports = (client, guild) => {
             if (!instance.informationMessageId.hasOwnProperty('marketWatchlist')) instance.informationMessageId.marketWatchlist = null;
             if (!instance.informationMessageId.hasOwnProperty('loot')) instance.informationMessageId.loot = null;
         }
+
+        if (!instance.hasOwnProperty('switchGroupsMessageId')) instance.switchGroupsMessageId = null;
+        if (!instance.hasOwnProperty('trackersMessageId')) instance.trackersMessageId = null;
 
         if (!instance.hasOwnProperty('activeServer')) instance.activeServer = null;
         if (!instance.hasOwnProperty('serverList')) instance.serverList = {};

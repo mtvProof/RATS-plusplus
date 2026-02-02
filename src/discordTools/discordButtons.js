@@ -175,9 +175,11 @@ module.exports = {
     },
 
     getSmartSwitchGroupButtons: function (guildId, serverId, groupId) {
+        const instance = Client.client.getInstance(guildId);
+        const group = instance.serverList[serverId].switchGroups[groupId];
         const identifier = JSON.stringify({ "serverId": serverId, "groupId": groupId });
 
-        return [
+        const rows = [
             new Discord.ActionRowBuilder().addComponents(
                 module.exports.getButton({
                     customId: `GroupTurnOn${identifier}`,
@@ -211,6 +213,65 @@ module.exports = {
                     style: DANGER
                 }))
         ];
+
+        // Add individual toggle buttons for each switch (max 3 rows of 5 buttons each = 15 switches)
+        let currentRow = null;
+        let buttonCount = 0;
+        
+        for (const switchId of group.switches) {
+            if (instance.serverList[serverId].switches.hasOwnProperty(switchId)) {
+                const sw = instance.serverList[serverId].switches[switchId];
+                
+                if (buttonCount % 5 === 0) {
+                    // Start a new row
+                    if (currentRow) rows.push(currentRow);
+                    if (rows.length >= 5) break; // Discord limit of 5 rows
+                    currentRow = new Discord.ActionRowBuilder();
+                }
+                
+                const toggleIdentifier = JSON.stringify({ "serverId": serverId, "groupId": groupId, "switchId": switchId });
+                const label = sw.name.length > 15 ? sw.name.substring(0, 12) + '...' : sw.name;
+                
+                currentRow.addComponents(
+                    module.exports.getButton({
+                        customId: `GroupToggleSwitch${toggleIdentifier}`,
+                        label: label,
+                        style: sw.active ? SUCCESS : DANGER,
+                        disabled: !sw.reachable
+                    })
+                );
+                
+                buttonCount++;
+            }
+        }
+        
+        // Add the last row if it has buttons
+        if (currentRow && currentRow.components.length > 0) {
+            rows.push(currentRow);
+        }
+
+        return rows;
+    },
+
+    getSwitchGroupsCreateButton: function (guildId, serverId) {
+        const identifier = JSON.stringify({ "serverId": serverId });
+        return new Discord.ActionRowBuilder().addComponents(
+            module.exports.getButton({
+                customId: `CreateGroup${identifier}`,
+                label: Client.client.intlGet(guildId, 'createGroupCap'),
+                style: PRIMARY
+            })
+        );
+    },
+
+    getTrackersCreateButton: function (guildId) {
+        return new Discord.ActionRowBuilder().addComponents(
+            module.exports.getButton({
+                customId: 'CreateTrackerTrackers',
+                label: Client.client.intlGet(guildId, 'createTrackerCap'),
+                style: PRIMARY
+            })
+        );
     },
 
     getSmartAlarmButtons: function (guildId, serverId, entityId) {

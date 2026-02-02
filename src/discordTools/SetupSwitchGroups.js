@@ -26,8 +26,18 @@ module.exports = async (client, rustplus) => {
     const guildId = rustplus.guildId;
 
     if (rustplus.isNewConnection) {
-        await DiscordTools.clearTextChannel(guildId, instance.channelId.switchGroups, 100);
+        for (const [serverId, server] of Object.entries(instance.serverList)) {
+            for (const [groupId, group] of Object.entries(server.switchGroups)) {
+                if (group.messageId && group.messageId !== instance.switchGroupsMessageId) {
+                    await DiscordTools.deleteMessageById(guildId, instance.channelId.switchGroups, group.messageId);
+                }
+                instance.serverList[serverId].switchGroups[groupId].messageId = null;
+            }
+        }
+        client.setInstance(guildId, instance);
     }
+
+    await DiscordMessages.sendSwitchGroupsCreateButtonMessage(guildId, rustplus.serverId);
 
     for (const groupId in instance.serverList[rustplus.serverId].switchGroups) {
         await DiscordMessages.sendSmartSwitchGroupMessage(rustplus.guildId, rustplus.serverId, groupId);

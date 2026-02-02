@@ -33,13 +33,13 @@ const VendingMachines = require('../handlers/vendingMachineHandler.js');
 module.exports = {
     pollingHandler: async function (rustplus, client) {
         /* Poll information such as info, mapMarkers, teamInfo and time */
-        let info = await rustplus.getInfoAsync();
+        let info = await rustplus.getInfoAsync(30000);
         if (!(await rustplus.isResponseValid(info))) return;
-        let mapMarkers = await rustplus.getMapMarkersAsync();
+        let mapMarkers = await rustplus.getMapMarkersAsync(30000);
         if (!(await rustplus.isResponseValid(mapMarkers))) return;
-        let teamInfo = await rustplus.getTeamInfoAsync();
+        let teamInfo = await rustplus.getTeamInfoAsync(30000);
         if (!(await rustplus.isResponseValid(teamInfo))) return;
-        let time = await rustplus.getTimeAsync();
+        let time = await rustplus.getTimeAsync(30000);
         if (!(await rustplus.isResponseValid(time))) return;
 
         if (rustplus.isFirstPoll) {

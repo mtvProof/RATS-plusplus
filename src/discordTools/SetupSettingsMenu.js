@@ -27,6 +27,8 @@ const DiscordEmbeds = require('./discordEmbeds.js');
 const DiscordSelectMenus = require('./discordSelectMenus.js');
 const DiscordTools = require('./discordTools.js');
 
+const SETTINGS_MENU_VERSION = 1; // bump when settings UI options change
+
 module.exports = async (client, guild, forced = false) => {
     const instance = client.getInstance(guild.id);
     const channel = DiscordTools.getTextChannelById(guild.id, instance.channelId.settings);
@@ -37,13 +39,17 @@ module.exports = async (client, guild, forced = false) => {
         return;
     }
 
-    if (instance.firstTime || forced) {
+    const currentVersion = instance.generalSettings.settingsVersion || 0;
+    const shouldForce = forced || instance.firstTime || currentVersion < SETTINGS_MENU_VERSION;
+
+    if (shouldForce) {
         await DiscordTools.clearTextChannel(guild.id, instance.channelId.settings, 100);
 
         await setupGeneralSettings(client, guild.id, channel);
         await setupNotificationSettings(client, guild.id, channel);
 
         instance.firstTime = false;
+        instance.generalSettings.settingsVersion = SETTINGS_MENU_VERSION;
         client.setInstance(guild.id, instance);
     }
 

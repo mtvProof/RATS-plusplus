@@ -51,6 +51,14 @@ module.exports = {
                 style: Discord.TextInputStyle.Short,
                 required: false,
                 minLength: 0
+            })),
+            new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
+                customId: 'ServerOilRigCrateUnlockTime',
+                label: Client.client.intlGet(guildId, 'customTimerEditCrateOilRigUnlockLabel'),
+                value: `${server.oilRigLockedCrateUnlockTimeMs / 1000}`,
+                style: Discord.TextInputStyle.Short,
+                required: false,
+                minLength: 0
             }))
         );
 
