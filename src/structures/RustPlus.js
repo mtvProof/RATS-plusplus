@@ -48,6 +48,8 @@ class RustPlus extends RustPlusLib {
 
         this.serverId = `${this.server}-${this.port}`;
         this.guildId = guildId;
+        this.instanceLabel = 'primary';
+        this.hosterSteamId = steamId;
 
         this.leaderRustPlusInstance = null;
         this.uptimeServer = null;
@@ -146,6 +148,11 @@ class RustPlus extends RustPlusLib {
     }
 
     updateLeaderRustPlusLiteInstance() {
+        // Guard against missing team info or server lite data.
+        const instance = Client.client.getInstance(this.guildId);
+        if (!this.team || !this.team.leaderSteamId) return;
+        if (!instance || !instance.serverListLite || !instance.serverListLite[this.serverId]) return;
+
         if (this.leaderRustPlusInstance !== null) {
             if (Client.client.rustplusLiteReconnectTimers[this.guildId]) {
                 clearTimeout(Client.client.rustplusLiteReconnectTimers[this.guildId]);
@@ -156,7 +163,6 @@ class RustPlus extends RustPlusLib {
             this.leaderRustPlusInstance = null;
         }
 
-        const instance = Client.client.getInstance(this.guildId);
         const leader = this.team.leaderSteamId;
         if (leader === this.playerId) return;
         if (!(leader in instance.serverListLite[this.serverId])) return;
@@ -270,9 +276,12 @@ class RustPlus extends RustPlusLib {
         this.isDeleted = true;
         this.disconnect();
 
-        if (Client.client.rustplusInstances.hasOwnProperty(this.guildId)) {
-            if (Client.client.rustplusInstances[this.guildId].serverId === this.serverId) {
-                delete Client.client.rustplusInstances[this.guildId];
+        const isSecondary = this.instanceLabel === 'secondary';
+        const targetMap = isSecondary ? Client.client.rustplusSecondaryInstances : Client.client.rustplusInstances;
+
+        if (targetMap.hasOwnProperty(this.guildId)) {
+            if (targetMap[this.guildId].serverId === this.serverId) {
+                delete targetMap[this.guildId];
                 return true;
             }
         }
@@ -295,6 +304,16 @@ class RustPlus extends RustPlusLib {
 
     sendInGameMessage(message) {
         InGameChatHandler.inGameChatHandler(this, Client.client, message);
+
+        const containsBrand = `${message}`.toUpperCase().includes('RATS++');
+        if (containsBrand) return; // Avoid mirroring branded auto-messages to the other team
+
+        const mirrors = Client.client.getRustplusInstancesAll(this.guildId)
+            .filter(rp => rp && rp !== this && rp.isOperational);
+
+        for (const rustplusInstance of mirrors) {
+            InGameChatHandler.inGameChatHandler(rustplusInstance, Client.client, message);
+        }
     }
 
     async sendEvent(setting, text, event, embed_color, firstPoll = false, image = null) {
@@ -305,7 +324,8 @@ class RustPlus extends RustPlusLib {
         if (!firstPoll && setting.discord) {
             await DiscordMessages.sendDiscordEventMessage(this.guildId, this.serverId, text, img, embed_color);
         }
-        if (!firstPoll && setting.inGame) {
+        // Only broadcast in-game from the primary instance to avoid duplicate sends across both teams.
+        if (!firstPoll && setting.inGame && this.instanceLabel === 'primary') {
             await this.sendInGameMessage(`${text}`);
         }
         if (!firstPoll && setting.voice) {

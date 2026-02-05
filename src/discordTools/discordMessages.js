@@ -67,6 +67,8 @@ module.exports = {
         const message = await module.exports.sendMessage(guildId, content, server.messageId,
             instance.channelId.servers, interaction);
 
+        if (!message) return; // Send failed; avoid touching instance state
+
         if (!interaction) {
             instance.serverList[serverId].messageId = message.id;
             Client.client.setInstance(guildId, instance);
@@ -537,15 +539,20 @@ module.exports = {
     sendTeamChatMessage: async function (guildId, message) {
         const instance = Client.client.getInstance(guildId);
 
+        const teamLabel = message.teamLabel === 'secondary' ? 'Team 2' : 'Team 1';
+
         let color = Constants.COLOR_TEAMCHAT_DEFAULT;
         if (instance.teamChatColors.hasOwnProperty(message.steamId)) {
             color = instance.teamChatColors[message.steamId];
+        }
+        else if (message.teamLabel === 'secondary') {
+            color = Constants.COLOR_TEAMCHAT_SECONDARY;
         }
 
         const content = {
             embeds: [DiscordEmbeds.getEmbed({
                 color: color,
-                description: `**${message.name}**: ${message.message}`
+                description: `**[${teamLabel}] ${message.name}**: ${message.message}`
             })]
         }
 
@@ -587,8 +594,22 @@ module.exports = {
     sendUpdateServerInformationMessage: async function (rustplus) {
         const instance = Client.client.getInstance(rustplus.guildId);
 
+        let embed = null;
+        try {
+            embed = await DiscordEmbeds.getUpdateServerInformationEmbed(rustplus);
+        }
+        catch (e) {
+            Client.client.log(Client.client.intlGet(null, 'errorCap'), `sendUpdateServerInformationMessage failed: ${e}`, 'error');
+            embed = DiscordEmbeds.getEmbed({
+                title: Client.client.intlGet(rustplus.guildId, 'serverInfo'),
+                color: Constants.COLOR_DEFAULT,
+                description: Client.client.intlGet(rustplus.guildId, 'unavailable'),
+                timestamp: true
+            });
+        }
+
         const content = {
-            embeds: [DiscordEmbeds.getUpdateServerInformationEmbed(rustplus)],
+            embeds: [embed],
             files: [new Discord.AttachmentBuilder(
                 Path.join(__dirname, '..', 'resources/images/server_info_logo.png')
             )]

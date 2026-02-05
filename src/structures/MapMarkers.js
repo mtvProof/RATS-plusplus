@@ -232,7 +232,7 @@ class MapMarkers {
 
         for (let marker of this.getMarkersOfType(type, markers)) {
             if (this.isMarkerPresentByTypeXY(type, marker.x, marker.y)) {
-                leftMarkersOfType = leftMarkersOfType.filter(e => e.x !== marker.x) || e.y !== marker.y;
+                leftMarkersOfType = leftMarkersOfType.filter(e => e.x !== marker.x || e.y !== marker.y);
             }
         }
 
@@ -326,7 +326,7 @@ class MapMarkers {
 
         /* VendingMachine markers that have left. */
         for (let marker of leftMarkers) {
-            this.vendingMachines = this.vendingMachines.filter(e => e.x !== marker.x) || e.y !== marker.y;
+            this.vendingMachines = this.vendingMachines.filter(e => e.x !== marker.x || e.y !== marker.y);
         }
 
         /* VendingMachine markers that still remains. */
@@ -334,6 +334,13 @@ class MapMarkers {
             let mapSize = this.rustplus.info.correctedMapSize;
             let pos = Map.getPos(marker.x, marker.y, mapSize, this.rustplus);
             let vendingMachine = this.getMarkerByTypeXY(this.types.VendingMachine, marker.x, marker.y);
+
+            if (!vendingMachine) {
+                // State got out of sync; add the marker back to keep map updates safe
+                marker.location = pos;
+                this.vendingMachines.push(marker);
+                continue;
+            }
 
             vendingMachine.id = marker.id;
             vendingMachine.location = pos;

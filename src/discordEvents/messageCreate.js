@@ -25,9 +25,10 @@ module.exports = {
     name: 'messageCreate',
     async execute(client, message) {
         const instance = client.getInstance(message.guild.id);
-        const rustplus = client.rustplusInstances[message.guild.id];
+        const rustplusPrimary = client.rustplusInstances[message.guild.id];
+        const rustplusInstances = client.getRustplusInstancesAll(message.guild.id).filter(rp => rp && rp.isOperational);
 
-        if (message.author.bot || !rustplus || (rustplus && !rustplus.isOperational)) return;
+        if (message.author.bot || rustplusInstances.length === 0) return;
 
         if (instance.blacklist['discordIds'].includes(message.author.id) &&
             Object.values(instance.channelId).includes(message.channelId)) {
@@ -43,7 +44,9 @@ module.exports = {
         }
 
         if (message.channelId === instance.channelId.commands) {
-            await DiscordCommandHandler.discordCommandHandler(rustplus, client, message);
+            if (rustplusPrimary && rustplusPrimary.isOperational) {
+                await DiscordCommandHandler.discordCommandHandler(rustplusPrimary, client, message);
+            }
         }
         else if (message.channelId === instance.channelId.teamchat) {
             const guild = DiscordTools.getGuild(message.guild.id);
@@ -54,7 +57,13 @@ module.exports = {
                 user: `${message.author.username} (${message.author.id})`,
                 message: message.cleanContent
             }));
-            await rustplus.sendInGameMessage(`${message.author.username}: ${message.cleanContent}`);
+
+            const target = (rustplusPrimary && rustplusPrimary.isOperational) ?
+                rustplusPrimary : rustplusInstances[0];
+
+            if (target) {
+                await target.sendInGameMessage(`${message.author.username}: ${message.cleanContent}`);
+            }
         }
     },
 }

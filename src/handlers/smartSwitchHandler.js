@@ -25,6 +25,8 @@ const Timer = require('../util/timer');
 
 module.exports = {
     handler: async function (rustplus, client, time) {
+        if (rustplus.instanceLabel === 'secondary') return;
+
         const instance = client.getInstance(rustplus.guildId);
         const guildId = rustplus.guildId;
         const serverId = rustplus.serverId;
@@ -490,15 +492,31 @@ module.exports = {
         const serverId = rustplus.serverId;
         const instance = client.getInstance(guildId);
         const switches = instance.serverList[serverId].switches;
+        const primaryRustplus = client.rustplusInstances[guildId];
+        const secondaryRustplus = client.rustplusSecondaryInstances[guildId];
 
         const prevActive = switches[entityId].active;
         switches[entityId].active = active;
         client.setInstance(guildId, instance);
 
-        rustplus.interactionSwitches.push(entityId);
+        // Always try primary (hoster1) first, fall back to secondary only if primary fails/unavailable.
+        const controllers = [primaryRustplus, secondaryRustplus].filter(rp => rp && rp.isOperational);
+        let succeeded = false;
 
-        const response = await rustplus.turnSmartSwitchAsync(entityId, active);
-        if (!(await rustplus.isResponseValid(response))) {
+        for (const controller of controllers) {
+            controller.interactionSwitches.push(entityId);
+            const response = await controller.turnSmartSwitchAsync(entityId, active);
+            const valid = await controller.isResponseValid(response);
+            controller.interactionSwitches = controller.interactionSwitches.filter(e => e !== entityId);
+
+            if (valid) {
+                succeeded = true;
+                switches[entityId].reachable = true;
+                break;
+            }
+        }
+
+        if (!succeeded) {
             rustplus.sendInGameMessage(client.intlGet(guildId, 'noCommunicationSmartSwitch', {
                 name: switches[entityId].name
             }));
@@ -507,12 +525,8 @@ module.exports = {
             }
             switches[entityId].reachable = false;
             switches[entityId].active = prevActive;
+        }
 
-            rustplus.interactionSwitches = rustplus.interactionSwitches.filter(e => e !== entityId);
-        }
-        else {
-            switches[entityId].reachable = true;
-        }
         client.setInstance(guildId, instance);
 
         DiscordMessages.sendSmartSwitchMessage(guildId, serverId, entityId);

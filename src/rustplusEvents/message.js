@@ -92,6 +92,8 @@ async function messageBroadcastTeamMessage(rustplus, client, message) {
     tempMessage = tempMessage.replace(/^<color.+?<\/color>/g, '');      /* Unknown */
     message.broadcast.teamMessage.message.message = tempMessage;
 
+    message.broadcast.teamMessage.message.teamLabel = rustplus.instanceLabel || 'primary';
+
     if (instance.blacklist['steamIds'].includes(`${steamId}`)) {
         rustplus.log(client.intlGet(null, 'infoCap'), client.intlGet(null, `userPartOfBlacklistInGame`, {
             user: `${message.broadcast.teamMessage.message.name} (${steamId})`,
@@ -120,11 +122,35 @@ async function messageBroadcastTeamMessage(rustplus, client, message) {
     }));
 
     TeamChatHandler(rustplus, client, message.broadcast.teamMessage.message);
+
+    // Relay team chat across teams so both groups can see it.
+    relayTeamChatAcrossTeams(rustplus, client, message.broadcast.teamMessage.message);
+}
+
+function relayTeamChatAcrossTeams(sourceRustplus, client, msg) {
+    const guildId = sourceRustplus.guildId;
+    const targetRustplus = sourceRustplus.instanceLabel === 'primary' ?
+        client.rustplusSecondaryInstances[guildId] : client.rustplusInstances[guildId];
+
+    if (!targetRustplus || !targetRustplus.isOperational) return;
+
+    const normalizedMsg = `${msg.message}`.toUpperCase();
+    if (msg.message.startsWith('[Team 1]') || msg.message.startsWith('[Team 2]')) return;
+    if (normalizedMsg.includes('RATS++')) return;
+
+    const sourceLabel = sourceRustplus.instanceLabel === 'secondary' ? 'Team 2' : 'Team 1';
+    const crossMessage = `[${sourceLabel}] ${msg.name}: ${msg.message}`;
+
+    targetRustplus.updateBotMessages(crossMessage);
+    targetRustplus.sendTeamMessageAsync(crossMessage);
 }
 
 async function messageBroadcastEntityChanged(rustplus, client, message) {
     const instance = client.getInstance(rustplus.guildId);
     const entityId = message.broadcast.entityChanged.entityId;
+
+    // Secondary (hoster2) should not process smart devices.
+    if (rustplus.instanceLabel === 'secondary') return;
 
     if (instance.serverList[rustplus.serverId].switches.hasOwnProperty(entityId)) {
         messageBroadcastEntityChangedSmartSwitch(rustplus, client, message);
@@ -142,6 +168,8 @@ async function messageBroadcastCameraRays(rustplus, client, message) {
 }
 
 async function messageBroadcastEntityChangedSmartSwitch(rustplus, client, message) {
+    if (rustplus.instanceLabel === 'secondary') return;
+
     const instance = client.getInstance(rustplus.guildId);
     const serverId = rustplus.serverId;
     const entityId = message.broadcast.entityChanged.entityId;
@@ -169,6 +197,8 @@ async function messageBroadcastEntityChangedSmartSwitch(rustplus, client, messag
 }
 
 async function messageBroadcastEntityChangedSmartAlarm(rustplus, client, message) {
+    if (rustplus.instanceLabel === 'secondary') return;
+
     const instance = client.getInstance(rustplus.guildId);
     const serverId = rustplus.serverId;
     const entityId = message.broadcast.entityChanged.entityId;
@@ -195,29 +225,35 @@ async function messageBroadcastEntityChangedSmartAlarm(rustplus, client, message
 }
 
 async function messageBroadcastEntityChangedStorageMonitor(rustplus, client, message) {
-    const instance = client.getInstance(rustplus.guildId);
+    const guildId = rustplus.guildId;
+    const instance = client.getInstance(guildId);
+    const primaryRustplus = client.rustplusInstances[guildId];
     const serverId = rustplus.serverId;
     const entityId = message.broadcast.entityChanged.entityId;
     const server = instance.serverList[serverId];
 
+    // Ignore storage monitor events from secondary; only primary should evaluate TC state.
+    if (rustplus.instanceLabel !== 'primary') return;
+
     if (!server || (server && !server.storageMonitors[entityId])) return;
+    if (!primaryRustplus || !primaryRustplus.isOperational) return;
 
     if (message.broadcast.entityChanged.payload.value === true) return;
 
     if (server.storageMonitors[entityId].type === 'toolCupboard' ||
         message.broadcast.entityChanged.payload.capacity === Constants.STORAGE_MONITOR_TOOL_CUPBOARD_CAPACITY) {
-        setTimeout(updateToolCupboard.bind(null, rustplus, client, message), 2000);
+        setTimeout(updateToolCupboard.bind(null, primaryRustplus, client, message), 2000);
     }
     else {
-        rustplus.storageMonitors[entityId] = {
+        primaryRustplus.storageMonitors[entityId] = {
             items: message.broadcast.entityChanged.payload.items,
             expiry: message.broadcast.entityChanged.payload.protectionExpiry,
             capacity: message.broadcast.entityChanged.payload.capacity,
             hasProtection: message.broadcast.entityChanged.payload.hasProtection
         }
 
-        const info = await rustplus.getEntityInfoAsync(entityId);
-        server.storageMonitors[entityId].reachable = await rustplus.isResponseValid(info) ? true : false;
+        const info = await primaryRustplus.getEntityInfoAsync(entityId);
+        server.storageMonitors[entityId].reachable = await primaryRustplus.isResponseValid(info) ? true : false;
 
         if (server.storageMonitors[entityId].reachable) {
             if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_VENDING_MACHINE_CAPACITY) {
@@ -227,23 +263,23 @@ async function messageBroadcastEntityChangedStorageMonitor(rustplus, client, mes
                 server.storageMonitors[entityId].type = 'largeWoodBox';
             }
         }
-        client.setInstance(rustplus.guildId, instance);
+        client.setInstance(guildId, instance);
 
-        await DiscordMessages.sendStorageMonitorMessage(rustplus.guildId, serverId, entityId);
+        await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
     }
 }
 
-async function updateToolCupboard(rustplus, client, message) {
-    const instance = client.getInstance(rustplus.guildId);
-    const server = instance.serverList[rustplus.serverId];
+async function updateToolCupboard(primaryRustplus, client, message) {
+    const instance = client.getInstance(primaryRustplus.guildId);
+    const server = instance.serverList[primaryRustplus.serverId];
     const entityId = message.broadcast.entityChanged.entityId;
 
-    const info = await rustplus.getEntityInfoAsync(entityId);
-    server.storageMonitors[entityId].reachable = await rustplus.isResponseValid(info) ? true : false;
-    client.setInstance(rustplus.guildId, instance);
+    const info = await primaryRustplus.getEntityInfoAsync(entityId);
+    server.storageMonitors[entityId].reachable = await primaryRustplus.isResponseValid(info) ? true : false;
+    client.setInstance(primaryRustplus.guildId, instance);
 
     if (server.storageMonitors[entityId].reachable) {
-        rustplus.storageMonitors[entityId] = {
+        primaryRustplus.storageMonitors[entityId] = {
             items: info.entityInfo.payload.items,
             expiry: info.entityInfo.payload.protectionExpiry,
             capacity: info.entityInfo.payload.capacity,
@@ -255,10 +291,10 @@ async function updateToolCupboard(rustplus, client, message) {
         if (info.entityInfo.payload.protectionExpiry === 0 && server.storageMonitors[entityId].decaying === false) {
             server.storageMonitors[entityId].decaying = true;
 
-            await DiscordMessages.sendDecayingNotificationMessage(rustplus.guildId, rustplus.serverId, entityId);
+            await DiscordMessages.sendDecayingNotificationMessage(primaryRustplus.guildId, primaryRustplus.serverId, entityId);
 
             if (server.storageMonitors[entityId].inGame) {
-                rustplus.sendInGameMessage(client.intlGet(rustplus.guildId, 'isDecaying', {
+                primaryRustplus.sendInGameMessage(client.intlGet(primaryRustplus.guildId, 'isDecaying', {
                     device: server.storageMonitors[entityId].name
                 }));
             }
@@ -266,8 +302,8 @@ async function updateToolCupboard(rustplus, client, message) {
         else if (info.entityInfo.payload.protectionExpiry !== 0) {
             server.storageMonitors[entityId].decaying = false;
         }
-        client.setInstance(rustplus.guildId, instance);
+        client.setInstance(primaryRustplus.guildId, instance);
     }
 
-    await DiscordMessages.sendStorageMonitorMessage(rustplus.guildId, rustplus.serverId, entityId);
+    await DiscordMessages.sendStorageMonitorMessage(primaryRustplus.guildId, primaryRustplus.serverId, entityId);
 }

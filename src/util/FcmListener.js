@@ -32,9 +32,10 @@ const InstanceUtils = require('../util/instanceUtils.js');
 const Map = require('../util/map.js');
 const Scrape = require('../util/scrape.js');
 
-module.exports = async (client, guild) => {
+module.exports = async (client, guild, hosterSteamId = null, label = 'primary') => {
     const credentials = InstanceUtils.readCredentialsFile(guild.id);
-    const hoster = credentials.hoster;
+    const hoster = hosterSteamId !== null ? hosterSteamId : credentials.hoster;
+    const isSecondary = label === 'secondary';
 
     if (Object.keys(credentials).length === 1) {
         client.log(client.intlGet(null, 'warningCap'),
@@ -48,8 +49,10 @@ module.exports = async (client, guild) => {
         return;
     }
 
+    const targetListeners = isSecondary ? client.fcmListenersSecondary : client.fcmListeners;
+
     /* Destroy previous instance of fcm listener */
-    if (client.fcmListeners[guild.id]) client.fcmListeners[guild.id].destroy();
+    if (targetListeners[guild.id]) targetListeners[guild.id].destroy();
     if (client.fcmListenersLite[guild.id][hoster]) {
         client.fcmListenersLite[guild.id][hoster].destroy();
         delete client.fcmListenersLite[guild.id][hoster];
@@ -64,8 +67,8 @@ module.exports = async (client, guild) => {
 
     const androidId = credentials[hoster].gcm.android_id;
     const securityToken = credentials[hoster].gcm.security_token;
-    client.fcmListeners[guild.id] = new PushReceiverClient(androidId, securityToken, [])
-    client.fcmListeners[guild.id].on('ON_DATA_RECEIVED', (data) => {
+    targetListeners[guild.id] = new PushReceiverClient(androidId, securityToken, [])
+    targetListeners[guild.id].on('ON_DATA_RECEIVED', (data) => {
         const appData = data.appData;
 
         if (!appData) {
@@ -81,6 +84,9 @@ module.exports = async (client, guild) => {
             client.log('FCM Host', `GuildID: ${guild.id}, SteamID: ${hoster}, channelId could not be found.`)
             return;
         }
+
+        // Host2 (secondary) should not drive any automation except team presence.
+        if (isSecondary && channelId !== 'team') return;
 
         const bodyCheck = appData.find(item => item.key === 'body');
 
@@ -208,7 +214,7 @@ module.exports = async (client, guild) => {
         }
     });
 
-    client.fcmListeners[guild.id].connect();
+    targetListeners[guild.id].connect();
 };
 
 function isValidUrl(url) {
@@ -220,6 +226,12 @@ async function pairingServer(client, guild, title, message, body) {
     const instance = client.getInstance(guild.id);
     const serverId = `${body.ip}-${body.port}`;
     const server = instance.serverList[serverId];
+
+    const credentials = InstanceUtils.readCredentialsFile(guild.id);
+    const primaryHoster = credentials.hoster;
+    const secondaryHoster = credentials.hoster2;
+    const isPrimaryHoster = `${body.playerId}` === `${primaryHoster}`;
+    const isSecondaryHoster = `${body.playerId}` === `${secondaryHoster}`;
 
     let messageObj = undefined;
     if (server) messageObj = await DiscordTools.getMessageById(guild.id, instance.channelId.servers, server.messageId);
@@ -234,12 +246,16 @@ async function pairingServer(client, guild, title, message, body) {
         }
     }
 
+    // Keep the primary hoster credentials in the main server entry; do not let secondary overwrite them.
+    const steamIdToStore = (!server || isPrimaryHoster || !server.steamId) ? body.playerId : server.steamId;
+    const playerTokenToStore = (!server || isPrimaryHoster || !server.playerToken) ? body.playerToken : server.playerToken;
+
     instance.serverList[serverId] = {
         title: title,
         serverIp: body.ip,
         appPort: body.port,
-        steamId: body.playerId,
-        playerToken: body.playerToken,
+        steamId: steamIdToStore,
+        playerToken: playerTokenToStore,
         description: body.desc.replace(/\\n/g, '\n').replace(/\\t/g, '\t'),
         img: isValidUrl(body.img) ? body.img.replace(/ /g, '%20') : Constants.DEFAULT_SERVER_IMG,
         url: isValidUrl(body.url) ? body.url.replace(/ /g, '%20') : Constants.DEFAULT_SERVER_URL,
@@ -271,6 +287,37 @@ async function pairingServer(client, guild, title, message, body) {
     client.setInstance(guild.id, instance);
 
     await DiscordMessages.sendServerMessage(guild.id, serverId, null);
+
+    const rustplusSecondary = client.rustplusSecondaryInstances[guild.id];
+    const rustplusPrimary = client.rustplusInstances[guild.id];
+    const liteEntry = instance.serverListLite[serverId][body.playerId];
+
+    if (!instance.activeServer) {
+        instance.activeServer = serverId;
+        client.setInstance(guild.id, instance);
+    }
+
+    if (isSecondaryHoster && !rustplusSecondary && instance.activeServer === serverId && liteEntry) {
+        client.createRustplusInstance(
+            guild.id,
+            liteEntry.serverIp,
+            liteEntry.appPort,
+            liteEntry.steamId,
+            liteEntry.playerToken,
+            'secondary'
+        );
+    }
+
+    if (isPrimaryHoster && !rustplusPrimary && instance.activeServer === serverId && liteEntry) {
+        client.createRustplusInstance(
+            guild.id,
+            liteEntry.serverIp,
+            liteEntry.appPort,
+            liteEntry.steamId,
+            liteEntry.playerToken,
+            'primary'
+        );
+    }
 }
 
 async function pairingEntitySwitch(client, guild, title, message, body) {
@@ -377,6 +424,10 @@ async function pairingEntityStorageMonitor(client, guild, title, message, body) 
     if (!instance.serverList.hasOwnProperty(serverId)) return;
     const storageMonitors = instance.serverList[serverId].storageMonitors;
 
+    // Only accept storage monitor pairing from primary hoster.
+    const credentials = InstanceUtils.readCredentialsFile(guild.id);
+    if (`${body.playerId}` !== `${credentials.hoster}`) return;
+
     const entityExist = instance.serverList[serverId].storageMonitors.hasOwnProperty(body.entityId);
     instance.serverList[serverId].storageMonitors[body.entityId] = {
         name: entityExist ? storageMonitors[body.entityId].name : client.intlGet(guild.id, 'storageMonitor'),
@@ -384,13 +435,15 @@ async function pairingEntityStorageMonitor(client, guild, title, message, body) 
         id: entityExist ? storageMonitors[body.entityId].id : body.entityId,
         type: entityExist ? storageMonitors[body.entityId].type : null,
         decaying: entityExist ? storageMonitors[body.entityId].decaying : false,
+        decayPending: entityExist ? storageMonitors[body.entityId].decayPending : false,
         upkeep: entityExist ? storageMonitors[body.entityId].upkeep : null,
         everyone: entityExist ? storageMonitors[body.entityId].everyone : false,
         inGame: entityExist ? storageMonitors[body.entityId].inGame : true,
         image: entityExist ? storageMonitors[body.entityId].image : 'storage_monitor.png',
         location: entityExist ? storageMonitors[body.entityId].location : null,
         server: entityExist ? storageMonitors[body.entityId].server : body.name,
-        messageId: entityExist ? storageMonitors[body.entityId].messageId : null
+        messageId: entityExist ? storageMonitors[body.entityId].messageId : null,
+        firstSeenAt: entityExist ? storageMonitors[body.entityId].firstSeenAt : Date.now()
     };
     client.setInstance(guild.id, instance);
 
@@ -412,11 +465,20 @@ async function pairingEntityStorageMonitor(client, guild, title, message, body) 
 
         if (instance.serverList[serverId].storageMonitors[body.entityId].reachable) {
             if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_TOOL_CUPBOARD_CAPACITY) {
-                instance.serverList[serverId].storageMonitors[body.entityId].type = 'toolCupboard';
-                instance.serverList[serverId].storageMonitors[body.entityId].image = 'tool_cupboard.png';
-                if (info.entityInfo.payload.protectionExpiry === 0) {
-                    instance.serverList[serverId].storageMonitors[body.entityId].decaying = true;
-                }
+                const monitor = instance.serverList[serverId].storageMonitors[body.entityId];
+                monitor.type = 'toolCupboard';
+                monitor.image = 'tool_cupboard.png';
+
+                // Update firstSeenAt on successful info read
+                monitor.firstSeenAt = monitor.firstSeenAt || Date.now();
+
+                const isActuallyDecaying =
+                    info.entityInfo.payload.protectionExpiry === 0 &&
+                    info.entityInfo.payload.hasProtection === false;
+
+                // On initial pairing, do not flag decaying immediately; require debounce in handler.
+                monitor.decayPending = isActuallyDecaying;
+                monitor.decaying = false;
             }
             else if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_VENDING_MACHINE_CAPACITY) {
                 instance.serverList[serverId].storageMonitors[body.entityId].type = 'vendingMachine';

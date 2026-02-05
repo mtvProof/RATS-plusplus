@@ -132,7 +132,10 @@ async function rustPlusLiteDisconnectedEvent(rustplusLite) {
         Client.client.intlGet(null, 'disconnectedFromServer'));
 
     /* Was the disconnection unexpected? */
-    if (rustplusLite.isActive && Client.client.activeRustplusInstances[rustplusLite.guildId]) {
+    const anyActiveRustplus = Client.client.activeRustplusInstances[rustplusLite.guildId] ||
+        Client.client.activeRustplusSecondaryInstances[rustplusLite.guildId];
+
+    if (rustplusLite.isActive && anyActiveRustplus) {
         rustplusLite.log(Client.client.intlGet(null, 'reconnectingCap'),
             Client.client.intlGet(null, 'reconnectingToServer'));
 

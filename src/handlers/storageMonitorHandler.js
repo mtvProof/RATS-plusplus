@@ -23,26 +23,33 @@ const DiscordMessages = require('../discordTools/discordMessages.js');
 
 module.exports = {
     handler: async function (rustplus, client) {
-        let instance = client.getInstance(rustplus.guildId);
+        if (rustplus.instanceLabel === 'secondary') return;
+
         const guildId = rustplus.guildId;
-        const serverId = rustplus.serverId;
+        const primaryRustplus = client.rustplusInstances[guildId];
+
+        // Evaluate storage monitor reachability/state via primary (hoster1) only; secondary may lack TC access.
+        if (!primaryRustplus || !primaryRustplus.isOperational) return;
+
+        let instance = client.getInstance(guildId);
+        const serverId = primaryRustplus.serverId;
 
         if (!instance.serverList.hasOwnProperty(serverId)) return;
 
-        if (rustplus.storageMonitorIntervalCounter === 29) {
-            rustplus.storageMonitorIntervalCounter = 0;
+        if (primaryRustplus.storageMonitorIntervalCounter === 29) {
+            primaryRustplus.storageMonitorIntervalCounter = 0;
         }
         else {
-            rustplus.storageMonitorIntervalCounter += 1;
+            primaryRustplus.storageMonitorIntervalCounter += 1;
         }
 
-        if (rustplus.storageMonitorIntervalCounter === 0) {
+        if (primaryRustplus.storageMonitorIntervalCounter === 0) {
             let instance = client.getInstance(guildId);
             for (const entityId in instance.serverList[serverId].storageMonitors) {
                 instance = client.getInstance(guildId);
 
-                const info = await rustplus.getEntityInfoAsync(entityId);
-                if (!(await rustplus.isResponseValid(info))) {
+                const info = await primaryRustplus.getEntityInfoAsync(entityId);
+                if (!(await primaryRustplus.isResponseValid(info))) {
                     if (instance.serverList[serverId].storageMonitors[entityId].reachable) {
                         await DiscordMessages.sendStorageMonitorNotFoundMessage(guildId, serverId, entityId);
                     }
@@ -54,14 +61,14 @@ module.exports = {
                 client.setInstance(guildId, instance);
 
                 if (instance.serverList[serverId].storageMonitors[entityId].reachable) {
-                    if (rustplus.storageMonitors.hasOwnProperty(entityId) &&
-                        (rustplus.storageMonitors[entityId].capacity !== 0 &&
+                    if (primaryRustplus.storageMonitors.hasOwnProperty(entityId) &&
+                        (primaryRustplus.storageMonitors[entityId].capacity !== 0 &&
                             info.entityInfo.payload.capacity === 0)) {
                         await DiscordMessages.sendStorageMonitorDisconnectNotificationMessage(
                             guildId, serverId, entityId);
                     }
 
-                    rustplus.storageMonitors[entityId] = {
+                    primaryRustplus.storageMonitors[entityId] = {
                         items: info.entityInfo.payload.items,
                         expiry: info.entityInfo.payload.protectionExpiry,
                         capacity: info.entityInfo.payload.capacity,
@@ -70,22 +77,37 @@ module.exports = {
 
                     if (info.entityInfo.payload.capacity !== 0) {
                         if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_TOOL_CUPBOARD_CAPACITY) {
-                            instance.serverList[serverId].storageMonitors[entityId].type = 'toolCupboard';
-                            if (info.entityInfo.payload.protectionExpiry === 0 &&
-                                instance.serverList[serverId].storageMonitors[entityId].decaying === false) {
-                                instance.serverList[serverId].storageMonitors[entityId].decaying = true;
+                            const monitor = instance.serverList[serverId].storageMonitors[entityId];
+                            monitor.type = 'toolCupboard';
+                            if (typeof monitor.decayPending === 'undefined') monitor.decayPending = false;
+                            if (typeof monitor.firstSeenAt === 'undefined') monitor.firstSeenAt = Date.now();
 
-                                await DiscordMessages.sendDecayingNotificationMessage(
-                                    guildId, serverId, entityId);
+                            const ageMs = Date.now() - monitor.firstSeenAt;
+                            const isActuallyDecaying =
+                                info.entityInfo.payload.protectionExpiry === 0 &&
+                                info.entityInfo.payload.hasProtection === false;
 
-                                if (instance.serverList[serverId].storageMonitors[entityId].inGame) {
-                                    rustplus.sendInGameMessage(client.intlGet(rustplus.guildId, 'isDecaying', {
-                                        device: instance.serverList[serverId].storageMonitors[entityId].name
-                                    }));
+                            if (isActuallyDecaying && monitor.decaying === false && ageMs > 10000) {
+                                if (monitor.decayPending) {
+                                    monitor.decaying = true;
+
+                                    await DiscordMessages.sendDecayingNotificationMessage(
+                                        guildId, serverId, entityId);
+
+                                    if (monitor.inGame) {
+                                        rustplus.sendInGameMessage(client.intlGet(rustplus.guildId, 'isDecaying', {
+                                            device: monitor.name
+                                        }));
+                                    }
+                                }
+                                else {
+                                    // Require two consecutive decay reads before alerting to avoid flicker.
+                                    monitor.decayPending = true;
                                 }
                             }
-                            else if (info.entityInfo.payload.protectionExpiry !== 0) {
-                                instance.serverList[serverId].storageMonitors[entityId].decaying = false;
+                            else if (!isActuallyDecaying) {
+                                monitor.decayPending = false;
+                                monitor.decaying = false;
                             }
                         }
                         else if (info.entityInfo.payload.capacity ===

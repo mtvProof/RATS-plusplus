@@ -43,6 +43,7 @@ class DiscordBot extends Discord.Client {
 
         this.commands = new Discord.Collection();
         this.fcmListeners = new Object();
+        this.fcmListenersSecondary = new Object();
         this.fcmListenersLite = new Object();
         this.instances = {};
         this.guildIntl = {};
@@ -51,10 +52,14 @@ class DiscordBot extends Discord.Client {
         this.enMessages = JSON.parse(Fs.readFileSync(Path.join(__dirname, '..', 'languages', 'en.json')), 'utf8');
 
         this.rustplusInstances = new Object();
+        this.rustplusSecondaryInstances = new Object();
         this.activeRustplusInstances = new Object();
+        this.activeRustplusSecondaryInstances = new Object();
         this.rustplusReconnectTimers = new Object();
+        this.rustplusSecondaryReconnectTimers = new Object();
         this.rustplusLiteReconnectTimers = new Object();
         this.rustplusReconnecting = new Object();
+        this.rustplusSecondaryReconnecting = new Object();
         this.rustplusMaps = new Object();
 
         this.uptimeBot = null;
@@ -226,12 +231,14 @@ class DiscordBot extends Discord.Client {
             await PermissionHandler.resetPermissionsAllChannels(this, guild);
         }
 
-        require('../util/FcmListener')(this, guild);
+        require('../util/FcmListener')(this, guild, null, 'primary');
         const credentials = InstanceUtils.readCredentialsFile(guild.id);
+        if (credentials.hoster2) {
+            require('../util/FcmListener')(this, guild, credentials.hoster2, 'secondary');
+        }
         for (const steamId of Object.keys(credentials)) {
-            if (steamId !== credentials.hoster && steamId !== 'hoster') {
-                require('../util/FcmListenerLite')(this, guild, steamId);
-            }
+            if (['hoster', 'hoster2', credentials.hoster, credentials.hoster2].includes(steamId)) continue;
+            require('../util/FcmListenerLite')(this, guild, steamId);
         }
 
         await require('../discordTools/SetupSettingsMenu')(this, guild);
@@ -253,7 +260,7 @@ class DiscordBot extends Discord.Client {
 
         const steamIdRemoveCredentials = [];
         for (const [steamId, content] of Object.entries(credentials)) {
-            if (steamId === 'hoster') continue;
+            if (steamId === 'hoster' || steamId === 'hoster2') continue;
 
             if (!(memberIds.includes(content.discord_user_id))) {
                 steamIdRemoveCredentials.push(steamId);
@@ -267,6 +274,13 @@ class DiscordBot extends Discord.Client {
                 }
                 delete this.fcmListeners[guild.id];
                 credentials.hoster = null;
+            }
+            else if (steamId === credentials.hoster2) {
+                if (this.fcmListenersSecondary[guild.id]) {
+                    this.fcmListenersSecondary[guild.id].destroy();
+                }
+                delete this.fcmListenersSecondary[guild.id];
+                credentials.hoster2 = null;
             }
             else {
                 if (this.fcmListenersLite[guild.id][steamId]) {
@@ -300,12 +314,22 @@ class DiscordBot extends Discord.Client {
             Path.join(__dirname, '..', 'templates/generalSettingsTemplate.json'), 'utf8'));
     }
 
-    createRustplusInstance(guildId, serverIp, appPort, steamId, playerToken) {
+    createRustplusInstance(guildId, serverIp, appPort, steamId, playerToken, label = 'primary') {
         let rustplus = new RustPlus(guildId, serverIp, appPort, steamId, playerToken);
 
-        /* Add rustplus instance to Object */
-        this.rustplusInstances[guildId] = rustplus;
-        this.activeRustplusInstances[guildId] = true;
+        rustplus.instanceLabel = label;
+        rustplus.hosterSteamId = steamId;
+
+        const isSecondary = label === 'secondary';
+
+        if (isSecondary) {
+            this.rustplusSecondaryInstances[guildId] = rustplus;
+            this.activeRustplusSecondaryInstances[guildId] = true;
+        }
+        else {
+            this.rustplusInstances[guildId] = rustplus;
+            this.activeRustplusInstances[guildId] = true;
+        }
 
         rustplus.build();
 
@@ -328,24 +352,60 @@ class DiscordBot extends Discord.Client {
                     instance.serverList[instance.activeServer].serverIp,
                     instance.serverList[instance.activeServer].appPort,
                     instance.serverList[instance.activeServer].steamId,
-                    instance.serverList[instance.activeServer].playerToken);
+                    instance.serverList[instance.activeServer].playerToken,
+                    'primary');
+
+                const credentials = InstanceUtils.readCredentialsFile(guildId);
+                if (credentials.hoster2 && instance.serverListLite[instance.activeServer] &&
+                    instance.serverListLite[instance.activeServer][credentials.hoster2]) {
+                    const lite = instance.serverListLite[instance.activeServer][credentials.hoster2];
+                    this.createRustplusInstance(
+                        guildId,
+                        instance.serverList[instance.activeServer].serverIp,
+                        instance.serverList[instance.activeServer].appPort,
+                        lite.steamId,
+                        lite.playerToken,
+                        'secondary');
+                }
             }
         });
     }
 
-    resetRustplusVariables(guildId) {
-        this.activeRustplusInstances[guildId] = false;
-        this.rustplusReconnecting[guildId] = false;
-        delete this.rustplusMaps[guildId];
+    resetRustplusVariables(guildId, label = 'primary') {
+        const isSecondary = label === 'secondary';
+        if (isSecondary) {
+            this.activeRustplusSecondaryInstances[guildId] = false;
+            this.rustplusSecondaryReconnecting[guildId] = false;
+            if (this.rustplusSecondaryReconnectTimers[guildId]) {
+                clearTimeout(this.rustplusSecondaryReconnectTimers[guildId]);
+                this.rustplusSecondaryReconnectTimers[guildId] = null;
+            }
+        }
+        else {
+            this.activeRustplusInstances[guildId] = false;
+            this.rustplusReconnecting[guildId] = false;
+            delete this.rustplusMaps[guildId];
 
-        if (this.rustplusReconnectTimers[guildId]) {
-            clearTimeout(this.rustplusReconnectTimers[guildId]);
-            this.rustplusReconnectTimers[guildId] = null;
+            if (this.rustplusReconnectTimers[guildId]) {
+                clearTimeout(this.rustplusReconnectTimers[guildId]);
+                this.rustplusReconnectTimers[guildId] = null;
+            }
+            if (this.rustplusLiteReconnectTimers[guildId]) {
+                clearTimeout(this.rustplusLiteReconnectTimers[guildId]);
+                this.rustplusLiteReconnectTimers[guildId] = null;
+            }
         }
-        if (this.rustplusLiteReconnectTimers[guildId]) {
-            clearTimeout(this.rustplusLiteReconnectTimers[guildId]);
-            this.rustplusLiteReconnectTimers[guildId] = null;
+    }
+
+    getRustplusInstancesAll(guildId) {
+        const rustplusList = [];
+        if (this.rustplusInstances[guildId]) {
+            rustplusList.push(this.rustplusInstances[guildId]);
         }
+        if (this.rustplusSecondaryInstances[guildId]) {
+            rustplusList.push(this.rustplusSecondaryInstances[guildId]);
+        }
+        return rustplusList;
     }
 
     isJpgImageChanged(guildId, map) {

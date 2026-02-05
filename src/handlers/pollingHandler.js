@@ -60,6 +60,9 @@ module.exports = {
         await TeamHandler.handler(rustplus, client, teamInfo.teamInfo);
         rustplus.team.updateTeam(teamInfo.teamInfo);
 
+        // Secondary (hoster2) should only maintain team info/chat; skip other duties.
+        if (rustplus.instanceLabel === 'secondary') return;
+
         await SmartSwitchHandler.handler(rustplus, client, time.time);
         TimeHandler.handler(rustplus, client, time.time);
         await VendingMachines.handler(rustplus, client, mapMarkers.mapMarkers);

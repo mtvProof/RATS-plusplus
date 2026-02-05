@@ -77,6 +77,13 @@ module.exports = {
                 .addStringOption(option => option
                     .setName('steam_id')
                     .setDescription(client.intlGet(guildId, 'commandsCredentialsSetHosterSteamIdDesc'))
+                    .setRequired(false)))
+            .addSubcommand(subcommand => subcommand
+                .setName('set_hoster2')
+                .setDescription(client.intlGet(guildId, 'commandsCredentialsSetHosterDesc'))
+                .addStringOption(option => option
+                    .setName('steam_id')
+                    .setDescription(client.intlGet(guildId, 'commandsCredentialsSetHosterSteamIdDesc'))
                     .setRequired(false)));
     },
 
@@ -104,6 +111,10 @@ module.exports = {
                 setHosterCredentials(client, interaction, verifyId);
             } break;
 
+            case 'set_hoster2': {
+                setHosterCredentials(client, interaction, verifyId, true);
+            } break;
+
             default: {
             } break;
         }
@@ -113,10 +124,11 @@ module.exports = {
 async function addCredentials(client, interaction, verifyId) {
     const guildId = interaction.guildId;
     const credentials = InstanceUtils.readCredentialsFile(guildId);
+    const credentialSteamIds = Object.keys(credentials).filter(e => !['hoster', 'hoster2'].includes(e));
     const steamId = interaction.options.getString('steam_id');
-    const isHoster = interaction.options.getBoolean('host') || Object.keys(credentials).length === 1;
+    const isHoster = interaction.options.getBoolean('host') || credentialSteamIds.length === 0;
 
-    if (Object.keys(credentials) !== 1 && isHoster) {
+    if (credentialSteamIds.length !== 0 && isHoster) {
         if (Config.discord.needAdminPrivileges && !client.isAdministrator(interaction)) {
             const str = client.intlGet(interaction.guildId, 'missingPermission');
             client.interactionEditReply(interaction, DiscordEmbeds.getActionInfoEmbed(1, str));
@@ -125,7 +137,7 @@ async function addCredentials(client, interaction, verifyId) {
         }
     }
 
-    if (steamId in credentials) {
+    if (credentialSteamIds.includes(steamId)) {
         const str = client.intlGet(guildId, 'credentialsAlreadyRegistered', { steamId: steamId });
         await client.interactionEditReply(interaction, DiscordEmbeds.getActionInfoEmbed(1, str));
         client.log(client.intlGet(null, 'warningCap'), str);
@@ -181,6 +193,8 @@ async function removeCredentials(client, interaction, verifyId) {
     const guildId = interaction.guildId;
     const credentials = InstanceUtils.readCredentialsFile(guildId);
     let steamId = interaction.options.getString('steam_id');
+    const rustplusPrimary = client.rustplusInstances[guildId];
+    const rustplusSecondary = client.rustplusSecondaryInstances[guildId];
 
     if (steamId && (steamId in credentials) && credentials[steamId].discord_user_id !== interaction.member.user.id) {
         if (Config.discord.needAdminPrivileges && !client.isAdministrator(interaction)) {
@@ -193,7 +207,7 @@ async function removeCredentials(client, interaction, verifyId) {
 
     if (!steamId) {
         for (const credential of Object.keys(credentials)) {
-            if (credential === 'hoster') continue;
+            if (credential === 'hoster' || credential === 'hoster2') continue;
 
             if (credentials[credential].discord_user_id === interaction.member.user.id) {
                 steamId = credential;
@@ -216,7 +230,24 @@ async function removeCredentials(client, interaction, verifyId) {
             client.fcmListeners[guildId].destroy();
         }
         delete client.fcmListeners[guildId];
+        if (rustplusPrimary) {
+            client.resetRustplusVariables(guildId);
+            rustplusPrimary.disconnect();
+            delete client.rustplusInstances[guildId];
+        }
         credentials.hoster = null;
+    }
+    else if (steamId === credentials.hoster2) {
+        if (client.fcmListenersSecondary[guildId]) {
+            client.fcmListenersSecondary[guildId].destroy();
+        }
+        delete client.fcmListenersSecondary[guildId];
+        if (rustplusSecondary) {
+            client.resetRustplusVariables(guildId, 'secondary');
+            rustplusSecondary.disconnect();
+            delete client.rustplusSecondaryInstances[guildId];
+        }
+        credentials.hoster2 = null;
     }
     else {
         if (client.fcmListenersLite[guildId][steamId]) {
@@ -247,10 +278,11 @@ async function showCredentials(client, interaction, verifyId) {
     await DiscordMessages.sendCredentialsShowMessage(interaction);
 }
 
-async function setHosterCredentials(client, interaction, verifyId) {
+async function setHosterCredentials(client, interaction, verifyId, isSecondary = false) {
     const guildId = interaction.guildId;
     const credentials = InstanceUtils.readCredentialsFile(guildId);
     let steamId = interaction.options.getString('steam_id');
+    const hosterKey = isSecondary ? 'hoster2' : 'hoster';
 
     if (Config.discord.needAdminPrivileges && !client.isAdministrator(interaction)) {
         const str = client.intlGet(interaction.guildId, 'missingPermission');
@@ -273,29 +305,59 @@ async function setHosterCredentials(client, interaction, verifyId) {
         return;
     }
 
-    const prevHoster = credentials.hoster;
-    credentials.hoster = steamId;
+    const prevHoster = credentials[hosterKey];
+    credentials[hosterKey] = steamId;
     InstanceUtils.writeCredentialsFile(guildId, credentials);
 
     const instance = client.getInstance(guildId);
     const rustplus = client.rustplusInstances[guildId];
-    if (rustplus) {
-        instance.activeServer = null;
-        client.setInstance(guildId, instance);
-        client.resetRustplusVariables(guildId);
-        rustplus.disconnect();
-        delete client.rustplusInstances[guildId];
-        await DiscordMessages.sendServerMessage(guildId, rustplus.serverId);
-    }
+    if (isSecondary) {
+        const rustplusSecondary = client.rustplusSecondaryInstances[guildId];
+        if (rustplusSecondary) {
+            client.resetRustplusVariables(guildId, 'secondary');
+            rustplusSecondary.disconnect();
+            delete client.rustplusSecondaryInstances[guildId];
+        }
 
-    require('../util/FcmListener')(client, DiscordTools.getGuild(interaction.guildId));
-    if (prevHoster !== null) {
-        require('../util/FcmListenerLite')(client, DiscordTools.getGuild(interaction.guildId), prevHoster);
+        require('../util/FcmListener')(client, DiscordTools.getGuild(interaction.guildId), steamId, 'secondary');
+        if (prevHoster !== null && prevHoster !== credentials.hoster) {
+            require('../util/FcmListenerLite')(client, DiscordTools.getGuild(interaction.guildId), prevHoster);
+        }
+
+        const activeServer = instance.activeServer;
+        if (activeServer && instance.serverList[activeServer] &&
+            instance.serverListLite[activeServer] && instance.serverListLite[activeServer][steamId]) {
+            const server = instance.serverList[activeServer];
+            const lite = instance.serverListLite[activeServer][steamId];
+            client.createRustplusInstance(
+                guildId,
+                server.serverIp,
+                server.appPort,
+                lite.steamId,
+                lite.playerToken,
+                'secondary'
+            );
+        }
+    }
+    else {
+        if (rustplus) {
+            instance.activeServer = null;
+            client.setInstance(guildId, instance);
+            client.resetRustplusVariables(guildId);
+            rustplus.disconnect();
+            delete client.rustplusInstances[guildId];
+            await DiscordMessages.sendServerMessage(guildId, rustplus.serverId);
+        }
+
+        require('../util/FcmListener')(client, DiscordTools.getGuild(interaction.guildId), steamId, 'primary');
+        if (prevHoster !== null) {
+            require('../util/FcmListenerLite')(client, DiscordTools.getGuild(interaction.guildId), prevHoster);
+        }
     }
 
     client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'slashCommandValueChange', {
         id: `${verifyId}`,
-        value: `setHoster, ${steamId}`
+        value: `${isSecondary ? 'setHoster2' : 'setHoster'}, ${steamId}`
     }));
 
     const str = client.intlGet(guildId, 'credentialsSetHosterSuccessfully', { steamId: steamId });

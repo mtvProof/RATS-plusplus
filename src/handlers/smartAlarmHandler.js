@@ -23,25 +23,32 @@ const Timer = require('../util/timer.js');
 
 module.exports = {
     handler: async function (rustplus, client) {
-        let instance = client.getInstance(rustplus.guildId);
+        if (rustplus.instanceLabel === 'secondary') return;
+
         const guildId = rustplus.guildId;
-        const serverId = rustplus.serverId;
+        const primaryRustplus = client.rustplusInstances[guildId];
+
+        // Only evaluate reachability via the primary (hoster1). Secondary may never have TC access.
+        if (!primaryRustplus || !primaryRustplus.isOperational) return;
+
+        let instance = client.getInstance(guildId);
+        const serverId = primaryRustplus.serverId;
 
         if (!instance.serverList.hasOwnProperty(serverId)) return;
 
-        if (rustplus.smartAlarmIntervalCounter === 29) {
-            rustplus.smartAlarmIntervalCounter = 0;
+        if (primaryRustplus.smartAlarmIntervalCounter === 29) {
+            primaryRustplus.smartAlarmIntervalCounter = 0;
         }
         else {
-            rustplus.smartAlarmIntervalCounter += 1;
+            primaryRustplus.smartAlarmIntervalCounter += 1;
         }
 
-        if (rustplus.smartAlarmIntervalCounter === 0) {
+        if (primaryRustplus.smartAlarmIntervalCounter === 0) {
             for (const entityId in instance.serverList[serverId].alarms) {
                 instance = client.getInstance(guildId);
 
-                const info = await rustplus.getEntityInfoAsync(entityId);
-                if (!(await rustplus.isResponseValid(info))) {
+                const info = await primaryRustplus.getEntityInfoAsync(entityId);
+                if (!(await primaryRustplus.isResponseValid(info))) {
                     if (instance.serverList[serverId].alarms[entityId].reachable) {
                         await DiscordMessages.sendSmartAlarmNotFoundMessage(guildId, serverId, entityId);
 

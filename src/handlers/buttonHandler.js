@@ -435,6 +435,7 @@ module.exports = async (client, interaction) => {
         }
 
         client.resetRustplusVariables(guildId);
+        client.resetRustplusVariables(guildId, 'secondary');
 
         if (instance.activeServer !== null) {
             await DiscordMessages.sendServerMessage(guildId, instance.activeServer, null);
@@ -443,15 +444,36 @@ module.exports = async (client, interaction) => {
         instance.activeServer = ids.serverId;
         client.setInstance(guildId, instance);
 
-        /* Disconnect previous instance is any */
+        /* Disconnect previous instances if any */
         if (rustplus) {
             rustplus.isDeleted = true;
             rustplus.disconnect();
+        }
+        const rustplusSecondary = client.rustplusSecondaryInstances[guildId];
+        if (rustplusSecondary) {
+            rustplusSecondary.isDeleted = true;
+            rustplusSecondary.disconnect();
+            delete client.rustplusSecondaryInstances[guildId];
         }
 
         /* Create the rustplus instance */
         const newRustplus = client.createRustplusInstance(
             guildId, server.serverIp, server.appPort, server.steamId, server.playerToken);
+
+        /* Spin up secondary if hoster2 is paired on this server */
+        const credentials = InstanceUtils.readCredentialsFile(guildId);
+        if (credentials.hoster2 && instance.serverListLite[ids.serverId] &&
+            instance.serverListLite[ids.serverId][credentials.hoster2]) {
+            const lite = instance.serverListLite[ids.serverId][credentials.hoster2];
+            client.createRustplusInstance(
+                guildId,
+                server.serverIp,
+                server.appPort,
+                lite.steamId,
+                lite.playerToken,
+                'secondary'
+            );
+        }
 
         await DiscordMessages.sendServerMessage(guildId, ids.serverId, null, interaction);
 

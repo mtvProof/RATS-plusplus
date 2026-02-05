@@ -62,7 +62,15 @@ process.on('unhandledRejection', error => {
     client.log(client.intlGet(null, 'errorCap'), client.intlGet(null, 'unhandledRejection', {
         error: error
     }), 'error');
-    console.log(error);
+
+    // Surface full stack traces for debugging instead of only the message.
+    const err = (error instanceof Error) ? error : new Error(String(error));
+    console.error(err.stack || err);
+});
+
+process.on('uncaughtException', error => {
+    const err = (error instanceof Error) ? error : new Error(String(error));
+    console.error(err.stack || err);
 });
 
 exports.client = client;

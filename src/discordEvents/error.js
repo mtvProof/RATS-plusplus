@@ -22,6 +22,7 @@ module.exports = {
     name: 'error',
     async execute(client, error) {
         client.log(client.intlGet(null, 'errorCap'), error, 'error');
+        console.error(error?.stack || error);
         process.exit(1);
     },
 }

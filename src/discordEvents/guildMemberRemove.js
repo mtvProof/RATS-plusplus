@@ -39,6 +39,13 @@ module.exports = {
             delete client.fcmListeners[guildId];
             credentials.hoster = null;
         }
+        else if (steamId === credentials.hoster2) {
+            if (client.fcmListenersSecondary[guildId]) {
+                client.fcmListenersSecondary[guildId].destroy();
+            }
+            delete client.fcmListenersSecondary[guildId];
+            credentials.hoster2 = null;
+        }
         else {
             if (client.fcmListenersLite[guildId][steamId]) {
                 client.fcmListenersLite[guildId][steamId].destroy();
