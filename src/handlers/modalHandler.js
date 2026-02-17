@@ -22,6 +22,7 @@ const Discord = require('discord.js');
 
 const Battlemetrics = require('../structures/Battlemetrics');
 const Constants = require('../util/constants.js');
+const DiscordButtons = require('../discordTools/discordButtons.js');
 const DiscordMessages = require('../discordTools/discordMessages.js');
 const Keywords = require('../util/keywords.js');
 const Scrape = require('../util/scrape.js');
@@ -108,6 +109,80 @@ module.exports = async (client, interaction) => {
 
         /* To force search of player name via scrape */
         client.battlemetricsIntervalCounter = 0;
+    }
+    else if (interaction.customId.startsWith('PrepairModal')) {
+        const parts = interaction.customId.split(':');
+        if (parts.length < 2) {
+            interaction.deferUpdate();
+            return;
+        }
+
+        const settingKey = parts[1];
+        const messageId = parts[2] || null;
+        const channelId = parts[3] || null;
+
+        const setting = instance.notificationSettings[settingKey];
+
+        if (!setting) {
+            interaction.deferUpdate();
+            return;
+        }
+
+        const prepairRaw = interaction.fields.getTextInputValue('PrepairMinutes');
+        const prepairMinutes = parseInt(prepairRaw);
+
+        if (!Number.isNaN(prepairMinutes) && prepairMinutes >= 0) {
+            setting.prepairMinutes = prepairMinutes;
+
+            if (client.rustplusInstances[guildId] &&
+                client.rustplusInstances[guildId].notificationSettings[settingKey]) {
+                client.rustplusInstances[guildId].notificationSettings[settingKey].prepairMinutes = prepairMinutes;
+            }
+
+            for (const [serverId, server] of Object.entries(instance.serverList)) {
+                server.deepSeaPrepairMinutes = prepairMinutes;
+            }
+
+            if (client.rustplusInstances[guildId] && client.rustplusInstances[guildId].mapMarkers) {
+                client.rustplusInstances[guildId].mapMarkers.scheduleDeepSeaPrepair();
+            }
+
+            client.setInstance(guildId, instance);
+
+            client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
+                id: `${verifyId}`,
+                value: `${prepairMinutes}`
+            }));
+
+            if (channelId && messageId) {
+                try {
+                    const channel = await client.channels.fetch(channelId);
+                    const message = await channel.messages.fetch(messageId);
+                    const hasPrepair = setting.hasOwnProperty('prepair');
+
+                    const components = [DiscordButtons.getNotificationButtons(
+                        guildId,
+                        settingKey,
+                        setting.discord,
+                        setting.inGame,
+                        setting.voice,
+                        hasPrepair ? setting.prepair : null,
+                        hasPrepair ? setting.prepairMinutes : null)];
+
+                    if (hasPrepair) {
+                        components.push(DiscordButtons.getNotificationPrepairEditButton(
+                            guildId, settingKey, setting.prepairMinutes));
+                    }
+
+                    await message.edit({ components: components });
+                }
+                catch (e) {
+                    client.log(client.intlGet(null, 'errorCap'), `Failed to refresh prepair buttons: ${e}`);
+                }
+            }
+        }
+
+        await interaction.deferUpdate();
     }
     else if (interaction.customId.startsWith('SmartSwitchEdit')) {
         const ids = JSON.parse(interaction.customId.replace('SmartSwitchEdit', ''));
@@ -312,12 +387,13 @@ module.exports = async (client, interaction) => {
         await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);
     }
     else if (interaction.customId.startsWith('TrackerAddPlayer')) {
+        await interaction.deferUpdate();
+
         const ids = JSON.parse(interaction.customId.replace('TrackerAddPlayer', ''));
         const tracker = instance.trackers[ids.trackerId];
         const input = interaction.fields.getTextInputValue('TrackerAddPlayerInput');
 
         if (!tracker) {
-            interaction.deferUpdate();
             return;
         }
 
@@ -329,7 +405,6 @@ module.exports = async (client, interaction) => {
         if (isSteamId64 || isBattlemetricsId) {
             if ((isSteamId64 && tracker.players.some(e => e.steamId === input)) ||
                 (!isSteamId64 && tracker.players.some(e => e.playerId === input && e.steamId === null))) {
-                interaction.deferUpdate();
                 return;
             }
 

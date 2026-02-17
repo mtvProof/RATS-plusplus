@@ -93,6 +93,33 @@ module.exports = {
         return modal;
     },
 
+    getNotificationPrepairModal(guildId, setting, prepairMinutes, messageId = null, channelId = null) {
+        const modalCustomId = [
+            'PrepairModal',
+            setting,
+            messageId || '',
+            channelId || ''
+        ].join(':');
+
+        const modal = module.exports.getModal({
+            customId: modalCustomId,
+            title: Client.client.intlGet(guildId, 'editing')
+        });
+
+        modal.addComponents(
+            new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
+                customId: 'PrepairMinutes',
+                label: Client.client.intlGet(guildId, 'deepSeaPrepairMinutesLabel'),
+                value: `${prepairMinutes ?? ''}`,
+                style: Discord.TextInputStyle.Short,
+                required: false,
+                minLength: 0
+            }))
+        );
+
+        return modal;
+    },
+
     getSmartSwitchEditModal(guildId, serverId, entityId) {
         const instance = Client.client.getInstance(guildId);
         const entity = instance.serverList[serverId].switches[entityId];

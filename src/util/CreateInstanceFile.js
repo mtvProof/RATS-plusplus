@@ -22,6 +22,7 @@ const Fs = require('fs');
 const Path = require('path');
 
 const InstanceUtils = require('../util/instanceUtils.js');
+const Constants = require('../util/constants.js');
 
 module.exports = (client, guild) => {
     let instance = null;
@@ -217,6 +218,20 @@ module.exports = (client, guild) => {
     for (const [serverId, content] of Object.entries(instance.serverList)) {
         if (!content.hasOwnProperty('customCameraGroups')) content.customCameraGroups = {};
         if (!content.hasOwnProperty('playerPlaytimes')) content.playerPlaytimes = {};
+        if (!content.hasOwnProperty('deepSeaCooldownMs')) content.deepSeaCooldownMs =
+            Constants.DEFAULT_DEEP_SEA_COOLDOWN_MS;
+        else if (content.deepSeaCooldownMs < Constants.DEFAULT_DEEP_SEA_COOLDOWN_MS) {
+            content.deepSeaCooldownMs = Constants.DEFAULT_DEEP_SEA_COOLDOWN_MS;
+        }
+
+        if (!content.hasOwnProperty('deepSeaDurationMs')) content.deepSeaDurationMs =
+            Constants.DEFAULT_DEEP_SEA_DURATION_MS;
+        else if (content.deepSeaDurationMs < Constants.DEFAULT_DEEP_SEA_DURATION_MS) {
+            content.deepSeaDurationMs = Constants.DEFAULT_DEEP_SEA_DURATION_MS;
+        }
+
+        if (!content.hasOwnProperty('deepSeaPrepairMinutes')) content.deepSeaPrepairMinutes =
+            Constants.DEFAULT_DEEP_SEA_PREPAIR_MINUTES;
     }
 
     client.setInstance(guild.id, instance);

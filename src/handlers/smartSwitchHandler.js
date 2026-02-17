@@ -29,7 +29,25 @@ module.exports = {
 
         const instance = client.getInstance(rustplus.guildId);
         const guildId = rustplus.guildId;
-        const serverId = rustplus.serverId;
+
+        const resolveServerId = () => {
+            const candidates = [
+                rustplus.serverId,
+                client.rustplusInstances[guildId]?.serverId,
+                client.rustplusSecondaryInstances[guildId]?.serverId
+            ].filter(Boolean);
+
+            for (const id of candidates) {
+                const server = instance.serverList[id];
+                if (server && server.switches && Object.keys(server.switches).length > 0) {
+                    return id;
+                }
+            }
+
+            return rustplus.serverId;
+        };
+
+        const serverId = resolveServerId();
 
         if (!instance.serverList.hasOwnProperty(serverId)) return;
 
@@ -356,9 +374,29 @@ module.exports = {
 
     smartSwitchCommandHandler: async function (rustplus, client, command) {
         const guildId = rustplus.guildId;
-        const serverId = rustplus.serverId;
         const instance = client.getInstance(guildId);
-        const switches = instance.serverList[serverId].switches;
+
+        const resolveServerId = () => {
+            const candidates = [
+                rustplus.serverId,
+                client.rustplusInstances[guildId]?.serverId,
+                client.rustplusSecondaryInstances[guildId]?.serverId
+            ].filter(Boolean);
+
+            for (const id of candidates) {
+                const server = instance.serverList[id];
+                if (server && server.switches && Object.keys(server.switches).length > 0) {
+                    return id;
+                }
+            }
+
+            return rustplus.serverId;
+        };
+
+        const serverId = resolveServerId();
+        const switches = instance.serverList[serverId]?.switches || {};
+
+        if (Object.keys(switches).length === 0) return false;
         const prefix = rustplus.generalSettings.prefix;
 
         const onCap = client.intlGet(guildId, 'onCap');
@@ -471,7 +509,8 @@ module.exports = {
 
         rustplus.currentSwitchTimeouts[entityId] = setTimeout(async function () {
             const instance = client.getInstance(guildId);
-            if (!instance.serverList[serverId].switches.hasOwnProperty(entityId)) return;
+            if (!instance.serverList[serverId] ||
+                !instance.serverList[serverId].switches.hasOwnProperty(entityId)) return;
 
             await module.exports.smartSwitchCommandTurnOnOff(rustplus, client, entityId, !active);
 
@@ -489,9 +528,27 @@ module.exports = {
 
     smartSwitchCommandTurnOnOff: async function (rustplus, client, entityId, active) {
         const guildId = rustplus.guildId;
-        const serverId = rustplus.serverId;
         const instance = client.getInstance(guildId);
-        const switches = instance.serverList[serverId].switches;
+
+        const resolveServerId = () => {
+            const candidates = [
+                rustplus.serverId,
+                client.rustplusInstances[guildId]?.serverId,
+                client.rustplusSecondaryInstances[guildId]?.serverId
+            ].filter(Boolean);
+
+            for (const id of candidates) {
+                const server = instance.serverList[id];
+                if (server && server.switches && Object.keys(server.switches).includes(`${entityId}`)) {
+                    return id;
+                }
+            }
+
+            return rustplus.serverId;
+        };
+
+        const serverId = resolveServerId();
+        const switches = instance.serverList[serverId]?.switches || {};
         const primaryRustplus = client.rustplusInstances[guildId];
         const secondaryRustplus = client.rustplusSecondaryInstances[guildId];
 

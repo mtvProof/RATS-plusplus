@@ -54,6 +54,9 @@ module.exports = {
     TurnOnOffGroup: async function (client, rustplus, guildId, serverId, groupId, value) {
         const instance = client.getInstance(guildId);
 
+        if (!instance.serverList[serverId] ||
+            !instance.serverList[serverId].switchGroups.hasOwnProperty(groupId)) return;
+
         const switches = instance.serverList[serverId].switchGroups[groupId].switches;
 
         const primaryRustplus = client.rustplusInstances[guildId];
@@ -118,9 +121,28 @@ module.exports = {
 
     smartSwitchGroupCommandHandler: async function (rustplus, client, command) {
         const guildId = rustplus.guildId;
-        const serverId = rustplus.serverId;
+        const serverId = (() => {
+            const instance = client.getInstance(guildId);
+            const candidates = [
+                rustplus.serverId,
+                client.rustplusInstances[guildId]?.serverId,
+                client.rustplusSecondaryInstances[guildId]?.serverId
+            ].filter(Boolean);
+
+            for (const id of candidates) {
+                const server = instance.serverList[id];
+                if (server && server.switchGroups && Object.keys(server.switchGroups).length > 0) {
+                    return id;
+                }
+            }
+
+            return rustplus.serverId;
+        })();
+
         const instance = client.getInstance(guildId);
-        const switchGroups = instance.serverList[serverId].switchGroups;
+        const switchGroups = instance.serverList[serverId]?.switchGroups || {};
+
+        if (Object.keys(switchGroups).length === 0) return false;
         const prefix = rustplus.generalSettings.prefix;
 
         const onCap = client.intlGet(rustplus.guildId, 'onCap');

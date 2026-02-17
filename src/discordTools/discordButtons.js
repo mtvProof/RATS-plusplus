@@ -355,10 +355,10 @@ module.exports = {
             }));
     },
 
-    getNotificationButtons: function (guildId, setting, discordActive, inGameActive, voiceActive) {
+    getNotificationButtons: function (guildId, setting, discordActive, inGameActive, voiceActive,
+        prepairActive = null, prepairMinutes = null) {
         const identifier = JSON.stringify({ "setting": setting });
-
-        return new Discord.ActionRowBuilder().addComponents(
+        const buttons = [
             module.exports.getButton({
                 customId: `DiscordNotification${identifier}`,
                 label: Client.client.intlGet(guildId, 'discordCap'),
@@ -373,6 +373,33 @@ module.exports = {
                 customId: `VoiceNotification${identifier}`,
                 label: Client.client.intlGet(guildId, 'voiceCap'),
                 style: voiceActive ? SUCCESS : DANGER
+            })
+        ];
+
+        if (prepairActive !== null) {
+            const prepairLabel = prepairMinutes !== null && prepairMinutes !== undefined ?
+                `${Client.client.intlGet(guildId, 'prepairCap')} (${prepairMinutes})` :
+                Client.client.intlGet(guildId, 'prepairCap');
+
+            buttons.push(module.exports.getButton({
+                customId: `PrepairNotification${identifier}`,
+                label: prepairLabel,
+                style: prepairActive ? SUCCESS : DANGER
+            }));
+        }
+
+        return new Discord.ActionRowBuilder().addComponents(buttons);
+    },
+
+    getNotificationPrepairEditButton: function (guildId, setting, _prepairMinutes) {
+        const identifier = JSON.stringify({ "setting": setting });
+        const label = Client.client.intlGet(guildId, 'editCap');
+
+        return new Discord.ActionRowBuilder().addComponents(
+            module.exports.getButton({
+                customId: `PrepairEdit${identifier}`,
+                label: label,
+                style: PRIMARY
             }));
     },
 

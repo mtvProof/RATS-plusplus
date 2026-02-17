@@ -285,22 +285,35 @@ async function setupNotificationSettings(client, guildId, channel) {
     });
 
     for (const setting in instance.notificationSettings) {
+        const notification = instance.notificationSettings[setting];
+        const hasPrepair = notification.hasOwnProperty('prepair');
+
+        const components = [
+            DiscordButtons.getNotificationButtons(
+                guildId, setting,
+                notification.discord,
+                notification.inGame,
+                notification.voice,
+                hasPrepair ? notification.prepair : null,
+                hasPrepair ? notification.prepairMinutes : null)
+        ];
+
+        if (hasPrepair) {
+            components.push(DiscordButtons.getNotificationPrepairEditButton(
+                guildId, setting, notification.prepairMinutes));
+        }
+
         await client.messageSend(channel, {
             embeds: [DiscordEmbeds.getEmbed({
                 color: Constants.COLOR_SETTINGS,
                 title: client.intlGet(guildId, setting),
-                thumbnail: `attachment://${instance.notificationSettings[setting].image}`
+                thumbnail: `attachment://${notification.image}`
             })],
-            components: [
-                DiscordButtons.getNotificationButtons(
-                    guildId, setting,
-                    instance.notificationSettings[setting].discord,
-                    instance.notificationSettings[setting].inGame,
-                    instance.notificationSettings[setting].voice)],
+            components: components,
             files: [
                 new Discord.AttachmentBuilder(
                     Path.join(__dirname, '..',
-                        `resources/images/events/${instance.notificationSettings[setting].image}`))]
+                        `resources/images/events/${notification.image}`))]
         });
     }
 }

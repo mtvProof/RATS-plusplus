@@ -233,7 +233,9 @@ module.exports = {
 
     sendSmartSwitchMessage: async function (guildId, serverId, entityId, interaction = null) {
         const instance = Client.client.getInstance(guildId);
-        const entity = instance.serverList[serverId].switches[entityId];
+        const server = instance.serverList[serverId];
+        if (!server || !server.switches || !server.switches[entityId]) return;
+        const entity = server.switches[entityId];
 
         const content = {
             embeds: [entity.reachable ?
@@ -251,6 +253,9 @@ module.exports = {
         const message = await module.exports.sendMessage(guildId, content, entity.messageId,
             instance.channelId.switches, interaction);
 
+        // If Discord rejected the edit/send (deleted message, missing perms, etc.), bail out.
+        if (!message) return;
+
         if (!interaction) {
             instance.serverList[serverId].switches[entityId].messageId = message.id;
             Client.client.setInstance(guildId, instance);
@@ -259,7 +264,9 @@ module.exports = {
 
     sendSmartAlarmMessage: async function (guildId, serverId, entityId, interaction = null) {
         const instance = Client.client.getInstance(guildId);
-        const entity = instance.serverList[serverId].alarms[entityId];
+        const server = instance.serverList[serverId];
+        if (!server || !server.alarms || !server.alarms[entityId]) return;
+        const entity = server.alarms[entityId];
 
         const content = {
             embeds: [entity.reachable ?
@@ -273,6 +280,9 @@ module.exports = {
         const message = await module.exports.sendMessage(guildId, content, entity.messageId,
             instance.channelId.alarms, interaction);
 
+        // If Discord rejected the edit/send, do not dereference message.
+        if (!message) return;
+
         if (!interaction) {
             instance.serverList[serverId].alarms[entityId].messageId = message.id;
             Client.client.setInstance(guildId, instance);
@@ -281,7 +291,9 @@ module.exports = {
 
     sendStorageMonitorMessage: async function (guildId, serverId, entityId, interaction = null) {
         let instance = Client.client.getInstance(guildId);
-        const entity = instance.serverList[serverId].storageMonitors[entityId];
+        const server = instance.serverList[serverId];
+        if (!server || !server.storageMonitors || !server.storageMonitors[entityId]) return;
+        const entity = server.storageMonitors[entityId];
 
         const content = {
             embeds: [entity.reachable ?
@@ -299,6 +311,9 @@ module.exports = {
 
         const message = await module.exports.sendMessage(guildId, content, entity.messageId,
             instance.channelId.storageMonitors, interaction);
+
+        // If Discord rejected the edit/send, do not dereference message.
+        if (!message) return;
 
         if (!interaction && message) {
             instance.serverList[serverId].storageMonitors[entityId].messageId = message.id;

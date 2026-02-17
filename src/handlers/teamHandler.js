@@ -28,6 +28,11 @@ module.exports = {
     },
 
     checkChanges: async function (rustplus, client, teamInfo) {
+        if (!rustplus.team) {
+            rustplus.log(client.intlGet(null, 'errorCap'), 'Team data missing; skipping team change handling');
+            return;
+        }
+
         let instance = client.getInstance(rustplus.guildId);
         const guildId = rustplus.guildId;
         const serverId = rustplus.serverId;

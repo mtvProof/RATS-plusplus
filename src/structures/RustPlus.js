@@ -41,6 +41,7 @@ const Timer = require('../util/timer.js');
 
 const TOKENS_LIMIT = 24;        /* Per player */
 const TOKENS_REPLENISH = 3;     /* Per second */
+const MAX_CONSECUTIVE_TIMEOUTS = 5; /* Force reconnect after this many RPC timeouts */
 
 class RustPlus extends RustPlusLib {
     constructor(guildId, serverIp, appPort, steamId, playerToken) {
@@ -59,6 +60,7 @@ class RustPlus extends RustPlusLib {
         this.isDeleted = false;             /* Is the rustplus instance deleted? */
         this.isNewConnection = false;       /* Is it an actively selected connection (pressed CONNECT button)? */
         this.isFirstPoll = true;            /* Is this the first poll since connection started? */
+        this.consecutiveTimeouts = 0;       /* Counter for consecutive RPC timeouts. */
 
         /* Interval ids */
         this.pollingTaskId = 0;             /* The id of the main polling mechanism of the rustplus instance. */
@@ -99,7 +101,8 @@ class RustPlus extends RustPlusLib {
             heli: [],
             small: [],
             large: [],
-            chinook: []
+            chinook: [],
+            deepsea: []
         };
         this.patrolHelicopterTracers = new Object();
         this.cargoShipTracers = new Object();
@@ -223,6 +226,11 @@ class RustPlus extends RustPlusLib {
                 Client.client.setInstance(this.guildId, instance);
                 this.log(Client.client.intlGet(null, 'infoCap'), 'Map seed changed - playtime stats cleared for wipe');
             }
+
+            // A wipe invalidates all cached map state (deep sea location, vending machines, etc.).
+            if (this.mapMarkers) {
+                this.mapMarkers.reset();
+            }
         }
     }
     updateDeaths(steamId, data) {
@@ -304,10 +312,6 @@ class RustPlus extends RustPlusLib {
 
     sendInGameMessage(message) {
         InGameChatHandler.inGameChatHandler(this, Client.client, message);
-
-        const containsBrand = `${message}`.toUpperCase().includes('RATS++');
-        if (containsBrand) return; // Avoid mirroring branded auto-messages to the other team
-
         const mirrors = Client.client.getRustplusInstancesAll(this.guildId)
             .filter(rp => rp && rp !== this && rp.isOperational);
 
@@ -674,14 +678,25 @@ class RustPlus extends RustPlusLib {
     }
 
     async isResponseValid(response) {
+        const isTimeout = response && response.toString &&
+            response.toString() === 'Error: Timeout reached while waiting for response';
+
         if (response === undefined) {
             this.log(Client.client.intlGet(null, 'errorCap'),
                 Client.client.intlGet(null, 'responseIsUndefined'), 'error');
             return false;
         }
-        else if (response.toString() === 'Error: Timeout reached while waiting for response') {
+        else if (isTimeout) {
             this.log(Client.client.intlGet(null, 'errorCap'),
                 Client.client.intlGet(null, 'responseTimeout'), 'error');
+
+            this.consecutiveTimeouts += 1;
+            if (this.consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS) {
+                this.log(Client.client.intlGet(null, 'errorCap'),
+                    `Hit ${this.consecutiveTimeouts} consecutive timeouts; reconnecting to Rust+`, 'error');
+                this.consecutiveTimeouts = 0;
+                this.disconnect();
+            }
             return false;
         }
         else if (response.hasOwnProperty('error')) {
@@ -696,6 +711,7 @@ class RustPlus extends RustPlusLib {
             clearInterval(this.pollingTaskId);
             return false;
         }
+        this.consecutiveTimeouts = 0;
         return true;
     }
 
@@ -1326,9 +1342,12 @@ class RustPlus extends RustPlusLib {
         const commandLargeEn = `${Client.client.intlGet('en', 'commandSyntaxLarge')}`;
         const commandChinook = `${Client.client.intlGet(this.guildId, 'commandSyntaxChinook')}`;
         const commandChinookEn = `${Client.client.intlGet('en', 'commandSyntaxChinook')}`;
+        const commandDeepSea = `${Client.client.intlGet(this.guildId, 'commandSyntaxDeepSea')}`;
+        const commandDeepSeaEn = `${Client.client.intlGet('en', 'commandSyntaxDeepSea')}`;
 
         const EVENTS = [commandCargo, commandCargoEn, commandHeli, commandHeliEn, commandSmall,
-            commandSmallEn, commandLarge, commandLargeEn, commandChinook, commandChinookEn];
+            commandSmallEn, commandLarge, commandLargeEn, commandChinook, commandChinookEn,
+            commandDeepSea, commandDeepSeaEn];
 
         if (command.toLowerCase().startsWith(`${commandEvents}`)) {
             command = command.slice(`${commandEvents}`.length).trim();
@@ -1391,6 +1410,11 @@ class RustPlus extends RustPlusLib {
             case commandChinookEn:
             case commandChinook: {
                 event = 'chinook';
+            } break;
+
+            case commandDeepSeaEn:
+            case commandDeepSea: {
+                event = 'deepsea';
             } break;
 
             default: {
@@ -2787,6 +2811,95 @@ class RustPlus extends RustPlusLib {
         }
 
         return strings;
+    }
+
+    getCommandDeepSea(isInfoChannel = false) {
+        const instance = Client.client.getInstance(this.guildId);
+        const server = instance.serverList[this.serverId];
+
+        const activeDeepSea = this.mapMarkers.deepSea[0];
+        if (activeDeepSea) {
+            const location = activeDeepSea.location.string;
+            let durationMs = server ? (server.deepSeaDurationMs || Constants.DEFAULT_DEEP_SEA_DURATION_MS) :
+                Constants.DEFAULT_DEEP_SEA_DURATION_MS;
+            let timeLeft = null;
+
+            if (durationMs < Constants.DEFAULT_DEEP_SEA_DURATION_MS && server) {
+                durationMs = Constants.DEFAULT_DEEP_SEA_DURATION_MS;
+                server.deepSeaDurationMs = durationMs;
+                Client.client.setInstance(this.guildId, instance);
+            }
+
+            if (durationMs && this.mapMarkers.deepSeaSpawnedAt) {
+                const nowMs = Date.now();
+                const spawnMs = this.mapMarkers.deepSeaSpawnedAt.getTime();
+                const elapsedMs = Math.max(0, nowMs - spawnMs);
+                if (elapsedMs === 0 && spawnMs > nowMs) {
+                    this.mapMarkers.deepSeaSpawnedAt = new Date(nowMs);
+                }
+                const remainingSeconds = Math.max(0, Math.floor((durationMs - elapsedMs) / 1000));
+                timeLeft = Timer.secondsToFullScale(remainingSeconds, isInfoChannel ? 's' : undefined);
+            }
+
+            if (isInfoChannel) {
+                if (timeLeft) {
+                    return Client.client.intlGet(this.guildId, 'deepSeaActiveShort', {
+                        location: location,
+                        time: ` ${timeLeft}`
+                    });
+                }
+                return Client.client.intlGet(this.guildId, 'atLocation', { location: location });
+            }
+
+            return Client.client.intlGet(this.guildId, 'deepSeaActive', {
+                location: location,
+                time: timeLeft ? ` (${timeLeft})` : ''
+            });
+        }
+
+        const lastSeen = this.mapMarkers.timeSinceDeepSeaWasOnMap;
+        if (!lastSeen) {
+            return isInfoChannel ? Client.client.intlGet(this.guildId, 'notActive') :
+                Client.client.intlGet(this.guildId, 'deepSeaNotCurrentlyOnMap');
+        }
+
+        const secondsSince = (new Date() - lastSeen) / 1000;
+        const timeSince = Timer.secondsToFullScale(secondsSince, isInfoChannel ? 's' : undefined);
+        const cooldownMs = server ? server.deepSeaCooldownMs : 0;
+        const durationMs = server ? (server.deepSeaDurationMs || Constants.DEFAULT_DEEP_SEA_DURATION_MS) :
+            Constants.DEFAULT_DEEP_SEA_DURATION_MS;
+        const downtimeMs = Math.max(0, cooldownMs - durationMs);
+        let eta = null;
+
+        if (cooldownMs) {
+            const lastSpawnMs = this.mapMarkers.deepSeaLastSpawnAt ? this.mapMarkers.deepSeaLastSpawnAt.getTime() : null;
+            const lastSeenMs = lastSeen ? lastSeen.getTime() : null;
+
+            // If we know the last spawn time, use spawn-to-spawn; otherwise use despawn time plus downtime.
+            const respawnAt = lastSpawnMs ? (lastSpawnMs + cooldownMs) :
+                (lastSeenMs ? (lastSeenMs + downtimeMs) : null);
+
+            if (respawnAt) {
+                const etaSeconds = Math.max(0, Math.floor((respawnAt - Date.now()) / 1000));
+                eta = Timer.secondsToFullScale(etaSeconds, isInfoChannel ? 's' : undefined);
+            }
+        }
+
+        if (eta) {
+            if (isInfoChannel) {
+                return Client.client.intlGet(this.guildId, 'deepSeaRespawnEtaShort', { time: eta });
+            }
+            return Client.client.intlGet(this.guildId, 'deepSeaRespawnEta', {
+                time: eta,
+                location: this.mapMarkers.deepSeaLastLocation === null ? '' : this.mapMarkers.deepSeaLastLocation
+            });
+        }
+
+        if (isInfoChannel) {
+            return Client.client.intlGet(this.guildId, 'timeSinceLast', { time: timeSince });
+        }
+
+        return Client.client.intlGet(this.guildId, 'timeSinceDeepSeaWasOnMap', { time: timeSince });
     }
 }
 

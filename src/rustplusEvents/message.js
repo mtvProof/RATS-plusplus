@@ -62,6 +62,10 @@ async function messageBroadcast(rustplus, client, message) {
 }
 
 async function messageBroadcastTeamChanged(rustplus, client, message) {
+    if (!rustplus.team) {
+        rustplus.log(client.intlGet(null, 'errorCap'), 'Team data missing; skipping teamChanged broadcast');
+        return;
+    }
     TeamHandler.handler(rustplus, client, message.broadcast.teamChanged.teamInfo);
     const changed = rustplus.team.isLeaderSteamIdChanged(message.broadcast.teamChanged.teamInfo);
     rustplus.team.updateTeam(message.broadcast.teamChanged.teamInfo);
@@ -133,6 +137,9 @@ function relayTeamChatAcrossTeams(sourceRustplus, client, msg) {
         client.rustplusSecondaryInstances[guildId] : client.rustplusInstances[guildId];
 
     if (!targetRustplus || !targetRustplus.isOperational) return;
+
+    // Do not relay bot-generated messages (e.g., alarms) to the opposite team.
+    if (`${msg.steamId || ''}` === `${sourceRustplus.playerId}`) return;
 
     const normalizedMsg = `${msg.message}`.toUpperCase();
     if (msg.message.startsWith('[Team 1]') || msg.message.startsWith('[Team 2]')) return;

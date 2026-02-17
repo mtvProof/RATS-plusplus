@@ -124,6 +124,9 @@ module.exports = {
             await DiscordMessages.sendServerMessage(guildId, serverId, null);
         }
 
+        // Mark operational before heavy setup so team chat/commands are processed while Discord setup runs.
+        rustplus.isOperational = true;
+
         /* Setup Smart Devices only for primary (hoster1) */
         if (!isSecondary) {
             await require('../discordTools/SetupSwitches')(client, rustplus);
@@ -136,7 +139,6 @@ module.exports = {
 
         await PollingHandler.pollingHandler(rustplus, client);
         rustplus.pollingTaskId = setInterval(PollingHandler.pollingHandler, client.pollingIntervalMs, rustplus, client);
-        rustplus.isOperational = true;
 
         rustplus.updateLeaderRustPlusLiteInstance();
     },

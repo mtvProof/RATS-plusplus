@@ -48,6 +48,7 @@ class MapMarkers {
         this._genericRadiuses = [];
         this._patrolHelicopters = [];
         this._travelingVendors = [];
+        this._deepSea = [];
 
         /* Timers */
         this.cargoShipEgressTimers = new Object();
@@ -64,12 +65,20 @@ class MapMarkers {
         this.timeSincePatrolHelicopterWasOnMap = null;
         this.timeSincePatrolHelicopterWasDestroyed = null;
         this.timeSinceTravelingVendorWasOnMap = null;
+        this.timeSinceDeepSeaWasOnMap = null;
 
         /* Event location */
         this.patrolHelicopterDestroyedLocation = null;
+        this.deepSeaLastLocation = null;
+        this.deepSeaSpawnedAt = null;
+        this.deepSeaRespawnAt = null;
+        this.deepSeaLastSpawnAt = null;
 
         /* Vending Machine variables */
         this.knownVendingMachines = [];
+
+        /* Deep Sea timers */
+        this.deepSeaPrepairTimer = null;
 
         this.updateMapMarkers(mapMarkers);
     }
@@ -97,6 +106,8 @@ class MapMarkers {
     set patrolHelicopters(patrolHelicopters) { this._patrolHelicopters = patrolHelicopters; }
     get travelingVendors() { return this._travelingVendors; }
     set travelingVendors(travelingVendors) { this._travelingVendors = travelingVendors; }
+    get deepSea() { return this._deepSea; }
+    set deepSea(deepSea) { this._deepSea = deepSea; }
 
     getType(type) {
         if (!Object.values(this.types).includes(type)) {
@@ -302,21 +313,78 @@ class MapMarkers {
         let newMarkers = this.getNewMarkersOfTypeXY(this.types.VendingMachine, mapMarkers.markers);
         let leftMarkers = this.getLeftMarkersOfTypeXY(this.types.VendingMachine, mapMarkers.markers);
         let remainingMarkers = this.getRemainingMarkersOfTypeXY(this.types.VendingMachine, mapMarkers.markers);
+        const mapSize = this.rustplus.info.correctedMapSize;
+        const isPrimary = this.rustplus.instanceLabel !== 'secondary';
+        let deepSeaSpawnHandled = false;
+        let deepSeaLeftHandled = false;
 
         /* VendingMachine markers that are new. */
         for (let marker of newMarkers) {
-            let mapSize = this.rustplus.info.correctedMapSize;
             let pos = Map.getPos(marker.x, marker.y, mapSize, this.rustplus);
 
             marker.location = pos;
 
-            if (!this.rustplus.isFirstPoll) {
-                if (!this.knownVendingMachines.some(e => e.x === marker.x && e.y === marker.y)) {
-                    this.rustplus.sendEvent(
-                        this.rustplus.notificationSettings.vendingMachineDetectedSetting,
-                        this.client.intlGet(this.rustplus.guildId, 'newVendingMachine', { location: pos.string }),
-                        null,
-                        Constants.COLOR_NEW_VENDING_MACHINE);
+            const isDeepSea = Map.isOutsideGridSystem(marker.x, marker.y, mapSize);
+            marker.isDeepSea = isDeepSea;
+
+            if (isDeepSea) {
+                const now = new Date();
+                const previousSpawn = this.deepSeaSpawnedAt || this.deepSeaLastSpawnAt;
+
+                if (!deepSeaSpawnHandled) {
+                    if (isPrimary && previousSpawn) {
+                        const intervalMs = now - previousSpawn;
+                        if (intervalMs > 0 && intervalMs < 12 * 60 * 60 * 1000) {
+                            const instance = this.client.getInstance(this.rustplus.guildId);
+                            const server = instance.serverList[this.rustplus.serverId];
+                            if (server) {
+                                server.deepSeaCooldownMs = intervalMs;
+                                this.client.setInstance(this.rustplus.guildId, instance);
+                            }
+                        }
+                    }
+
+                    if (isPrimary && !this.rustplus.isFirstPoll) {
+                        this.rustplus.sendEvent(
+                            this.rustplus.notificationSettings.deepSeaDetectedSetting,
+                            this.client.intlGet(this.rustplus.guildId, 'deepSeaDetected', { location: pos.string }),
+                            'deepsea',
+                            Constants.COLOR_DEEP_SEA_DETECTED);
+                    }
+
+                    this.deepSeaLastLocation = pos.string;
+                    // If detected during the initial poll, we don't know when it actually spawned;
+                    // leave deepSeaSpawnedAt null so downstream callers omit an inaccurate timer.
+                    this.deepSeaSpawnedAt = this.rustplus.isFirstPoll ? null : now;
+                    this.deepSeaLastSpawnAt = now;
+                    this.deepSeaRespawnAt = null;
+                    this.timeSinceDeepSeaWasOnMap = null;
+
+                    if (this.deepSeaPrepairTimer) {
+                        this.deepSeaPrepairTimer.stop();
+                        this.deepSeaPrepairTimer = null;
+                    }
+
+                    deepSeaSpawnHandled = true;
+                }
+
+                this.deepSea.push(marker);
+            }
+            else {
+                if (!this.rustplus.isFirstPoll) {
+                    if (!this.knownVendingMachines.some(e => e.x === marker.x && e.y === marker.y)) {
+                        // Never broadcast vending machine detections into in-game team chat to avoid spam loops
+                        const vmSetting = {
+                            ...this.rustplus.notificationSettings.vendingMachineDetectedSetting,
+                            inGame: false
+                        };
+
+                        this.rustplus.sendEvent(
+                            vmSetting,
+                            this.client.intlGet(this.rustplus.guildId, 'newVendingMachine', { location: pos.string }),
+                            null,
+                            Constants.COLOR_NEW_VENDING_MACHINE);
+                    }
                 }
             }
 
@@ -326,12 +394,35 @@ class MapMarkers {
 
         /* VendingMachine markers that have left. */
         for (let marker of leftMarkers) {
+            const isDeepSea = marker.isDeepSea || Map.isOutsideGridSystem(marker.x, marker.y, mapSize);
+
+            if (isDeepSea) {
+                if (isPrimary && !deepSeaLeftHandled) {
+                    this.rustplus.sendEvent(
+                        this.rustplus.notificationSettings.deepSeaLeftSetting,
+                        this.client.intlGet(this.rustplus.guildId, 'deepSeaLeftMap', { location: marker.location.string }),
+                        'deepsea',
+                        Constants.COLOR_DEEP_SEA_LEFT);
+                }
+
+                if (!deepSeaLeftHandled) {
+                    this.timeSinceDeepSeaWasOnMap = new Date();
+                    this.deepSeaSpawnedAt = null;
+                }
+
+                this.deepSea = this.deepSea.filter(e => e.x !== marker.x || e.y !== marker.y);
+                deepSeaLeftHandled = true;
+            }
+
             this.vendingMachines = this.vendingMachines.filter(e => e.x !== marker.x || e.y !== marker.y);
+        }
+
+        if (isPrimary && deepSeaLeftHandled) {
+            this.scheduleDeepSeaPrepair();
         }
 
         /* VendingMachine markers that still remains. */
         for (let marker of remainingMarkers) {
-            let mapSize = this.rustplus.info.correctedMapSize;
             let pos = Map.getPos(marker.x, marker.y, mapSize, this.rustplus);
             let vendingMachine = this.getMarkerByTypeXY(this.types.VendingMachine, marker.x, marker.y);
 
@@ -342,9 +433,16 @@ class MapMarkers {
                 continue;
             }
 
+            const isDeepSea = vendingMachine.isDeepSea || Map.isOutsideGridSystem(marker.x, marker.y, mapSize);
+            vendingMachine.isDeepSea = isDeepSea;
+
             vendingMachine.id = marker.id;
             vendingMachine.location = pos;
             vendingMachine.sellOrders = marker.sellOrders;
+
+            if (isDeepSea) {
+                this.deepSeaLastLocation = pos.string;
+            }
         }
     }
 
@@ -584,8 +682,7 @@ class MapMarkers {
                         }
                     }
                 }
-            }
-            else if (!this.rustplus.isFirstPoll && cargoShip.isDocked) {
+            } else if (!this.rustplus.isFirstPoll && cargoShip.isDocked) {
                 for (const harbor of harbors) {
                     if (Map.getDistance(marker.x, marker.y, harbor.x, harbor.y) <= Constants.HARBOR_DOCK_DISTANCE) {
                         if (marker.x !== cargoShip.x || marker.y !== cargoShip.y) {
@@ -848,6 +945,64 @@ class MapMarkers {
         this.crateLargeOilRigLocation = null;
     }
 
+    scheduleDeepSeaPrepair() {
+        if (this.deepSeaPrepairTimer) {
+            this.deepSeaPrepairTimer.stop();
+            this.deepSeaPrepairTimer = null;
+        }
+
+        const setting = this.rustplus.notificationSettings.deepSeaDetectedSetting;
+        if (!setting || !setting.prepair) return;
+
+        const instance = this.client.getInstance(this.rustplus.guildId);
+        const server = instance.serverList[this.rustplus.serverId];
+        if (!server) return;
+
+        const cooldownMs = server.deepSeaCooldownMs;
+        const durationMs = server.deepSeaDurationMs || Constants.DEFAULT_DEEP_SEA_DURATION_MS;
+        const prepairMinutes = server.deepSeaPrepairMinutes;
+        if (!cooldownMs || prepairMinutes === null || prepairMinutes === undefined) return;
+        if (prepairMinutes < 0) return;
+
+        const downtimeMs = Math.max(0, cooldownMs - durationMs);
+        const lastSpawnMs = this.deepSeaLastSpawnAt ? this.deepSeaLastSpawnAt.getTime() : null;
+        const lastSeenMs = this.timeSinceDeepSeaWasOnMap ? this.timeSinceDeepSeaWasOnMap.getTime() : null;
+
+        // Prefer spawn-to-spawn math; fall back to despawn time plus downtime if spawn time is unknown.
+        const targetTime = lastSpawnMs ? (lastSpawnMs + cooldownMs) :
+            (lastSeenMs ? (lastSeenMs + downtimeMs) : (Date.now() + downtimeMs));
+
+        const prepairMs = prepairMinutes * 60 * 1000;
+        const delayMs = targetTime - prepairMs - Date.now();
+
+        this.deepSeaRespawnAt = new Date(targetTime);
+
+        if (delayMs <= 0) {
+            this.notifyDeepSeaPrepair([prepairMinutes]);
+            return;
+        }
+
+        this.deepSeaPrepairTimer = new Timer.timer(
+            this.notifyDeepSeaPrepair.bind(this),
+            delayMs,
+            prepairMinutes);
+        this.deepSeaPrepairTimer.start();
+    }
+
+    notifyDeepSeaPrepair(args) {
+        const prepairMinutes = args[0];
+        this.deepSeaPrepairTimer = null;
+
+        const etaMs = this.deepSeaRespawnAt ? (this.deepSeaRespawnAt - Date.now()) : prepairMinutes * 60 * 1000;
+        const eta = Timer.secondsToFullScale(Math.max(0, Math.floor(etaMs / 1000)));
+
+        this.rustplus.sendEvent(
+            this.rustplus.notificationSettings.deepSeaDetectedSetting,
+            this.client.intlGet(this.rustplus.guildId, 'deepSeaPrepairNotice', { time: eta }),
+            'deepsea',
+            Constants.COLOR_DEEP_SEA_PREPAIR);
+    }
+
     /* Help functions */
 
     getClosestMonument(x, y) {
@@ -872,6 +1027,7 @@ class MapMarkers {
         this.genericRadiuses = [];
         this.patrolHelicopters = [];
         this.travelingVendors = [];
+        this.deepSea = [];
 
         for (const [id, timer] of Object.entries(this.cargoShipEgressTimers)) {
             timer.stop();
@@ -893,6 +1049,7 @@ class MapMarkers {
         this.timeSincePatrolHelicopterWasOnMap = null;
         this.timeSincePatrolHelicopterWasDestroyed = null;
         this.timeSinceTravelingVendorWasOnMap = null;
+        this.timeSinceDeepSeaWasOnMap = null;
 
         this.patrolHelicopterDestroyedLocation = null;
 
@@ -902,6 +1059,14 @@ class MapMarkers {
 
         this.crateSmallOilRigLocation = null;
         this.crateLargeOilRigLocation = null;
+
+        if (this.deepSeaPrepairTimer) {
+            this.deepSeaPrepairTimer.stop();
+        }
+        this.deepSeaPrepairTimer = null;
+        this.deepSeaLastLocation = null;
+        this.deepSeaSpawnedAt = null;
+        this.deepSeaRespawnAt = null;
     }
 }
 

@@ -85,8 +85,8 @@ module.exports = async (client, guild, hosterSteamId = null, label = 'primary') 
             return;
         }
 
-        // Host2 (secondary) should not drive any automation except team presence.
-        if (isSecondary && channelId !== 'team') return;
+        // Host2 (secondary) should not drive automation except team presence and device pairing.
+        if (isSecondary && !['team', 'pairing'].includes(channelId)) return;
 
         const bodyCheck = appData.find(item => item.key === 'body');
 
@@ -272,6 +272,9 @@ async function pairingServer(client, guild, title, message, body) {
         cargoShipEgressTimeMs: server ? server.cargoShipEgressTimeMs : Constants.DEFAULT_CARGO_SHIP_EGRESS_TIME_MS,
         oilRigLockedCrateUnlockTimeMs: server ? server.oilRigLockedCrateUnlockTimeMs :
             Constants.DEFAULT_OIL_RIG_LOCKED_CRATE_UNLOCK_TIME_MS,
+        deepSeaCooldownMs: server ? server.deepSeaCooldownMs : Constants.DEFAULT_DEEP_SEA_COOLDOWN_MS,
+        deepSeaDurationMs: server ? server.deepSeaDurationMs : Constants.DEFAULT_DEEP_SEA_DURATION_MS,
+        deepSeaPrepairMinutes: server ? server.deepSeaPrepairMinutes : Constants.DEFAULT_DEEP_SEA_PREPAIR_MINUTES,
         timeTillDay: server ? server.timeTillDay : null,
         timeTillNight: server ? server.timeTillNight : null
     };
