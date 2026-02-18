@@ -217,6 +217,7 @@ module.exports = (client, guild) => {
     /* Check every serverList for missing keys */
     for (const [serverId, content] of Object.entries(instance.serverList)) {
         if (!content.hasOwnProperty('customCameraGroups')) content.customCameraGroups = {};
+        if (!content.hasOwnProperty('cameraCodes')) content.cameraCodes = [];
         if (!content.hasOwnProperty('playerPlaytimes')) content.playerPlaytimes = {};
         if (!content.hasOwnProperty('deepSeaCooldownMs')) content.deepSeaCooldownMs =
             Constants.DEFAULT_DEEP_SEA_COOLDOWN_MS;

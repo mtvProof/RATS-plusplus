@@ -44,7 +44,16 @@ module.exports = {
 
     readInstanceFile: function (guildId) {
         const path = Path.join(__dirname, '..', '..', 'instances', `${guildId}.json`);
-        return JSON.parse(Fs.readFileSync(path, 'utf8'));
+        try {
+            const raw = Fs.readFileSync(path, 'utf8');
+            if (!raw || raw.trim() === '') return {};
+            return JSON.parse(raw);
+        }
+        catch (e) {
+            // If the instance file is missing or corrupted, return an empty object so
+            // CreateInstanceFile can rebuild a default structure without crashing startup.
+            return {};
+        }
     },
 
     writeInstanceFile: function (guildId, instance) {

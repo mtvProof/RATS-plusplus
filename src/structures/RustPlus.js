@@ -223,6 +223,7 @@ class RustPlus extends RustPlusLib {
             const server = instance.serverList[this.serverId];
             if (server) {
                 server.playerPlaytimes = {};
+                server.cameraCodes = [];
                 Client.client.setInstance(this.guildId, instance);
                 this.log(Client.client.intlGet(null, 'infoCap'), 'Map seed changed - playtime stats cleared for wipe');
             }
@@ -2488,6 +2489,76 @@ class RustPlus extends RustPlusLib {
         }
 
         return string !== '' ? `${string.slice(0, -2)}.` : null;
+    }
+
+    getCommandCams(command) {
+        const prefix = this.generalSettings.prefix;
+        const commandCams = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxCams')}`;
+        const commandCamsEn = `${prefix}${Client.client.intlGet('en', 'commandSyntaxCams')}`;
+
+        const instance = Client.client.getInstance(this.guildId);
+        const server = instance.serverList[this.serverId];
+        if (!server) return null;
+        if (!Array.isArray(server.cameraCodes)) server.cameraCodes = [];
+
+        const lower = command.toLowerCase();
+        const matchesExact = (syntax) => lower === syntax.toLowerCase();
+        const startsWithSyntax = (syntax) => lower.startsWith(`${syntax.toLowerCase()} `);
+
+        const listResponse = () => {
+            if (server.cameraCodes.length === 0) {
+                return Client.client.intlGet(this.guildId, 'cameraCodesEmpty');
+            }
+
+            const codes = [...server.cameraCodes].sort();
+            return Client.client.intlGet(this.guildId, 'cameraCodesList', {
+                codes: codes.join(', ')
+            });
+        };
+
+        if (matchesExact(commandCams) || matchesExact(commandCamsEn)) {
+            return listResponse();
+        }
+
+        const activeSyntax = startsWithSyntax(commandCams) ? commandCams :
+            (startsWithSyntax(commandCamsEn) ? commandCamsEn : null);
+
+        if (!activeSyntax) return null;
+
+        const args = command.slice(activeSyntax.length).trim();
+        if (!args) return listResponse();
+
+        const [actionRaw, ...rest] = args.split(/\s+/);
+        const action = (actionRaw || '').toLowerCase();
+        const code = rest.join(' ').trim();
+
+        if (!code) {
+            return Client.client.intlGet(this.guildId, 'cameraCodeMissing');
+        }
+
+        const codeNormalized = code.toUpperCase();
+
+        if (action === 'add') {
+            if (server.cameraCodes.includes(codeNormalized)) {
+                return Client.client.intlGet(this.guildId, 'cameraCodeExists', { code: codeNormalized });
+            }
+
+            server.cameraCodes.push(codeNormalized);
+            Client.client.setInstance(this.guildId, instance);
+            return Client.client.intlGet(this.guildId, 'cameraCodeAdded', { code: codeNormalized });
+        }
+
+        if (['remove', 'rm', 'delete', 'del'].includes(action)) {
+            if (!server.cameraCodes.includes(codeNormalized)) {
+                return Client.client.intlGet(this.guildId, 'cameraCodeNotFound', { code: codeNormalized });
+            }
+
+            server.cameraCodes = server.cameraCodes.filter(c => c !== codeNormalized);
+            Client.client.setInstance(this.guildId, instance);
+            return Client.client.intlGet(this.guildId, 'cameraCodeRemoved', { code: codeNormalized });
+        }
+
+        return listResponse();
     }
 
     getCommandTime(isInfoChannel = false) {
