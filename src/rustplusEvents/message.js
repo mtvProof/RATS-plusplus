@@ -235,38 +235,52 @@ async function messageBroadcastEntityChangedStorageMonitor(rustplus, client, mes
     const guildId = rustplus.guildId;
     const instance = client.getInstance(guildId);
     const primaryRustplus = client.rustplusInstances[guildId];
+    const secondaryRustplus = client.rustplusSecondaryInstances[guildId];
     const serverId = rustplus.serverId;
     const entityId = message.broadcast.entityChanged.entityId;
     const server = instance.serverList[serverId];
 
-    // Ignore storage monitor events from secondary; only primary should evaluate TC state.
-    if (rustplus.instanceLabel !== 'primary') return;
-
     if (!server || (server && !server.storageMonitors[entityId])) return;
-    if (!primaryRustplus || !primaryRustplus.isOperational) return;
-
+    if (!rustplus || !rustplus.isOperational) return;
     if (message.broadcast.entityChanged.payload.value === true) return;
+
+    const candidates = [];
+    const candidateIds = new Set();
+    // Always try hoster1 (primary) first; only fall back to hoster2 if primary cannot reach the entity.
+    for (const rp of [primaryRustplus, rustplus, secondaryRustplus]) {
+        if (!rp || !rp.isOperational || rp.serverId !== serverId) continue;
+        if (candidateIds.has(rp.instanceLabel)) continue;
+        candidateIds.add(rp.instanceLabel);
+        candidates.push(rp);
+    }
+    if (candidates.length === 0) return;
 
     if (server.storageMonitors[entityId].type === 'toolCupboard' ||
         message.broadcast.entityChanged.payload.capacity === Constants.STORAGE_MONITOR_TOOL_CUPBOARD_CAPACITY) {
-        setTimeout(updateToolCupboard.bind(null, primaryRustplus, client, message), 2000);
+        setTimeout(updateToolCupboard.bind(null, candidates, client, message), 2000);
     }
     else {
-        primaryRustplus.storageMonitors[entityId] = {
+        const infoResult = await getEntityInfoFromCandidates(candidates, entityId);
+        const info = infoResult.info;
+        const infoSource = infoResult.source;
+
+        if (!info || !infoSource) return;
+
+        infoSource.storageMonitors[entityId] = {
             items: message.broadcast.entityChanged.payload.items,
             expiry: message.broadcast.entityChanged.payload.protectionExpiry,
             capacity: message.broadcast.entityChanged.payload.capacity,
             hasProtection: message.broadcast.entityChanged.payload.hasProtection
         }
 
-        const info = await primaryRustplus.getEntityInfoAsync(entityId);
-        server.storageMonitors[entityId].reachable = await primaryRustplus.isResponseValid(info) ? true : false;
+        const infoCheck = await infoSource.getEntityInfoAsync(entityId);
+        server.storageMonitors[entityId].reachable = await infoSource.isResponseValid(infoCheck) ? true : false;
 
         if (server.storageMonitors[entityId].reachable) {
-            if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_VENDING_MACHINE_CAPACITY) {
+            if (infoCheck.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_VENDING_MACHINE_CAPACITY) {
                 server.storageMonitors[entityId].type = 'vendingMachine';
             }
-            else if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_LARGE_WOOD_BOX_CAPACITY) {
+            else if (infoCheck.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_LARGE_WOOD_BOX_CAPACITY) {
                 server.storageMonitors[entityId].type = 'largeWoodBox';
             }
         }
@@ -276,41 +290,79 @@ async function messageBroadcastEntityChangedStorageMonitor(rustplus, client, mes
     }
 }
 
-async function updateToolCupboard(primaryRustplus, client, message) {
-    const instance = client.getInstance(primaryRustplus.guildId);
-    const server = instance.serverList[primaryRustplus.serverId];
+async function updateToolCupboard(candidates, client, message) {
+    const guildId = candidates[0].guildId;
+    const instance = client.getInstance(guildId);
+    const serverId = candidates[0].serverId;
+    const server = instance.serverList[serverId];
     const entityId = message.broadcast.entityChanged.entityId;
 
-    const info = await primaryRustplus.getEntityInfoAsync(entityId);
-    server.storageMonitors[entityId].reachable = await primaryRustplus.isResponseValid(info) ? true : false;
-    client.setInstance(primaryRustplus.guildId, instance);
+    const infoResult = await getEntityInfoFromCandidates(candidates, entityId);
+    const info = infoResult.info;
+    const infoSource = infoResult.source;
 
-    if (server.storageMonitors[entityId].reachable) {
-        primaryRustplus.storageMonitors[entityId] = {
-            items: info.entityInfo.payload.items,
-            expiry: info.entityInfo.payload.protectionExpiry,
-            capacity: info.entityInfo.payload.capacity,
-            hasProtection: info.entityInfo.payload.hasProtection
-        }
+    if (!info || !infoSource) return;
 
-        server.storageMonitors[entityId].type = 'toolCupboard';
+    const monitor = server.storageMonitors[entityId];
 
-        if (info.entityInfo.payload.protectionExpiry === 0 && server.storageMonitors[entityId].decaying === false) {
-            server.storageMonitors[entityId].decaying = true;
+    monitor.reachable = true;
+    monitor.type = 'toolCupboard';
+    if (typeof monitor.decaying === 'undefined') monitor.decaying = false;
+    if (typeof monitor.decayPending === 'undefined') monitor.decayPending = false;
+    if (typeof monitor.firstSeenAt === 'undefined') monitor.firstSeenAt = Date.now();
 
-            await DiscordMessages.sendDecayingNotificationMessage(primaryRustplus.guildId, primaryRustplus.serverId, entityId);
+    infoSource.storageMonitors[entityId] = {
+        items: info.entityInfo.payload.items,
+        expiry: info.entityInfo.payload.protectionExpiry,
+        capacity: info.entityInfo.payload.capacity,
+        hasProtection: info.entityInfo.payload.hasProtection
+    }
 
-            if (server.storageMonitors[entityId].inGame) {
-                primaryRustplus.sendInGameMessage(client.intlGet(primaryRustplus.guildId, 'isDecaying', {
-                    device: server.storageMonitors[entityId].name
+    // If capacity reads as 0, treat as an electrical/power blip: reset pending/decay and skip decay evaluation.
+    if (info.entityInfo.payload.capacity === 0) {
+        monitor.decayPending = false;
+        monitor.decaying = false;
+        client.setInstance(guildId, instance);
+        await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
+        return;
+    }
+
+    const ageMs = Date.now() - monitor.firstSeenAt;
+    const isActuallyDecaying = info.entityInfo.payload.protectionExpiry === 0 &&
+        info.entityInfo.payload.hasProtection === false;
+
+    if (isActuallyDecaying && monitor.decaying === false && ageMs > 10000) {
+        if (monitor.decayPending) {
+            monitor.decaying = true;
+
+            await DiscordMessages.sendDecayingNotificationMessage(guildId, serverId, entityId);
+
+            if (monitor.inGame) {
+                infoSource.sendInGameMessage(client.intlGet(guildId, 'isDecaying', {
+                    device: monitor.name
                 }));
             }
         }
-        else if (info.entityInfo.payload.protectionExpiry !== 0) {
-            server.storageMonitors[entityId].decaying = false;
+        else {
+            // Require two consecutive decay reads before alerting to avoid flicker.
+            monitor.decayPending = true;
         }
-        client.setInstance(primaryRustplus.guildId, instance);
     }
+    else if (!isActuallyDecaying) {
+        monitor.decayPending = false;
+        monitor.decaying = false;
+    }
+    client.setInstance(guildId, instance);
 
-    await DiscordMessages.sendStorageMonitorMessage(primaryRustplus.guildId, primaryRustplus.serverId, entityId);
+    await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
+}
+
+async function getEntityInfoFromCandidates(candidates, entityId) {
+    for (const candidate of candidates) {
+        const info = await candidate.getEntityInfoAsync(entityId);
+        if (await candidate.isResponseValid(info)) {
+            return { info: info, source: candidate };
+        }
+    }
+    return { info: null, source: null };
 }

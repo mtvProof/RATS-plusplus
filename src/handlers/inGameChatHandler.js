@@ -51,8 +51,11 @@ module.exports = {
 
         /* if there is a new message, add message to queue. */
         if (message !== null) {
-            if (rustplus.team === null || rustplus.team.allOffline ||
-                rustplus.generalSettings.muteInGameBotMessages) {
+            /* Still respect mute, but do not block on stale allOffline flags. */
+            if (rustplus.generalSettings.muteInGameBotMessages) return;
+
+            if (rustplus.team === null) {
+                rustplus.log(client.intlGet(guildId, 'infoCap'), 'Skipping in-game send: team data missing');
                 return;
             }
 

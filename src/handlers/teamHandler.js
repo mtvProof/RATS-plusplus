@@ -23,6 +23,8 @@ const DiscordMessages = require('../discordTools/discordMessages.js');
 
 module.exports = {
     handler: async function (rustplus, client, teamInfo) {
+        /* Skip secondary instances to avoid duplicate connection events */
+        if (rustplus.instanceLabel === 'secondary') return;
         /* Handle team changes */
         await module.exports.checkChanges(rustplus, client, teamInfo);
     },

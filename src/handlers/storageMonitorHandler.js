@@ -23,52 +23,69 @@ const DiscordMessages = require('../discordTools/discordMessages.js');
 
 module.exports = {
     handler: async function (rustplus, client) {
-        if (rustplus.instanceLabel === 'secondary') return;
-
         const guildId = rustplus.guildId;
         const primaryRustplus = client.rustplusInstances[guildId];
+        const secondaryRustplus = client.rustplusSecondaryInstances[guildId];
 
-        // Evaluate storage monitor reachability/state via primary (hoster1) only; secondary may lack TC access.
-        if (!primaryRustplus || !primaryRustplus.isOperational) return;
+        // Prefer primary, but fall back to an operational secondary if it has access (two-team split support).
+        const candidates = [primaryRustplus, secondaryRustplus]
+            .filter(rp => rp && rp.isOperational);
+
+        if (candidates.length === 0) return;
+
+        // Use the primary when available, otherwise the first operational candidate.
+        const poller = candidates.find(rp => rp.instanceLabel === 'primary') || candidates[0];
 
         let instance = client.getInstance(guildId);
-        const serverId = primaryRustplus.serverId;
+        const serverId = poller.serverId;
 
         if (!instance.serverList.hasOwnProperty(serverId)) return;
 
-        if (primaryRustplus.storageMonitorIntervalCounter === 29) {
-            primaryRustplus.storageMonitorIntervalCounter = 0;
+        if (poller.storageMonitorIntervalCounter === 29) {
+            poller.storageMonitorIntervalCounter = 0;
         }
         else {
-            primaryRustplus.storageMonitorIntervalCounter += 1;
+            poller.storageMonitorIntervalCounter += 1;
         }
 
-        if (primaryRustplus.storageMonitorIntervalCounter === 0) {
+        if (poller.storageMonitorIntervalCounter === 0) {
             let instance = client.getInstance(guildId);
             for (const entityId in instance.serverList[serverId].storageMonitors) {
                 instance = client.getInstance(guildId);
 
-                const info = await primaryRustplus.getEntityInfoAsync(entityId);
-                if (!(await primaryRustplus.isResponseValid(info))) {
+                // Try each operational instance until we get a valid response (handles TC auth being on hoster2).
+                let info = null;
+                let infoSource = null;
+                for (const candidate of candidates) {
+                    const candidateInfo = await candidate.getEntityInfoAsync(entityId);
+                    if (await candidate.isResponseValid(candidateInfo)) {
+                        info = candidateInfo;
+                        infoSource = candidate;
+                        break;
+                    }
+                }
+
+                if (!info) {
                     if (instance.serverList[serverId].storageMonitors[entityId].reachable) {
                         await DiscordMessages.sendStorageMonitorNotFoundMessage(guildId, serverId, entityId);
                     }
                     instance.serverList[serverId].storageMonitors[entityId].reachable = false;
+                    client.setInstance(guildId, instance);
+                    continue;
                 }
-                else {
-                    instance.serverList[serverId].storageMonitors[entityId].reachable = true;
-                }
+
+                instance.serverList[serverId].storageMonitors[entityId].reachable = true;
                 client.setInstance(guildId, instance);
 
                 if (instance.serverList[serverId].storageMonitors[entityId].reachable) {
-                    if (primaryRustplus.storageMonitors.hasOwnProperty(entityId) &&
-                        (primaryRustplus.storageMonitors[entityId].capacity !== 0 &&
+                    if (infoSource.storageMonitors.hasOwnProperty(entityId) &&
+                        (infoSource.storageMonitors[entityId].capacity !== 0 &&
                             info.entityInfo.payload.capacity === 0)) {
                         await DiscordMessages.sendStorageMonitorDisconnectNotificationMessage(
                             guildId, serverId, entityId);
                     }
 
-                    primaryRustplus.storageMonitors[entityId] = {
+                    infoSource.storageMonitors[entityId] = {
                         items: info.entityInfo.payload.items,
                         expiry: info.entityInfo.payload.protectionExpiry,
                         capacity: info.entityInfo.payload.capacity,
@@ -79,6 +96,7 @@ module.exports = {
                         if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_TOOL_CUPBOARD_CAPACITY) {
                             const monitor = instance.serverList[serverId].storageMonitors[entityId];
                             monitor.type = 'toolCupboard';
+                            if (typeof monitor.decaying === 'undefined') monitor.decaying = false;
                             if (typeof monitor.decayPending === 'undefined') monitor.decayPending = false;
                             if (typeof monitor.firstSeenAt === 'undefined') monitor.firstSeenAt = Date.now();
 
