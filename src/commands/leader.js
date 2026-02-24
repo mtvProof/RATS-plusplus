@@ -67,6 +67,12 @@ module.exports = {
 			return;
 		}
 
+		if (!rustplus.team) {
+			const str = client.intlGet(interaction.guildId, 'notConnectedToRustServer');
+			await client.interactionEditReply(interaction, DiscordEmbeds.getActionInfoEmbed(1, str));
+			return;
+		}
+
 		if (!Object.keys(instance.serverListLite[rustplus.serverId]).includes(rustplus.team.leaderSteamId)) {
 			let names = '';
 			for (const player of rustplus.team.players) {

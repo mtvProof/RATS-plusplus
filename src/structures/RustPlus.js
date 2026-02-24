@@ -700,9 +700,20 @@ class RustPlus extends RustPlusLib {
             }
             return false;
         }
+        else if (response === 'not_found') {
+            /* not_found errors are expected when entities are deleted/deregistered - handle silently */
+            return false;
+        }
         else if (response.hasOwnProperty('error')) {
             this.log(Client.client.intlGet(null, 'errorCap'), Client.client.intlGet(null, 'responseContainError', {
                 error: response.error
+            }), 'error');
+            return false;
+        }
+        else if (typeof response === 'string') {
+            /* Handle other error strings from the OEM library */
+            this.log(Client.client.intlGet(null, 'errorCap'), Client.client.intlGet(null, 'responseContainError', {
+                error: response
             }), 'error');
             return false;
         }
@@ -2562,6 +2573,10 @@ class RustPlus extends RustPlusLib {
     }
 
     getCommandTime(isInfoChannel = false) {
+        if (!this.time) {
+            return Client.client.intlGet(this.guildId, 'timeNotAvailableYet');
+        }
+        
         const time = Timer.convertDecimalToHoursMinutes(this.time.time);
         if (isInfoChannel) {
             return [time, this.time.getTimeTillDayOrNight('s')];

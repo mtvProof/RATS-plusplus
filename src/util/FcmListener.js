@@ -438,15 +438,13 @@ async function pairingEntityStorageMonitor(client, guild, title, message, body) 
         id: entityExist ? storageMonitors[body.entityId].id : body.entityId,
         type: entityExist ? storageMonitors[body.entityId].type : null,
         decaying: entityExist ? storageMonitors[body.entityId].decaying : false,
-        decayPending: entityExist ? storageMonitors[body.entityId].decayPending : false,
         upkeep: entityExist ? storageMonitors[body.entityId].upkeep : null,
         everyone: entityExist ? storageMonitors[body.entityId].everyone : false,
         inGame: entityExist ? storageMonitors[body.entityId].inGame : true,
         image: entityExist ? storageMonitors[body.entityId].image : 'storage_monitor.png',
         location: entityExist ? storageMonitors[body.entityId].location : null,
         server: entityExist ? storageMonitors[body.entityId].server : body.name,
-        messageId: entityExist ? storageMonitors[body.entityId].messageId : null,
-        firstSeenAt: entityExist ? storageMonitors[body.entityId].firstSeenAt : Date.now()
+        messageId: entityExist ? storageMonitors[body.entityId].messageId : null
     };
     client.setInstance(guild.id, instance);
 
@@ -472,16 +470,9 @@ async function pairingEntityStorageMonitor(client, guild, title, message, body) 
                 monitor.type = 'toolCupboard';
                 monitor.image = 'tool_cupboard.png';
 
-                // Update firstSeenAt on successful info read
-                monitor.firstSeenAt = monitor.firstSeenAt || Date.now();
-
-                const isActuallyDecaying =
-                    info.entityInfo.payload.protectionExpiry === 0 &&
-                    info.entityInfo.payload.hasProtection === false;
-
-                // On initial pairing, do not flag decaying immediately; require debounce in handler.
-                monitor.decayPending = isActuallyDecaying;
-                monitor.decaying = false;
+                if (info.entityInfo.payload.protectionExpiry === 0) {
+                    monitor.decaying = true;
+                }
             }
             else if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_VENDING_MACHINE_CAPACITY) {
                 instance.serverList[serverId].storageMonitors[body.entityId].type = 'vendingMachine';

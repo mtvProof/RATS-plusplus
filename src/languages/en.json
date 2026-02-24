@@ -741,6 +741,7 @@
     "timerIdInvalid": "Timer ID is invalid.",
     "timerRemoved": "Timer ID: {id} was removed.",
     "timerSet": "Timer set for {time}.",
+    "timeNotAvailableYet": "Time information is not available yet. Please wait a moment.",
     "tokensDidNotReplenish": "Tokens did not replenish in time.",
     "toolCupboard": "Tool Cupboard",
     "total": "Total",

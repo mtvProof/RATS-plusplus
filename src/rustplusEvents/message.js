@@ -308,8 +308,6 @@ async function updateToolCupboard(candidates, client, message) {
     monitor.reachable = true;
     monitor.type = 'toolCupboard';
     if (typeof monitor.decaying === 'undefined') monitor.decaying = false;
-    if (typeof monitor.decayPending === 'undefined') monitor.decayPending = false;
-    if (typeof monitor.firstSeenAt === 'undefined') monitor.firstSeenAt = Date.now();
 
     infoSource.storageMonitors[entityId] = {
         items: info.entityInfo.payload.items,
@@ -318,38 +316,27 @@ async function updateToolCupboard(candidates, client, message) {
         hasProtection: info.entityInfo.payload.hasProtection
     }
 
-    // If capacity reads as 0, treat as an electrical/power blip: reset pending/decay and skip decay evaluation.
+    // If capacity reads as 0, treat as an electrical/power blip: reset decay and skip decay evaluation.
     if (info.entityInfo.payload.capacity === 0) {
-        monitor.decayPending = false;
         monitor.decaying = false;
         client.setInstance(guildId, instance);
         await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
         return;
     }
 
-    const ageMs = Date.now() - monitor.firstSeenAt;
-    const isActuallyDecaying = info.entityInfo.payload.protectionExpiry === 0 &&
-        info.entityInfo.payload.hasProtection === false;
+    if (info.entityInfo.payload.protectionExpiry === 0 &&
+        monitor.decaying === false) {
+        monitor.decaying = true;
 
-    if (isActuallyDecaying && monitor.decaying === false && ageMs > 10000) {
-        if (monitor.decayPending) {
-            monitor.decaying = true;
+        await DiscordMessages.sendDecayingNotificationMessage(guildId, serverId, entityId);
 
-            await DiscordMessages.sendDecayingNotificationMessage(guildId, serverId, entityId);
-
-            if (monitor.inGame) {
-                infoSource.sendInGameMessage(client.intlGet(guildId, 'isDecaying', {
-                    device: monitor.name
-                }));
-            }
-        }
-        else {
-            // Require two consecutive decay reads before alerting to avoid flicker.
-            monitor.decayPending = true;
+        if (monitor.inGame) {
+            infoSource.sendInGameMessage(client.intlGet(guildId, 'isDecaying', {
+                device: monitor.name
+            }));
         }
     }
-    else if (!isActuallyDecaying) {
-        monitor.decayPending = false;
+    else if (info.entityInfo.payload.protectionExpiry !== 0) {
         monitor.decaying = false;
     }
     client.setInstance(guildId, instance);

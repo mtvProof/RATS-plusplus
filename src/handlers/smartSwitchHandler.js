@@ -26,6 +26,7 @@ const Timer = require('../util/timer');
 module.exports = {
     handler: async function (rustplus, client, time) {
         if (rustplus.instanceLabel === 'secondary') return;
+        if (!rustplus.team) return;
 
         const instance = client.getInstance(rustplus.guildId);
         const guildId = rustplus.guildId;

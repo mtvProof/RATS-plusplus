@@ -97,34 +97,21 @@ module.exports = {
                             const monitor = instance.serverList[serverId].storageMonitors[entityId];
                             monitor.type = 'toolCupboard';
                             if (typeof monitor.decaying === 'undefined') monitor.decaying = false;
-                            if (typeof monitor.decayPending === 'undefined') monitor.decayPending = false;
-                            if (typeof monitor.firstSeenAt === 'undefined') monitor.firstSeenAt = Date.now();
 
-                            const ageMs = Date.now() - monitor.firstSeenAt;
-                            const isActuallyDecaying =
-                                info.entityInfo.payload.protectionExpiry === 0 &&
-                                info.entityInfo.payload.hasProtection === false;
+                            if (info.entityInfo.payload.protectionExpiry === 0 &&
+                                monitor.decaying === false) {
+                                monitor.decaying = true;
 
-                            if (isActuallyDecaying && monitor.decaying === false && ageMs > 10000) {
-                                if (monitor.decayPending) {
-                                    monitor.decaying = true;
+                                await DiscordMessages.sendDecayingNotificationMessage(
+                                    guildId, serverId, entityId);
 
-                                    await DiscordMessages.sendDecayingNotificationMessage(
-                                        guildId, serverId, entityId);
-
-                                    if (monitor.inGame) {
-                                        rustplus.sendInGameMessage(client.intlGet(rustplus.guildId, 'isDecaying', {
-                                            device: monitor.name
-                                        }));
-                                    }
-                                }
-                                else {
-                                    // Require two consecutive decay reads before alerting to avoid flicker.
-                                    monitor.decayPending = true;
+                                if (monitor.inGame) {
+                                    rustplus.sendInGameMessage(client.intlGet(rustplus.guildId, 'isDecaying', {
+                                        device: monitor.name
+                                    }));
                                 }
                             }
-                            else if (!isActuallyDecaying) {
-                                monitor.decayPending = false;
+                            else if (info.entityInfo.payload.protectionExpiry !== 0) {
                                 monitor.decaying = false;
                             }
                         }
