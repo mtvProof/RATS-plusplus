@@ -1,0 +1,16 @@
+
+> rustplusplus@1.22.0 start
+> ts-node .
+
+RATS++ Bot starting...
+Node version: v18.20.8
+Time: 2026-02-23T17:12:39.094Z
+Attempting to log in to Discord...
+Starting Discord login...
+ERROR: Login timeout after 30 seconds. Possible causes:
+  - Network connectivity issues
+  - Discord API is down or unreachable
+  - Invalid Discord token
+  - DNS resolution failure
+
+Check your network connection and verify the Discord token in config/index.js

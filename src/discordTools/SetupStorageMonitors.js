@@ -31,22 +31,33 @@ module.exports = async (client, rustplus) => {
         await DiscordTools.clearTextChannel(guildId, instance.channelId.storageMonitors, 100);
     }
 
+    const suppressNotFound = rustplus.uptimeServer &&
+        (Date.now() - rustplus.uptimeServer.getTime()) < 5 * 60 * 1000;
+
     for (const entityId in instance.serverList[serverId].storageMonitors) {
         const entity = instance.serverList[serverId].storageMonitors[entityId];
         const info = await rustplus.getEntityInfoAsync(entityId);
+        const infoValid = await rustplus.isResponseValid(info);
+        let skipMessage = false;
 
-        if (!(await rustplus.isResponseValid(info))) {
-            if (entity.reachable === true) {
-                await DiscordMessages.sendStorageMonitorNotFoundMessage(guildId, serverId, entityId);
+        if (!infoValid) {
+            if (suppressNotFound) {
+                // Avoid false alerts during reconnect grace period.
+                skipMessage = true;
             }
-            entity.reachable = false;
+            else {
+                if (entity.reachable === true) {
+                    await DiscordMessages.sendStorageMonitorNotFoundMessage(guildId, serverId, entityId);
+                }
+                entity.reachable = false;
+            }
         }
         else {
             entity.reachable = true;
         }
         client.setInstance(guildId, instance);
 
-        if (entity.reachable) {
+        if (entity.reachable && infoValid) {
             rustplus.storageMonitors[entityId] = {
                 items: info.entityInfo.payload.items,
                 expiry: info.entityInfo.payload.protectionExpiry,
@@ -74,6 +85,8 @@ module.exports = async (client, rustplus) => {
             }
         }
 
-        await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
+        if (!skipMessage) {
+            await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
+        }
     }
 };

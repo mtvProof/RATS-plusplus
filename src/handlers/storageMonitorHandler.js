@@ -38,6 +38,8 @@ module.exports = {
 
         let instance = client.getInstance(guildId);
         const serverId = poller.serverId;
+        const suppressNotFound = poller.uptimeServer &&
+            (Date.now() - poller.uptimeServer.getTime()) < 5 * 60 * 1000;
 
         if (!instance.serverList.hasOwnProperty(serverId)) return;
 
@@ -66,16 +68,25 @@ module.exports = {
                 }
 
                 if (!info) {
+                    if (suppressNotFound) {
+                        continue;
+                    }
                     if (instance.serverList[serverId].storageMonitors[entityId].reachable) {
                         await DiscordMessages.sendStorageMonitorNotFoundMessage(guildId, serverId, entityId);
+                        instance.serverList[serverId].storageMonitors[entityId].reachable = false;
+                        client.setInstance(guildId, instance);
+
+                        await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
                     }
-                    instance.serverList[serverId].storageMonitors[entityId].reachable = false;
-                    client.setInstance(guildId, instance);
                     continue;
                 }
 
-                instance.serverList[serverId].storageMonitors[entityId].reachable = true;
-                client.setInstance(guildId, instance);
+                if (!instance.serverList[serverId].storageMonitors[entityId].reachable) {
+                    instance.serverList[serverId].storageMonitors[entityId].reachable = true;
+                    client.setInstance(guildId, instance);
+
+                    await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
+                }
 
                 if (instance.serverList[serverId].storageMonitors[entityId].reachable) {
                     if (infoSource.storageMonitors.hasOwnProperty(entityId) &&

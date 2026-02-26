@@ -71,6 +71,7 @@ class RustPlus extends RustPlusLib {
         this.timers = new Object();                 /* Stores all custom timers that are created. */
         this.markers = new Object();                /* Stores all custom markers that are created. */
         this.storageMonitors = new Object();        /* Contain content information of paired storage monitors. */
+        this.storageMonitorMessageTimestamps = new Object(); /* Throttle storage monitor message updates */
         this.currentSwitchTimeouts = new Object();  /* Stores timer ids for auto ON/OFF Smart Switch timeouts. */
         this.passedFirstSunriseOrSunset = false;    /* Becomes true when first sunrise/sunset. */
         this.startTimeObject = new Object();        /* Stores in-game time points before first sunrise/sunset. */

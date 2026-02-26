@@ -295,6 +295,19 @@ module.exports = {
         if (!server || !server.storageMonitors || !server.storageMonitors[entityId]) return;
         const entity = server.storageMonitors[entityId];
 
+        // Throttle updates to prevent Discord rate limiting (max 5 edits per 5 seconds per message)
+        const rustplus = Client.client.rustplusInstances[guildId];
+        if (rustplus && !interaction) {
+            const now = Date.now();
+            const lastUpdate = rustplus.storageMonitorMessageTimestamps[entityId] || 0;
+            const minInterval = 2000; // 2 seconds minimum between updates
+            
+            if (now - lastUpdate < minInterval) {
+                return; // Skip this update to avoid rate limiting
+            }
+            rustplus.storageMonitorMessageTimestamps[entityId] = now;
+        }
+
         const content = {
             embeds: [entity.reachable ?
                 DiscordEmbeds.getStorageMonitorEmbed(guildId, serverId, entityId) :
