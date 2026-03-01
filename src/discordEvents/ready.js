@@ -60,18 +60,27 @@ module.exports = {
 
         client.uptimeBot = new Date();
 
+        /* Parallelize guild setup for faster startup */
+        const guildSetupPromises = [];
         for (let guildArray of client.guilds.cache) {
             const guild = guildArray[1];
 
-            try {
-                await guild.members.me.setNickname(Config.discord.username);
-            }
-            catch (e) {
-                client.log(client.intlGet(null, 'warningCap'), client.intlGet(null, 'ignoreSetNickname'));
-            }
-            await client.syncCredentialsWithUsers(guild);
-            await client.setupGuild(guild);
+            const setupPromise = (async () => {
+                try {
+                    await guild.members.me.setNickname(Config.discord.username);
+                }
+                catch (e) {
+                    client.log(client.intlGet(null, 'warningCap'), client.intlGet(null, 'ignoreSetNickname'));
+                }
+                await client.syncCredentialsWithUsers(guild);
+                await client.setupGuild(guild);
+            })();
+
+            guildSetupPromises.push(setupPromise);
         }
+
+        /* Wait for all guilds to be set up */
+        await Promise.all(guildSetupPromises);
 
         await client.updateBattlemetricsInstances();
         BattlemetricsHandler.handler(client, true);

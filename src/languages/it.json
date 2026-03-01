@@ -768,6 +768,7 @@
     "updateCap": "UPDATE",
     "upkeep": "Mantenimento",
     "upkeepForItem": "Upkeep for {item} is {cost}.",
+    "uptime": "Tempo di Attività",
     "upkeepStatus": "Stato di Manutenzione",
     "toolCupboardUpkeeps": "Manutenzione Cassone Attrezzi",
     "noToolCupboards": "Nessun cassone attrezzi è attualmente monitorato.",

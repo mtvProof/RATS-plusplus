@@ -273,6 +273,25 @@ async function setupGeneralSettings(client, guildId, channel) {
         files: [new Discord.AttachmentBuilder(
             Path.join(__dirname, '..', 'resources/images/settings_logo.png'))]
     });
+
+    await client.messageSend(channel, {
+        embeds: [DiscordEmbeds.getEmbed({
+            color: Constants.COLOR_SETTINGS,
+            title: client.intlGet(guildId, 'baseCodesSetting'),
+            description: client.intlGet(guildId, 'baseCodesSettingDesc'),
+            thumbnail: `attachment://settings_logo.png`,
+            fields: [
+                {
+                    name: client.intlGet(guildId, 'baseCodes'),
+                    value: DiscordTools.getBaseCodesDisplayValue(guildId),
+                    inline: false
+                }
+            ]
+        })],
+        components: DiscordButtons.getBaseCodesButtons(guildId),
+        files: [new Discord.AttachmentBuilder(
+            Path.join(__dirname, '..', 'resources/images/settings_logo.png'))]
+    });
 }
 
 async function setupNotificationSettings(client, guildId, channel) {

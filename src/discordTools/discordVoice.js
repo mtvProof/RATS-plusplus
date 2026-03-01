@@ -18,22 +18,52 @@
     https://github.com/alexemanuelol/rustplusplus
 
 */
-const { getVoiceConnection, createAudioPlayer, createAudioResource } = require('@discordjs/voice');
+const { getVoiceConnection, createAudioPlayer, createAudioResource, StreamType } = require('@discordjs/voice');
+const { Readable } = require('stream');
 const Actors = require('../staticFiles/actors.json');
 const Client = require('../../index.ts');
 
 module.exports = {
     sendDiscordVoiceMessage: async function (guildId, text) {
         const connection = getVoiceConnection(guildId);
-        const voice = await this.getVoice(guildId);
-        const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodeURIComponent(text)}`;
+        
+        if (!connection) {
+            Client.client.log(Client.client.intlGet(null, 'warningCap'), 
+                `TTS: Bot not in voice channel for guild ${guildId}`);
+            return false;
+        }
 
-        if (connection) {
-            let stream = (await (await fetch(url)).blob()).stream()
-            const resource = createAudioResource(stream);
+        try {
+            const voice = await this.getVoice(guildId);
+            const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodeURIComponent(text)}`;
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                Client.client.log(Client.client.intlGet(null, 'errorCap'), 
+                    `TTS: Failed to fetch audio: ${response.status}`);
+                return false;
+            }
+
+            // Convert the response to a Node.js readable stream
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            const stream = Readable.from(buffer);
+            
+            const resource = createAudioResource(stream, {
+                inputType: StreamType.Arbitrary,
+            });
             const player = createAudioPlayer();
             connection.subscribe(player);
             player.play(resource);
+            
+            Client.client.log(Client.client.intlGet(null, 'infoCap'), 
+                `TTS: Playing message in voice for guild ${guildId}`);
+            return true;
+        }
+        catch (error) {
+            Client.client.log(Client.client.intlGet(null, 'errorCap'), 
+                `TTS: Error playing voice message: ${error}`);
+            return false;
         }
     },
 

@@ -968,9 +968,10 @@ class MapMarkers {
         const lastSpawnMs = this.deepSeaLastSpawnAt ? this.deepSeaLastSpawnAt.getTime() : null;
         const lastSeenMs = this.timeSinceDeepSeaWasOnMap ? this.timeSinceDeepSeaWasOnMap.getTime() : null;
 
-        // Prefer spawn-to-spawn math; fall back to despawn time plus downtime if spawn time is unknown.
-        const targetTime = lastSpawnMs ? (lastSpawnMs + cooldownMs) :
-            (lastSeenMs ? (lastSeenMs + downtimeMs) : (Date.now() + downtimeMs));
+        // If Deep Sea was recently seen (despawned), use despawn time plus downtime.
+        // Otherwise, use spawn-to-spawn math if available.
+        const targetTime = lastSeenMs ? (lastSeenMs + downtimeMs) :
+            (lastSpawnMs ? (lastSpawnMs + cooldownMs) : (Date.now() + downtimeMs));
 
         const prepairMs = prepairMinutes * 60 * 1000;
         const delayMs = targetTime - prepairMs - Date.now();
@@ -993,14 +994,28 @@ class MapMarkers {
         const prepairMinutes = args[0];
         this.deepSeaPrepairTimer = null;
 
+        if (this.deepSeaSpawnedAt) return;
+
+        const intervalMinutes = 5;
         const etaMs = this.deepSeaRespawnAt ? (this.deepSeaRespawnAt - Date.now()) : prepairMinutes * 60 * 1000;
-        const eta = Timer.secondsToFullScale(Math.max(0, Math.floor(etaMs / 1000)));
+        const etaSeconds = Math.max(0, Math.floor(etaMs / 1000));
+        const eta = Timer.secondsToFullScale(etaSeconds);
+
+        const message = etaSeconds > 0 ?
+            this.client.intlGet(this.rustplus.guildId, 'deepSeaPrepairNotice', { time: eta }) :
+            this.client.intlGet(this.rustplus.guildId, 'deepSeaAnyMinute');
 
         this.rustplus.sendEvent(
             this.rustplus.notificationSettings.deepSeaDetectedSetting,
-            this.client.intlGet(this.rustplus.guildId, 'deepSeaPrepairNotice', { time: eta }),
+            message,
             'deepsea',
             Constants.COLOR_DEEP_SEA_PREPAIR);
+
+        this.deepSeaPrepairTimer = new Timer.timer(
+            this.notifyDeepSeaPrepair.bind(this),
+            intervalMinutes * 60 * 1000,
+            prepairMinutes);
+        this.deepSeaPrepairTimer.start();
     }
 
     /* Help functions */

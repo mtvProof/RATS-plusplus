@@ -306,4 +306,18 @@ module.exports = {
     getDiscordFormattedDate: function (unixtime) {
         return `<t:${unixtime}:d>`;
     },
+
+    getBaseCodesDisplayValue: function (guildId) {
+        const instance = Client.client.getInstance(guildId);
+        if (!instance.baseCodes) {
+            instance.baseCodes = { main: null, secondary: null };
+            Client.client.setInstance(guildId, instance);
+        }
+        
+        const codes = [];
+        if (instance.baseCodes.main) codes.push(instance.baseCodes.main);
+        if (instance.baseCodes.secondary) codes.push(instance.baseCodes.secondary);
+        
+        return codes.length > 0 ? `\`${codes.join(', ')}\`` : Client.client.intlGet(guildId, 'notSet');
+    },
 }

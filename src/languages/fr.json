@@ -768,6 +768,7 @@
     "updateCap": "Mise à jour",
     "upkeep": "Upkeep",
     "upkeepForItem": "Upkeep pour {item} est {cost}.",
+    "uptime": "Disponibilité",
     "upkeepStatus": "État du Maintien",
     "toolCupboardUpkeeps": "Maintenances des Armoires d'Outils",
     "noToolCupboards": "Aucune armoire à outils n'est actuellement surveillée.",

@@ -2573,6 +2573,104 @@ class RustPlus extends RustPlusLib {
         return listResponse();
     }
 
+    getCommandCode(command) {
+        const prefix = this.generalSettings.prefix;
+        const commandCode = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxCode')}`;
+        const commandCodeEn = `${prefix}${Client.client.intlGet('en', 'commandSyntaxCode')}`;
+        const commandCodes = `${prefix}codes`;
+
+        const instance = Client.client.getInstance(this.guildId);
+        if (!instance.baseCodes) {
+            instance.baseCodes = { main: null, secondary: null };
+            Client.client.setInstance(this.guildId, instance);
+        }
+
+        if (!instance.generalSettings.codeCommandEnabled) {
+            return Client.client.intlGet(this.guildId, 'codeCommandDisabled');
+        }
+
+        const lower = command.toLowerCase();
+        const matchesExact = (syntax) => lower === syntax.toLowerCase();
+        const startsWithSyntax = (syntax) => lower.startsWith(`${syntax.toLowerCase()} `);
+
+        const showResponse = () => {
+            const mainCode = instance.baseCodes.main || Client.client.intlGet(this.guildId, 'notSet');
+            const secondaryCode = instance.baseCodes.secondary || Client.client.intlGet(this.guildId, 'notSet');
+            return `Main: ${mainCode}, Secondary: ${secondaryCode}`;
+        };
+
+        if (matchesExact(commandCode) || matchesExact(commandCodeEn) || matchesExact(commandCodes)) {
+            return showResponse();
+        }
+
+        const activeSyntax = startsWithSyntax(commandCode) ? commandCode :
+            (startsWithSyntax(commandCodeEn) ? commandCodeEn :
+                (startsWithSyntax(commandCodes) ? commandCodes : null));
+
+        if (!activeSyntax) return null;
+
+        const args = command.slice(activeSyntax.length).trim();
+        if (!args) return showResponse();
+
+        const [actionRaw, ...rest] = args.split(/\s+/);
+        const action = (actionRaw || '').toLowerCase();
+        const code = rest.join(' ').trim();
+
+        if (!code) {
+            return Client.client.intlGet(this.guildId, 'baseCodeMissing');
+        }
+
+        if (action === 'add') {
+            if (!instance.baseCodes.main) {
+                instance.baseCodes.main = code;
+                Client.client.setInstance(this.guildId, instance);
+
+                // Update information channel
+                DiscordMessages.sendUpdateServerInformationMessage(this);
+
+                return Client.client.intlGet(this.guildId, 'baseCodeMainAdded', { code: code });
+            }
+            else if (!instance.baseCodes.secondary) {
+                instance.baseCodes.secondary = code;
+                Client.client.setInstance(this.guildId, instance);
+
+                // Update information channel
+                DiscordMessages.sendUpdateServerInformationMessage(this);
+
+                return Client.client.intlGet(this.guildId, 'baseCodeSecondaryAdded', { code: code });
+            }
+            else {
+                return Client.client.intlGet(this.guildId, 'baseCodeBothExist');
+            }
+        }
+
+        if (['remove', 'rm', 'delete', 'del'].includes(action)) {
+            if (instance.baseCodes.main === code) {
+                instance.baseCodes.main = null;
+                Client.client.setInstance(this.guildId, instance);
+
+                // Update information channel
+                DiscordMessages.sendUpdateServerInformationMessage(this);
+
+                return Client.client.intlGet(this.guildId, 'baseCodeMainRemoved');
+            }
+            else if (instance.baseCodes.secondary === code) {
+                instance.baseCodes.secondary = null;
+                Client.client.setInstance(this.guildId, instance);
+
+                // Update information channel
+                DiscordMessages.sendUpdateServerInformationMessage(this);
+
+                return Client.client.intlGet(this.guildId, 'baseCodeSecondaryRemoved');
+            }
+            else {
+                return Client.client.intlGet(this.guildId, 'baseCodeNotFound', { code: code });
+            }
+        }
+
+        return showResponse();
+    }
+
     getCommandTime(isInfoChannel = false) {
         if (!this.time) {
             return Client.client.intlGet(this.guildId, 'timeNotAvailableYet');
@@ -2778,6 +2876,7 @@ class RustPlus extends RustPlusLib {
         const prefix = this.generalSettings.prefix;
         const commandTTS = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxTTS')}`;
         const commandTTSEn = `${prefix}${Client.client.intlGet('en', 'commandSyntaxTTS')}`;
+        const instance = Client.client.getInstance(this.guildId);
 
         let text = null;
         if (command.toLowerCase().startsWith(`${commandTTS}`)) {
@@ -2787,6 +2886,21 @@ class RustPlus extends RustPlusLib {
             text = command.slice(`${commandTTSEn} `.length).trim();
         }
 
+        // Check for on/off toggle
+        if (text.toLowerCase() === 'on') {
+            instance.generalSettings.autoTtsEnabled = true;
+            this.generalSettings.autoTtsEnabled = true;
+            Client.client.setInstance(this.guildId, instance);
+            return Client.client.intlGet(this.guildId, 'autoTtsEnabled');
+        }
+        else if (text.toLowerCase() === 'off') {
+            instance.generalSettings.autoTtsEnabled = false;
+            this.generalSettings.autoTtsEnabled = false;
+            Client.client.setInstance(this.guildId, instance);
+            return Client.client.intlGet(this.guildId, 'autoTtsDisabled');
+        }
+
+        // Regular TTS message
         await DiscordMessages.sendTTSMessage(this.guildId, callerName, text);
         return Client.client.intlGet(this.guildId, 'sentTextToSpeech');
     }

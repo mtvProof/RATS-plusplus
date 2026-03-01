@@ -100,6 +100,10 @@ module.exports = (client, guild) => {
             }
         }
 
+        if (!instance.hasOwnProperty('baseCodes')) {
+            instance.baseCodes = { main: null, secondary: null };
+        }
+
         if (!instance.hasOwnProperty('notificationSettings')) {
             instance.notificationSettings = client.readNotificationSettingsTemplate();
         }

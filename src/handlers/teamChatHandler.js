@@ -19,7 +19,18 @@
 */
 
 const DiscordMessages = require('../discordTools/discordMessages.js');
+const DiscordVoice = require('../discordTools/discordVoice.js');
 
 module.exports = async function (rustplus, client, message) {
     await DiscordMessages.sendTeamChatMessage(rustplus.guildId, message);
+
+    // Auto TTS if enabled
+    const instance = client.getInstance(rustplus.guildId);
+    if (instance.generalSettings.autoTtsEnabled) {
+        // Don't TTS bot messages
+        if (message.steamId.toString() !== rustplus.playerId) {
+            const ttsMessage = `${message.name} said: ${message.message}`;
+            await DiscordVoice.sendDiscordVoiceMessage(rustplus.guildId, ttsMessage);
+        }
+    }
 }

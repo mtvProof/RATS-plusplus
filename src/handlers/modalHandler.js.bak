@@ -182,7 +182,7 @@ module.exports = async (client, interaction) => {
             }
         }
 
-        interaction.deferUpdate();
+        await interaction.deferUpdate();
     }
     else if (interaction.customId.startsWith('SmartSwitchEdit')) {
         const ids = JSON.parse(interaction.customId.replace('SmartSwitchEdit', ''));
@@ -448,9 +448,10 @@ module.exports = async (client, interaction) => {
         // User entered a player name - search for matching players
         else {
             if (!bmInstance || !bmInstance.lastUpdateSuccessful) {
-                await interaction.deferUpdate();
+                interaction.deferUpdate();
                 return;
             }
+
             // Search for players with matching name
             const foundPlayerIds = [];
             for (const playerId of Object.keys(bmInstance.players)) {
@@ -538,7 +539,7 @@ module.exports = async (client, interaction) => {
 
             // If no players found
             if (matchingPlayers.length === 0) {
-                interaction.deferUpdate();
+                await interaction.deferUpdate();
                 return;
             }
 
@@ -562,52 +563,6 @@ module.exports = async (client, interaction) => {
                 );
                 return;
             }
-        }
-    }
-
-    else if (interaction.customId === 'BaseCodesEdit') {
-        if (!instance.baseCodes) {
-            instance.baseCodes = { main: null, secondary: null };
-        }
-
-        const mainCode = interaction.fields.getTextInputValue('BaseCodeMain').trim();
-        const secondaryCode = interaction.fields.getTextInputValue('BaseCodeSecondary').trim();
-
-        instance.baseCodes.main = mainCode || null;
-        instance.baseCodes.secondary = secondaryCode || null;
-        client.setInstance(guildId, instance);
-
-        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
-            id: `${verifyId}`,
-            value: `main: ${mainCode || 'null'}, secondary: ${secondaryCode || 'null'}`
-        }));
-
-        const message = interaction.message;
-        if (message) {
-            const DiscordTools = require('../discordTools/discordTools.js');
-            const DiscordEmbeds = require('../discordTools/discordEmbeds.js');
-
-            await client.messageEdit(message, {
-                embeds: [DiscordEmbeds.getEmbed({
-                    color: Constants.COLOR_SETTINGS,
-                    title: client.intlGet(guildId, 'baseCodesSetting'),
-                    description: client.intlGet(guildId, 'baseCodesSettingDesc'),
-                    thumbnail: `attachment://settings_logo.png`,
-                    fields: [
-                        {
-                            name: client.intlGet(guildId, 'baseCodes'),
-                            value: DiscordTools.getBaseCodesDisplayValue(guildId),
-                            inline: false
-                        }
-                    ]
-                })],
-                components: DiscordButtons.getBaseCodesButtons(guildId)
-            });
-        }
-
-        const rustplus = client.rustplusInstances[guildId];
-        if (rustplus && rustplus.isOperational) {
-            await DiscordMessages.sendUpdateServerInformationMessage(rustplus);
         }
     }
 

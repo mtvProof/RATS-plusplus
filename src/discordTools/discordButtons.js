@@ -652,4 +652,23 @@ module.exports = {
                     style: instance.generalSettings.battlemetricsGlobalLogout ? SUCCESS : DANGER
                 }))];
     },
+    getBaseCodesButtons: function (guildId) {
+        const instance = Client.client.getInstance(guildId);
+        const enabled = instance.generalSettings.codeCommandEnabled !== false;
+
+        return [
+            new Discord.ActionRowBuilder().addComponents(
+                module.exports.getButton({
+                    customId: 'CodeCommandEnabled',
+                    label: enabled ?
+                        Client.client.intlGet(guildId, 'enabledCap') :
+                        Client.client.intlGet(guildId, 'disabledCap'),
+                    style: enabled ? SUCCESS : DANGER
+                }),
+                module.exports.getButton({
+                    customId: 'BaseCodesEdit',
+                    label: Client.client.intlGet(guildId, 'editCap'),
+                    style: PRIMARY
+                }))];
+    },
 }

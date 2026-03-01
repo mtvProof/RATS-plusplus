@@ -768,6 +768,7 @@
     "updateCap": "UPDATE",
     "upkeep": "Instandhaltung",
     "upkeepForItem": "Erhaltung für {item} kostet {cost}.",
+    "uptime": "Betriebsdauer",
     "upkeepStatus": "Wartungsstatus",
     "toolCupboardUpkeeps": "Werkzeugspeicher Wartungen",
     "noToolCupboards": "Keine Werkzeugspeicher werden derzeit überwacht.",

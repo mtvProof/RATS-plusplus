@@ -52,6 +52,12 @@ module.exports = {
 
         if (!instance.serverList.hasOwnProperty(serverId)) return;
 
+        // Suppress "not found" alerts during grace period after server reboot (5 minutes)
+        const isReconnecting = client.rustplusReconnecting[guildId] || 
+            client.rustplusSecondaryReconnecting[guildId];
+        const suppressNotFound = isReconnecting || (rustplus.uptimeServer &&
+            (Date.now() - rustplus.uptimeServer.getTime()) < 5 * 60 * 1000);
+
         if (rustplus.smartSwitchIntervalCounter === 29) {
             rustplus.smartSwitchIntervalCounter = 0;
         }
@@ -65,6 +71,11 @@ module.exports = {
             for (const entityId in instance.serverList[serverId].switches) {
                 const info = await rustplus.getEntityInfoAsync(entityId);
                 if (!(await rustplus.isResponseValid(info))) {
+                    if (suppressNotFound) {
+                        // Skip sending alert during grace period after server connect/reboot
+                        continue;
+                    }
+                    // Only send "not found" message if device was previously reachable
                     if (instance.serverList[serverId].switches[entityId].reachable) {
                         await DiscordMessages.sendSmartSwitchNotFoundMessage(guildId, serverId, entityId);
                         instance.serverList[serverId].switches[entityId].reachable = false;

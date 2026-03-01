@@ -764,6 +764,7 @@
     "updateCap": "ATUALIZAÇÃO",
     "upkeep": "Custo de manutenção",
     "upkeepForItem": "O custo de manutenção de {item} é {cost}.",
+    "uptime": "Tempo de Atividade",
     "upkeepStatus": "Status de Manutenção",
     "toolCupboardUpkeeps": "Manutenção do Armário de Ferramentas",
     "noToolCupboards": "Nenhum armário de ferramentas está sendo monitorado no momento.",

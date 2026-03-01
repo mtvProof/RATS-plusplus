@@ -51,6 +51,19 @@ module.exports = {
 
         await module.exports.handlers(rustplus, client, info, mapMarkers, teamInfo, time);
         rustplus.isFirstPoll = false;
+
+        // Clear reconnecting flags AFTER first poll to ensure grace period suppression works
+        const guildId = rustplus.guildId;
+        const isSecondary = rustplus.instanceLabel === 'secondary';
+        if (isSecondary) {
+            if (client.rustplusSecondaryReconnecting[guildId]) {
+                client.rustplusSecondaryReconnecting[guildId] = false;
+            }
+        } else {
+            if (client.rustplusReconnecting[guildId]) {
+                client.rustplusReconnecting[guildId] = false;
+            }
+        }
     },
 
     handlers: async function (rustplus, client, info, mapMarkers, teamInfo, time) {

@@ -23,7 +23,7 @@ module.exports = {
         language: process.env.RPP_LANGUAGE || 'en',
         pollingIntervalMs: process.env.RPP_POLLING_INTERVAL || 15000,
         showCallStackError: process.env.RPP_LOG_CALL_STACK || false,
-        reconnectIntervalMs: process.env.RPP_RECONNECT_INTERVAL || 30000,
+        reconnectIntervalMs: process.env.RPP_RECONNECT_INTERVAL || 15000,
     },
     discord: {
         username: process.env.RPP_DISCORD_USERNAME || 'RATS++',

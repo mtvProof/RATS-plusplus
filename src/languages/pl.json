@@ -768,6 +768,7 @@
     "updateCap": "UPDATE",
     "upkeep": "Upkeep",
     "upkeepForItem": "Upkeep for {item} is {cost}.",
+    "uptime": "Czas Działania",
     "upkeepStatus": "Status konserwacji",
     "toolCupboardUpkeeps": "Utrzymanie Szafki Narzędziowej",
     "noToolCupboards": "Żadne szafki narzędziowe nie są aktualnie monitorowane.",

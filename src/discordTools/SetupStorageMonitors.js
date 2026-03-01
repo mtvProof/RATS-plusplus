@@ -31,8 +31,10 @@ module.exports = async (client, rustplus) => {
         await DiscordTools.clearTextChannel(guildId, instance.channelId.storageMonitors, 100);
     }
 
-    const suppressNotFound = rustplus.uptimeServer &&
-        (Date.now() - rustplus.uptimeServer.getTime()) < 5 * 60 * 1000;
+    const isReconnecting = client.rustplusReconnecting[guildId] || 
+        client.rustplusSecondaryReconnecting[guildId];
+    const suppressNotFound = isReconnecting || (rustplus.uptimeServer &&
+        (Date.now() - rustplus.uptimeServer.getTime()) < 5 * 60 * 1000);
 
     for (const entityId in instance.serverList[serverId].storageMonitors) {
         const entity = instance.serverList[serverId].storageMonitors[entityId];

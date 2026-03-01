@@ -426,7 +426,7 @@ module.exports = {
             content: entity.everyone ? '@everyone' : ''
         }
 
-        await module.exports.sendMessage(guildId, content, null, instance.channelId.importantAlerts);
+        await module.exports.sendMessage(guildId, content, null, instance.channelId.activity);
     },
 
     sendStorageMonitorNotFoundMessage: async function (guildId, serverId, entityId) {
@@ -440,7 +440,7 @@ module.exports = {
             content: entity.everyone ? '@everyone' : ''
         }
 
-        await module.exports.sendMessage(guildId, content, null, instance.channelId.importantAlerts);
+        await module.exports.sendMessage(guildId, content, null, instance.channelId.activity);
     },
 
     sendSmartSwitchNotFoundMessage: async function (guildId, serverId, entityId) {
@@ -593,10 +593,22 @@ module.exports = {
 
     sendTTSMessage: async function (guildId, name, text) {
         const instance = Client.client.getInstance(guildId);
+        const DiscordVoice = require('./discordVoice.js');
 
-        const content = {
-            content: Client.client.intlGet(guildId, 'userSaid', { user: name, text: text }),
-            tts: true
+        // Send to voice channel
+        const message = Client.client.intlGet(guildId, 'userSaid', { user: name, text: text });
+        const voiceSuccess = await DiscordVoice.sendDiscordVoiceMessage(guildId, message);
+
+        // Also send as text to team chat channel
+        let content;
+        if (!voiceSuccess) {
+            content = {
+                content: `${message} ${Client.client.intlGet(guildId, 'ttsNotInVoice')}`
+            };
+        } else {
+            content = {
+                content: message
+            };
         }
 
         await module.exports.sendMessage(guildId, content, null, instance.channelId.teamchat);

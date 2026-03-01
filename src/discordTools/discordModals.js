@@ -379,4 +379,37 @@ module.exports = {
 
         return modal;
     },
+
+    getBaseCodesEditModal(guildId) {
+        const instance = Client.client.getInstance(guildId);
+        if (!instance.baseCodes) {
+            instance.baseCodes = { main: null, secondary: null };
+        }
+
+        const modal = module.exports.getModal({
+            customId: 'BaseCodesEdit',
+            title: Client.client.intlGet(guildId, 'baseCodesEdit')
+        });
+
+        modal.addComponents(
+            new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
+                customId: 'BaseCodeMain',
+                label: Client.client.intlGet(guildId, 'baseCodeMain'),
+                value: instance.baseCodes.main || '',
+                style: Discord.TextInputStyle.Short,
+                required: false,
+                minLength: 0
+            })),
+            new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
+                customId: 'BaseCodeSecondary',
+                label: Client.client.intlGet(guildId, 'baseCodeSecondary'),
+                value: instance.baseCodes.secondary || '',
+                style: Discord.TextInputStyle.Short,
+                required: false,
+                minLength: 0
+            }))
+        );
+
+        return modal;
+    },
 }

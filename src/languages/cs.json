@@ -768,6 +768,7 @@
     "updateCap": "UPDATE",
     "upkeep": "Údržba",
     "upkeepForItem": "Upkeep for {item} is {cost}.",
+    "uptime": "Doba Provozu",
     "upkeepStatus": "Stav údržby",
     "toolCupboardUpkeeps": "Údržba Nástrojového Skříňky",
     "noToolCupboards": "Žádné nástrojové skříňky nejsou aktuálně monitorovány.",

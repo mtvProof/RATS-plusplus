@@ -768,6 +768,7 @@
     "updateCap": "UPDATE",
     "upkeep": "Mantenimiento",
     "upkeepForItem": "Upkeep for {item} is {cost}.",
+    "uptime": "Tiempo de Actividad",
     "upkeepStatus": "Estado de Mantenimiento",
     "toolCupboardUpkeeps": "Mantenimiento de Almacén de Herramientas",
     "noToolCupboards": "Actualmente no se monitorean almacenes de herramientas.",

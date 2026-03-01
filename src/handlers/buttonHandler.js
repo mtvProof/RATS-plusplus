@@ -481,6 +481,28 @@ module.exports = async (client, interaction) => {
             components: DiscordButtons.getSubscribeToChangesBattlemetricsButtons(guildId)
         });
     }
+    else if (interaction.customId === 'CodeCommandEnabled') {
+        if (!instance.generalSettings.hasOwnProperty('codeCommandEnabled')) {
+            instance.generalSettings.codeCommandEnabled = true;
+        }
+
+        instance.generalSettings.codeCommandEnabled = !instance.generalSettings.codeCommandEnabled;
+        client.setInstance(guildId, instance);
+
+        if (rustplus) rustplus.generalSettings.codeCommandEnabled = instance.generalSettings.codeCommandEnabled;
+
+        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
+            id: `${verifyId}`,
+            value: `${instance.generalSettings.codeCommandEnabled}`
+        }));
+
+        await client.interactionUpdate(interaction, {
+            components: DiscordButtons.getBaseCodesButtons(guildId)
+        });
+    }
+    else if (interaction.customId === 'BaseCodesEdit') {
+        await interaction.showModal(DiscordModals.getBaseCodesEditModal(guildId));
+    }
     else if (interaction.customId.startsWith('ServerConnect')) {
         const ids = JSON.parse(interaction.customId.replace('ServerConnect', ''));
         const server = instance.serverList[ids.serverId];

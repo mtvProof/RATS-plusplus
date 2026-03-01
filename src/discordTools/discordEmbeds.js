@@ -747,9 +747,14 @@ module.exports = {
             const timeFieldName = Client.client.intlGet(guildId, 'time');
             const wipeFieldName = Client.client.intlGet(guildId, 'wipe');
             const mapSizeFieldName = Client.client.intlGet(guildId, 'mapSize');
-            const mapSeedFieldName = Client.client.intlGet(guildId, 'mapSeed');
-            const mapSaltFieldName = Client.client.intlGet(guildId, 'mapSalt');
-            const mapFieldName = Client.client.intlGet(guildId, 'map');
+            const baseCodesFieldName = Client.client.intlGet(guildId, 'baseCodes');
+
+            // Get bot uptime
+            let botUptimeValue = Client.client.intlGet(guildId, 'offline');
+            if (Client.client.uptimeBot !== null) {
+                const seconds = (new Date() - Client.client.uptimeBot) / 1000;
+                botUptimeValue = Timer.secondsToFullScale(seconds);
+            }
 
             const embed = module.exports.getEmbed({
                 title: Client.client.intlGet(guildId, 'serverInfo'),
@@ -774,15 +779,30 @@ module.exports = {
             }
 
             embed.addFields(
-                { name: mapSizeFieldName, value: `\`${rustplus.info.mapSize}\``, inline: true },
-                { name: mapSeedFieldName, value: `\`${rustplus.info.seed}\``, inline: true },
-                { name: mapSaltFieldName, value: `\`${rustplus.info.salt}\``, inline: true },
-                { name: mapFieldName, value: `\`${rustplus.info.map}\``, inline: true });
+                { name: mapSizeFieldName, value: `\`${rustplus.info.mapSize}\``, inline: true });
+
+            // Add base codes if they exist
+            if (!instance.baseCodes) {
+                instance.baseCodes = { main: null, secondary: null };
+            }
+            
+            if (instance.baseCodes.main || instance.baseCodes.secondary) {
+                const codes = [];
+                if (instance.baseCodes.main) codes.push(instance.baseCodes.main);
+                if (instance.baseCodes.secondary) codes.push(instance.baseCodes.secondary);
+                embed.addFields({ name: baseCodesFieldName, value: `\`${codes.join(', ')}\``, inline: true });
+                embed.addFields({ name: '\u200B', value: '\u200B', inline: true });
+            }
+            else {
+                embed.addFields(
+                    { name: '\u200B', value: '\u200B', inline: true },
+                    { name: '\u200B', value: '\u200B', inline: true });
+            }
 
             embed.addFields(
                 { name: 'Hoster 1', value: `\`${hoster1Value}\``, inline: true },
                 { name: 'Hoster 2', value: `\`${hoster2Value}\``, inline: true },
-                { name: '\u200B', value: '\u200B', inline: true });
+                { name: Client.client.intlGet(guildId, 'bot') + ' ' + Client.client.intlGet(guildId, 'uptime'), value: `\`${botUptimeValue}\``, inline: true });
 
             if (instance.serverList[rustplus.serverId].connect !== null) {
                 embed.addFields({
@@ -1183,7 +1203,8 @@ module.exports = {
             'Components': { name: 'Components', items: {}, hasMonitors: false },
             'Resources': { name: 'Resources', items: {}, hasMonitors: false },
             'Boom': { name: 'Boom', items: {}, hasMonitors: false },
-            'Teas': { name: 'Teas', items: {}, hasMonitors: false }
+            'Teas': { name: 'Teas', items: {}, hasMonitors: false },
+            'Heli Garage': { name: 'Heli Garage', items: {}, hasMonitors: false }
         };
 
         // Collect all storage monitors and categorize them

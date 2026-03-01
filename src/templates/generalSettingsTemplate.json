@@ -9,6 +9,8 @@
     "fcmAlarmNotificationEveryone": false,
     "smartAlarmNotifyInGame": true,
     "smartSwitchNotifyInGameWhenChangedFromDiscord": true,
+    "codeCommandEnabled": true,
+    "autoTtsEnabled": false,
     "leaderCommandEnabled": true,
     "leaderCommandOnlyForPaired": false,
     "commandDelay": 0,

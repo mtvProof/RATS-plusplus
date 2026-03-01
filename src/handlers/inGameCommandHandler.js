@@ -171,6 +171,14 @@ module.exports = {
             commandLowerCase.startsWith(`${prefix}${client.intlGet(guildId, 'commandSyntaxCams')} `)) {
             rustplus.sendInGameMessage(rustplus.getCommandCams(command));
         }
+        else if (commandLowerCase === `${prefix}${client.intlGet('en', 'commandSyntaxCode')}` ||
+            commandLowerCase === `${prefix}${client.intlGet(guildId, 'commandSyntaxCode')}` ||
+            commandLowerCase === `${prefix}codes` ||
+            commandLowerCase.startsWith(`${prefix}${client.intlGet('en', 'commandSyntaxCode')} `) ||
+            commandLowerCase.startsWith(`${prefix}${client.intlGet(guildId, 'commandSyntaxCode')} `) ||
+            commandLowerCase.startsWith(`${prefix}codes `)) {
+            rustplus.sendInGameMessage(rustplus.getCommandCode(command));
+        }
         else if (commandLowerCase === `${prefix}${client.intlGet('en', 'commandSyntaxTeam')}` ||
             commandLowerCase === `${prefix}${client.intlGet(guildId, 'commandSyntaxTeam')}`) {
             rustplus.sendInGameMessage(rustplus.getCommandTeam());
