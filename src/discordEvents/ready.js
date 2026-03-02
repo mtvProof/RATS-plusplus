@@ -79,8 +79,7 @@ module.exports = {
             guildSetupPromises.push(setupPromise);
         }
 
-        /* Wait for all guilds to be set up */
-        await Promise.all(guildSetupPromises);
+        client.startWebUi();
 
         await client.updateBattlemetricsInstances();
         BattlemetricsHandler.handler(client, true);

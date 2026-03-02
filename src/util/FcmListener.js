@@ -272,9 +272,8 @@ async function pairingServer(client, guild, title, message, body) {
         cargoShipEgressTimeMs: server ? server.cargoShipEgressTimeMs : Constants.DEFAULT_CARGO_SHIP_EGRESS_TIME_MS,
         oilRigLockedCrateUnlockTimeMs: server ? server.oilRigLockedCrateUnlockTimeMs :
             Constants.DEFAULT_OIL_RIG_LOCKED_CRATE_UNLOCK_TIME_MS,
-        deepSeaCooldownMs: server ? server.deepSeaCooldownMs : Constants.DEFAULT_DEEP_SEA_COOLDOWN_MS,
-        deepSeaDurationMs: server ? server.deepSeaDurationMs : Constants.DEFAULT_DEEP_SEA_DURATION_MS,
-        deepSeaPrepairMinutes: server ? server.deepSeaPrepairMinutes : Constants.DEFAULT_DEEP_SEA_PREPAIR_MINUTES,
+        deepSeaWipeCooldownMs: server ? server.deepSeaWipeCooldownMs : Constants.DEFAULT_DEEP_SEA_WIPE_COOLDOWN_MS,
+        deepSeaWipeDurationMs: server ? server.deepSeaWipeDurationMs : Constants.DEFAULT_DEEP_SEA_WIPE_DURATION_MS,
         timeTillDay: server ? server.timeTillDay : null,
         timeTillNight: server ? server.timeTillNight : null
     };
@@ -547,6 +546,10 @@ async function alarmRaidAlarm(client, guild, title, message, body) {
         rustplus.sendInGameMessage(`${title}: ${message}`);
     }
 
+    if (client.webServer) {
+        client.webServer.broadcastNotification(guild.id, 'raid', `${title}: ${message}`);
+    }
+
     client.log(client.intlGet(null, 'infoCap'), `${title} ${message}`);
 }
 
@@ -563,6 +566,10 @@ async function playerDeath(client, guild, title, message, body, discordUserId) {
 
     if (user) {
         await client.messageSend(user, content);
+    }
+
+    if (client.webServer) {
+        client.webServer.broadcastNotification(guild.id, 'death', `${title}: ${message}`);
     }
 }
 

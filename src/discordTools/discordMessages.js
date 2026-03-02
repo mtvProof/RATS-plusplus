@@ -84,10 +84,13 @@ module.exports = {
             components: DiscordButtons.getTrackerButtons(guildId, trackerId)
         }
 
-        const message = await module.exports.sendMessage(guildId, content, tracker.messageId,
-            instance.channelId.trackers, interaction);
+        // Usar el canal específico del tracker si existe, si no, el global
+        const channelId = tracker.channelId || instance.channelId.trackers;
 
-        if (!interaction) {
+        const message = await module.exports.sendMessage(guildId, content, tracker.messageId,
+            channelId, interaction);
+
+        if (!interaction && message) {
             instance.trackers[trackerId].messageId = message.id;
             Client.client.setInstance(guildId, instance);
         }
@@ -567,11 +570,14 @@ module.exports = {
     sendTeamChatMessage: async function (guildId, message) {
         const instance = Client.client.getInstance(guildId);
 
-        const teamLabel = message.teamLabel === 'secondary' ? 'Team 2' : 'Team 1';
+        const playerName = `${message.name ?? ''}`;
+        const playerMessage = `${message.message ?? ''}`;
+        const steamIdText = message.steamId !== undefined && message.steamId !== null ?
+            message.steamId.toString() : '';
 
         let color = Constants.COLOR_TEAMCHAT_DEFAULT;
-        if (instance.teamChatColors.hasOwnProperty(message.steamId)) {
-            color = instance.teamChatColors[message.steamId];
+        if (instance.teamChatColors.hasOwnProperty(steamIdText)) {
+            color = instance.teamChatColors[steamIdText];
         }
         else if (message.teamLabel === 'secondary') {
             color = Constants.COLOR_TEAMCHAT_SECONDARY;
@@ -580,11 +586,12 @@ module.exports = {
         const content = {
             embeds: [DiscordEmbeds.getEmbed({
                 color: color,
-                description: `**[${teamLabel}] ${message.name}**: ${message.message}`
+                description: `**${playerName}**: ${playerMessage}`,
+                footer: { text: steamIdText }
             })]
         }
 
-        if (message.message.includes('@everyone')) {
+        if (playerMessage.includes('@everyone')) {
             content.content = '@everyone';
         }
 

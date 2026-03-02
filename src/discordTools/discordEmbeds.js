@@ -858,7 +858,8 @@ module.exports = {
                 { name: largeOilRigFieldName, value: `\`${largeOilMessage}\``, inline: true },
                 { name: chinook47FieldName, value: `\`${ch47Message}\``, inline: true },
                 { name: travelingVendorFieldName, value: `\`${travelingVendorMessage}\``, inline: true },
-                { name: deepSeaFieldName, value: `\`${deepSeaMessage}\``, inline: true }],
+                { name: deepSeaFieldName, value: `\`${deepSeaMessage}\``, inline: true }
+            ],
             timestamp: true
         });
     },

@@ -43,22 +43,37 @@ module.exports = {
     },
 
     readInstanceFile: function (guildId) {
-        const path = Path.join(__dirname, '..', '..', 'instances', `${guildId}.json`);
-        try {
-            const raw = Fs.readFileSync(path, 'utf8');
-            if (!raw || raw.trim() === '') return {};
-            return JSON.parse(raw);
+        const targetPath = Path.join(__dirname, '..', '..', 'instances', `${guildId}.json`);
+        const tempPath = targetPath + '.tmp';
+        if (Fs.existsSync(tempPath)) {
+            try {
+                Fs.unlinkSync(tempPath);
+            } catch (e) {
+                console.warn(`Failed to remove stale temporary file: ${tempPath}`, e);
+            }
         }
-        catch (e) {
-            // If the instance file is missing or corrupted, return an empty object so
-            // CreateInstanceFile can rebuild a default structure without crashing startup.
-            return {};
-        }
+
+        // Fahren Sie mit dem normalen Lesen fort
+        return JSON.parse(Fs.readFileSync(targetPath, 'utf8'));
     },
 
     writeInstanceFile: function (guildId, instance) {
-        const path = Path.join(__dirname, '..', '..', 'instances', `${guildId}.json`);
-        Fs.writeFileSync(path, JSON.stringify(instance, null, 2));
+        const targetPath = Path.join(__dirname, '..', '..', 'instances', `${guildId}.json`);
+        const tempPath = targetPath + '.tmp';
+        
+        const data = JSON.stringify(instance, null, 2);
+
+        Fs.writeFileSync(tempPath, data, 'utf8');
+        try {
+            const fd = Fs.openSync(tempPath, 'r+');
+            Fs.fsyncSync(fd);
+            Fs.closeSync(fd);
+        } catch (error) {
+            console.error(`Failed to sync file data: ${tempPath}:`, error);
+            Fs.unlinkSync(tempPath); 
+            throw error;
+        }
+        Fs.renameSync(tempPath, targetPath);
     },
 
     readCredentialsFile: function (guildId) {

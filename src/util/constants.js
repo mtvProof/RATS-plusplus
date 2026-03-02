@@ -56,9 +56,8 @@ module.exports = {
     /* Default timer times */
     DEFAULT_CARGO_SHIP_EGRESS_TIME_MS: 50 * 60 * 1000, /* 50 min */
     DEFAULT_OIL_RIG_LOCKED_CRATE_UNLOCK_TIME_MS: 15 * 60 * 1000, /* 15 min */
-    DEFAULT_DEEP_SEA_COOLDOWN_MS: 276 * 60 * 1000, /* 4h 36m spawn-to-spawn (3h active + 1h36m downtime) */
-    DEFAULT_DEEP_SEA_DURATION_MS: 180 * 60 * 1000, /* 3h active */
-    DEFAULT_DEEP_SEA_PREPAIR_MINUTES: 10,
+    DEFAULT_DEEP_SEA_WIPE_COOLDOWN_MS: 90 * 60 * 1000, /* 1 hour */
+    DEFAULT_DEEP_SEA_WIPE_DURATION_MS: 180 * 60 * 1000, /* 3 hours */
 
     /* Other constants */
     PATROL_HELI_DOWNED_RADIUS: 400,
@@ -112,6 +111,8 @@ module.exports = {
     COLOR_TRAVELING_VENDOR_LOCATED_AT: '#F4A3E2',
     COLOR_TRAVELING_VENDOR_LEFT_MAP: '#5A3E9A',
     COLOR_TRAVELING_VENDOR_MOVING: '#7FCE41',
+    COLOR_DEEP_SEA_DETECTED: '#00177c',
+    COLOR_DEEP_SEA_LEFT_MAP: '#20B2AA',
 
     GET_STEAM_PROFILE_LINK: function (steamId) {
         return `[${steamId}](${this.STEAM_PROFILES_URL}${steamId})`;

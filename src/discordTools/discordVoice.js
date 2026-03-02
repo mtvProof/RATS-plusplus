@@ -26,12 +26,8 @@ const Client = require('../../index.ts');
 module.exports = {
     sendDiscordVoiceMessage: async function (guildId, text) {
         const connection = getVoiceConnection(guildId);
-        
-        if (!connection) {
-            Client.client.log(Client.client.intlGet(null, 'warningCap'), 
-                `TTS: Bot not in voice channel for guild ${guildId}`);
-            return false;
-        }
+        const voice = await this.getVoice(guildId);
+        const url = `https://cache-a.oddcast.com/tts/genC.php?EID=${voice.EID}&LID=${voice.LID}&VID=${voice.VID}&TXT=${encodeURIComponent(text)}&EXT=mp3`;
 
         try {
             const voice = await this.getVoice(guildId);

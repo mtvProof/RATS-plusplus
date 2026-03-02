@@ -24,6 +24,7 @@ const Battlemetrics = require('../structures/Battlemetrics');
 const Constants = require('../util/constants.js');
 const DiscordButtons = require('../discordTools/discordButtons.js');
 const DiscordMessages = require('../discordTools/discordMessages.js');
+const DiscordTools = require('../discordTools/discordTools.js');
 const Keywords = require('../util/keywords.js');
 const Scrape = require('../util/scrape.js');
 
@@ -48,6 +49,8 @@ module.exports = async (client, interaction) => {
         const server = instance.serverList[ids.serverId];
         const cargoShipEgressTime = parseInt(interaction.fields.getTextInputValue('CargoShipEgressTime'));
         const oilRigCrateUnlockTime = parseInt(interaction.fields.getTextInputValue('OilRigCrateUnlockTime'));
+        const deepSeaWipeCooldown = parseInt(interaction.fields.getTextInputValue('DeepSeaWipeCooldownTime'));
+        const deepSeaWipeDuration = parseInt(interaction.fields.getTextInputValue('DeepSeaWipeDurationTime'));
 
         if (!server) {
             interaction.deferUpdate();
@@ -60,11 +63,17 @@ module.exports = async (client, interaction) => {
         if (oilRigCrateUnlockTime && ((oilRigCrateUnlockTime * 1000) !== server.oilRigLockedCrateUnlockTimeMs)) {
             server.oilRigLockedCrateUnlockTimeMs = oilRigCrateUnlockTime * 1000;
         }
+        if (deepSeaWipeCooldown && ((deepSeaWipeCooldown * 1000) !== server.deepSeaWipeCooldownMs)) {
+            server.deepSeaWipeCooldownMs = deepSeaWipeCooldown * 1000;
+        }
+        if (deepSeaWipeDuration && ((deepSeaWipeDuration * 1000) !== server.deepSeaWipeDurationMs)) {
+            server.deepSeaWipeDurationMs = deepSeaWipeDuration * 1000;
+        }
         client.setInstance(guildId, instance);
 
         client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
             id: `${verifyId}`,
-            value: `${server.cargoShipEgressTimeMs}, ${server.oilRigLockedCrateUnlockTimeMs}`
+            value: `${server.cargoShipEgressTimeMs}, ${server.oilRigLockedCrateUnlockTimeMs}, ${server.deepSeaWipeCooldownMs}, ${server.deepSeaWipeDurationMs}`
         }));
     }
     else if (interaction.customId.startsWith('ServerEdit')) {
@@ -348,6 +357,7 @@ module.exports = async (client, interaction) => {
         const trackerCoordinates = interaction.fields.getTextInputValue('TrackerCoordinates');
         const trackerBattlemetricsId = interaction.fields.getTextInputValue('TrackerBattlemetricsId');
         const trackerClanTag = interaction.fields.getTextInputValue('TrackerClanTag');
+        const trackerChannelName = interaction.fields.getTextInputValue('TrackerChannelName');
 
         if (!tracker) {
             interaction.deferUpdate();
@@ -356,6 +366,18 @@ module.exports = async (client, interaction) => {
 
         tracker.name = trackerCoordinates;
         tracker.clanTag = trackerClanTag;
+
+        // Cambiar el nombre del canal de Discord si se proporcionó uno
+        if (trackerChannelName && tracker.channelId) {
+            const channel = DiscordTools.getTextChannelById(guildId, tracker.channelId);
+            if (channel) {
+                try {
+                    await channel.setName(trackerChannelName);
+                } catch (e) {
+                    client.log(client.intlGet(null, 'errorCap'), `Could not rename tracker channel: ${e}`, 'error');
+                }
+            }
+        }
 
         if (trackerBattlemetricsId !== tracker.battlemetricsId) {
             if (client.battlemetricsInstances.hasOwnProperty(trackerBattlemetricsId)) {

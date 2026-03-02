@@ -3,12 +3,11 @@
 </p>
 
 <p align="center">
-<a href="https://discord.gg/vcrKbKVAbc"><img src="https://img.shields.io/badge/Discord-Alexemanuel-%237289DA?style=flat&logo=discord" alt="discord"/></a>
-<a href="https://www.reddit.com/user/Alexemanuelol"><img src="https://img.shields.io/badge/Reddit-Alexemanuelol-FF4500?style=flat&logo=reddit" alt="reddit"/></a>
+<a href="https://discord.gg/vcrKbKVAbc"><img src="https://img.shields.io/badge/Discord-Rust++-%237289DA?style=flat&logo=discord" alt="discord"/></a>
 <a href="https://ko-fi.com/alexemanuelol"><img src="https://img.shields.io/badge/Donate%20a%20Coffee-alexemanuelol-yellow?style=flat&logo=buy-me-a-coffee" alt="donate on ko-fi"/></a>
 
 <p align="center">
-<a href="https://crowdin.com/project/rustplusplus"><img src="https://badges.crowdin.net/rustplusplus/localized.svg" alt="donate on ko-fi"/></a>
+<a href="https://crowdin.com/project/rustplusplus"><img src="https://badges.crowdin.net/rustplusplus/localized.svg" alt="Crowdin"/></a>
 </p>
 
 <p align="center">
@@ -29,6 +28,7 @@ A NodeJS Discord Bot that uses the [rustplus.js](https://github.com/liamcottle/r
 
 ## **Features**
 
+* **🌐 [WebUI - Live Map Viewer](docs/webui.md)** - Access a real-time interactive web interface with live player tracking, map overlays, and server monitoring.
 * Receive notifications for [In-Game Events](docs/discord_text_channels.md#events-channel) (Patrol Helicopter, Cargo Ship, Chinook 47, Oil Rigs triggered).
 * Control [Smart Switches](docs/smart_devices.md#smart-switches) or Groups of Smart Switches via Discord or In-Game Team Chat.
 * Setup [Smart Alarms](docs/smart_devices.md#smart-alarms) to notify in Discord or In-Game Team Chat whenever they are triggered.
@@ -42,7 +42,7 @@ A NodeJS Discord Bot that uses the [rustplus.js](https://github.com/liamcottle/r
 
 ## **Documentation**
 
-> Documentation can be found [here](https://github.com/alexemanuelol/rustplusplus/blob/master/docs/documentation.md). The documentation explains the features as well as `how to setup the bot`, so make sure to take a look at it 😉
+> Documentation can be found [here](https://github.com/faithix/rustplusplus/blob/master/docs/documentation.md). The documentation explains the features as well as `how to setup the bot`, so make sure to take a look at it 😉
 
 ## **Credentials**
 
@@ -69,7 +69,7 @@ or
 
 ## **Running via docker**
 
-    $ docker run --rm -it -v ${pwd}/credentials:/app/credentials -v ${pwd}/instances:/app/instances -v ${pwd}/logs:/app/logs -e RPP_DISCORD_CLIENT_ID=111....1111 -e RPP_DISCORD_TOKEN=token --name rpp ghcr.io/alexemanuelol/rustplusplus
+    $ docker run --rm -it -v ${pwd}/credentials:/app/credentials -v ${pwd}/instances:/app/instances -v ${pwd}/logs:/app/logs -e RPP_DISCORD_CLIENT_ID=111....1111 -e RPP_DISCORD_TOKEN=token -p 3000:3000 --name rpp ghcr.io/alexemanuelol/rustplusplus
 
 or
 
@@ -77,8 +77,27 @@ or
 
 Make sure you use the correct values for DISCORD_CLIENT_ID as well as DISCORD_TOKEN in the docker command/docker-compose.yml
 
+**Note:** The `-p 3000:3000` flag exposes the WebUI port. Access it at `http://localhost:3000`
+
+## **WebUI - Live Map Viewer**
+
+Access the interactive web interface to monitor your Rust servers in real-time! Once the bot is running, open your browser and navigate to:
+
+    http://localhost:3000
+
+Features include:
+- 🗺️ Live interactive map with player positions
+- 📍 Real-time player tracking and movement trails
+- 🎯 Map overlays (grid, monuments, rad zones, events)
+- 👥 Team member status and information
+- ⚡ WebSocket-powered real-time updates
+
+For detailed WebUI documentation, see [docs/webui.md](docs/webui.md)
+
 ## **Thanks to**
 
 **liamcottle**@GitHub - for the [rustplus.js](https://github.com/liamcottle/rustplus.js) library.
 <br>
 **.Vegas.#4844**@Discord - for the awesome icons!
+<br>
+**alexemanuelol**@GitHub - for the Main Development of the [Rust++ Bot](https://github.com/alexemanuelol/rustPlusPlus).

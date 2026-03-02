@@ -88,6 +88,8 @@ class RustPlus extends RustPlusLib {
 
         /* Stores found vending machine items that are subscribed to */
         this.foundSubscriptionItems = { all: [], buy: [], sell: [] };
+        this.currentOrderList = [];  /* Stores the current order list from the market. */
+        this.currentOrderPage = 1;  /* Stores the current order page from the market. */
 
         /* When a new item is added to subscription list, dont notify about the already available items. */
         this.firstPollItems = { all: [], buy: [], sell: [] };
@@ -103,7 +105,8 @@ class RustPlus extends RustPlusLib {
             small: [],
             large: [],
             chinook: [],
-            deepsea: []
+            travelingVendor: [],
+            deepSea: []
         };
         this.patrolHelicopterTracers = new Object();
         this.cargoShipTracers = new Object();
@@ -255,12 +258,12 @@ class RustPlus extends RustPlusLib {
     }
 
     updateEvents(event, message) {
-        const commandCargoEn = `${Client.client.intlGet('en', 'commandSyntaxCargo')}`;
-        const commandHeliEn = `${Client.client.intlGet('en', 'commandSyntaxHeli')}`;
-        const commandSmallEn = `${Client.client.intlGet('en', 'commandSyntaxSmall')}`;
-        const commandLargeEn = `${Client.client.intlGet('en', 'commandSyntaxLarge')}`;
-        const commandChinookEn = `${Client.client.intlGet('en', 'commandSyntaxChinook')}`;
-        if (![commandCargoEn, commandHeliEn, commandSmallEn, commandLargeEn, commandChinookEn].includes(event)) return;
+        const eventAliases = {
+            vendor: 'travelingVendor'
+        };
+        const eventKey = eventAliases[event] || event;
+        const supportedEvents = ['cargo', 'heli', 'small', 'large', 'chinook', 'travelingVendor', 'deepSea'];
+        if (!supportedEvents.includes(eventKey)) return;
 
         const str = `${Timer.getCurrentDateTime()} - ${message}`;
 
@@ -269,10 +272,10 @@ class RustPlus extends RustPlusLib {
         }
         this.events['all'].unshift(str);
 
-        if (this.events[event].length === 10) {
-            this.events[event].pop();
+        if (this.events[eventKey].length === 10) {
+            this.events[eventKey].pop();
         }
-        this.events[event].unshift(str);
+        this.events[eventKey].unshift(str);
     }
 
     updateBotMessages(message) {
@@ -337,6 +340,28 @@ class RustPlus extends RustPlusLib {
         if (!firstPoll && setting.voice) {
             await DiscordVoice.sendDiscordVoiceMessage(this.guildId, text);
         }
+
+        // Broadcast to WebUI
+        if (Client.client.webServer) {
+            // Try to find the setting key (e.g. "cargoShipDetectedSetting") to allow granular filtering in WebUI
+            const settingKey = Object.keys(this.notificationSettings).find(key => this.notificationSettings[key] === setting);
+
+            let type = settingKey || 'info';
+
+            // If we didn't find a key (e.g. custom setting), fallback to image-based type for icons/basic filtering
+            if (!settingKey) {
+                if (setting.image.includes('cargo')) type = 'cargo';
+                else if (setting.image.includes('heli')) type = 'heli';
+                else if (setting.image.includes('locked_crate')) type = 'crate';
+                else if (setting.image.includes('oil_rig')) type = 'oil_rig';
+                else if (setting.image.includes('vendor')) type = 'vendor';
+                else if (setting.image.includes('vending')) type = 'vending';
+                else if (setting.image.includes('chinook')) type = 'chinook';
+            }
+
+            Client.client.webServer.broadcastNotification(this.guildId, type, text);
+        }
+
         this.log(Client.client.intlGet(null, 'eventCap'), text);
     }
 
@@ -706,6 +731,8 @@ class RustPlus extends RustPlusLib {
             return false;
         }
         else if (response.hasOwnProperty('error')) {
+            if (response.error === 'not_found') return false;
+            
             this.log(Client.client.intlGet(null, 'errorCap'), Client.client.intlGet(null, 'responseContainError', {
                 error: response.error
             }), 'error');
@@ -719,9 +746,11 @@ class RustPlus extends RustPlusLib {
             return false;
         }
         else if (Object.keys(response).length === 0) {
-            this.log(Client.client.intlGet(null, 'errorCap'),
-                Client.client.intlGet(null, 'responseIsEmpty'), 'error');
-            clearInterval(this.pollingTaskId);
+            /* 
+               Response is empty. 
+               We suppress the log as requested and do NOT stop the polling interval 
+               to allow the bot to recover from transient empty responses.
+            */
             return false;
         }
         this.consecutiveTimeouts = 0;
@@ -1355,12 +1384,14 @@ class RustPlus extends RustPlusLib {
         const commandLargeEn = `${Client.client.intlGet('en', 'commandSyntaxLarge')}`;
         const commandChinook = `${Client.client.intlGet(this.guildId, 'commandSyntaxChinook')}`;
         const commandChinookEn = `${Client.client.intlGet('en', 'commandSyntaxChinook')}`;
+        const commandTravelingVendor = `${Client.client.intlGet(this.guildId, 'commandSyntaxTravelingVendor')}`;
+        const commandTravelingVendorEn = `${Client.client.intlGet('en', 'commandSyntaxTravelingVendor')}`;
         const commandDeepSea = `${Client.client.intlGet(this.guildId, 'commandSyntaxDeepSea')}`;
         const commandDeepSeaEn = `${Client.client.intlGet('en', 'commandSyntaxDeepSea')}`;
 
         const EVENTS = [commandCargo, commandCargoEn, commandHeli, commandHeliEn, commandSmall,
-            commandSmallEn, commandLarge, commandLargeEn, commandChinook, commandChinookEn,
-            commandDeepSea, commandDeepSeaEn];
+            commandSmallEn, commandLarge, commandLargeEn, commandChinook, commandChinookEn, 
+            commandTravelingVendor, commandTravelingVendorEn, commandDeepSea, commandDeepSeaEn];
 
         if (command.toLowerCase().startsWith(`${commandEvents}`)) {
             command = command.slice(`${commandEvents}`.length).trim();
@@ -1425,9 +1456,14 @@ class RustPlus extends RustPlusLib {
                 event = 'chinook';
             } break;
 
+            case commandTravelingVendorEn:
+            case commandTravelingVendor: {
+                event = 'travelingVendor';
+            } break;
+
             case commandDeepSeaEn:
             case commandDeepSea: {
-                event = 'deepsea';
+                event = 'deepSea';
             } break;
 
             default: {
@@ -1768,6 +1804,8 @@ class RustPlus extends RustPlusLib {
         const prefix = this.generalSettings.prefix;
         const commandMarket = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxMarket')}`;
         const commandMarketEn = `${prefix}${Client.client.intlGet('en', 'commandSyntaxMarket')}`;
+        const commandNext = `${Client.client.intlGet(this.guildId, 'commandSyntaxNext')}`;
+        const commandNextEn = `${Client.client.intlGet('en', 'commandSyntaxNext')}`;
         const commandSearch = `${Client.client.intlGet(this.guildId, 'commandSyntaxSearch')}`;
         const commandSearchEn = `${Client.client.intlGet('en', 'commandSyntaxSearch')}`;
         const commandSub = `${Client.client.intlGet(this.guildId, 'commandSyntaxSubscribe')}`;
@@ -1777,18 +1815,36 @@ class RustPlus extends RustPlusLib {
         const commandList = `${Client.client.intlGet(this.guildId, 'commandSyntaxList')}`;
         const commandListEn = `${Client.client.intlGet('en', 'commandSyntaxList')}`;
 
+        //Remove market part of the command -> search sell itemname
         if (command.toLowerCase().startsWith(`${commandMarket} `)) {
             command = command.slice(`${commandMarket} `.length).trim();
         }
         else {
             command = command.slice(`${commandMarketEn} `.length).trim();
         }
+        //Get subcommand and remove it from the command -> sell itemname
         const subcommand = command.replace(/ .*/, '');
         command = command.slice(subcommand.length + 1);
 
+        //Get ordertype from the command -> ordertype
         const orderType = command.replace(/ .*/, '');
-        const name = command.slice(orderType.length + 1);
+        let remainingCommand = command.slice(orderType.length + 1);
+        
+        let showImages = false;
+        let name = '';
 
+        //Check if images should be shown and get the item name -> itemname
+        if (remainingCommand.toLowerCase().startsWith('image ')) {
+            showImages = true;
+            name = remainingCommand.slice('image '.length).trim();
+            } 
+        else {
+            name = remainingCommand.trim();
+            }
+
+        const ORDERS_PER_PAGE = 10;
+        const orders = [];
+        let foundOrders = 0;
         switch (subcommand) {
             case commandSearchEn:
             case commandSearch: {
@@ -1805,7 +1861,7 @@ class RustPlus extends RustPlusLib {
                     });
                 }
 
-                const locations = [];
+                
                 for (const vendingMachine of this.mapMarkers.vendingMachines) {
                     if (!vendingMachine.hasOwnProperty('sellOrders')) continue;
 
@@ -1823,17 +1879,115 @@ class RustPlus extends RustPlusLib {
                             (orderItemId === parseInt(itemId) || orderCurrencyId === parseInt(itemId))) ||
                             (orderType === 'buy' && orderCurrencyId === parseInt(itemId)) ||
                             (orderType === 'sell' && orderItemId === parseInt(itemId))) {
-                            if (locations.includes(vendingMachine.location.location)) continue;
-                            locations.push(vendingMachine.location.location);
-                        }
+                                orders.push({
+                                    text: `${Client.client.intlGet(this.guildId, 'foundItemInVendingMachine', {
+                                        item: (showImages) ? `:${Client.client.items.getShortName(order.itemId)}:` : ` ${Client.client.items.getName(order.itemId)}`,
+                                        quantity: order.quantity,
+                                        price: (showImages) ? `:${Client.client.items.getShortName(order.currencyId)}:` : ` ${Client.client.items.getName(order.currencyId)}`,
+                                        priceAmount: order.costPerItem,
+                                        stock: order.amountInStock,
+                                        location: vendingMachine.location.string
+                                    })}`
+                                }
+                            );
+                            }
                     }
                 }
 
-                if (locations.length === 0) {
+                if (orders.length === 0) {
+                    delete this.currentOrdersList;
+                    delete this.currentOrderPage;
                     return Client.client.intlGet(this.guildId, 'noItemFound');
                 }
+                
+                foundOrders = orders.length;
+                const totalPages = Math.ceil(foundOrders / ORDERS_PER_PAGE);
+                
+                this.currentOrdersList = orders;
+                this.currentOrderPage = 1;
+                
+                const firstPageOrders = orders.slice(0, ORDERS_PER_PAGE);
+                
+                if( totalPages > 1) {
+                    this.sendInGameMessage(
+                    Client.client.intlGet(this.guildId, 'foundOrdersSummary', {
+                        foundOrders: foundOrders,
+                        currentPage: 1,
+                        totalPages: totalPages,
+                        nextCommand: `${prefix}market next`
+                    }));
+                }
+                if (totalPages === 1) {
+                    this.sendInGameMessage(
+                    Client.client.intlGet(this.guildId, 'foundOrdersSummaryNoNext', {
+                        foundOrders: foundOrders
+                    }));
+                }
+                
+                for (let i = 0; i < firstPageOrders.length; i++) {
+                    const order = firstPageOrders[i];
+                    
+                    const delay = i * 150; 
 
-                return locations.join(', ');
+                    setTimeout(() => {
+                        this.sendInGameMessage(order.text); 
+                    }, delay);
+                }
+
+                return null;
+            } break;
+
+            case commandNextEn:
+            case commandNext: {
+                const orders = this.currentOrdersList;
+                let currentPage = this.currentOrderPage || 0;
+
+                if (!Array.isArray(orders) || orders.length === 0 || currentPage === 0) {
+                    delete this.currentOrdersList;
+                    delete this.currentOrderPage;
+                    return Client.client.intlGet(this.guildId, 'noMorePages');
+                }
+
+                const totalPages = Math.ceil(orders.length / ORDERS_PER_PAGE);
+
+                if (currentPage >= totalPages) {
+                    delete this.currentOrdersList;
+                    delete this.currentOrderPage;
+                    return Client.client.intlGet(this.guildId, 'noMorePages');
+                }
+
+                currentPage += 1;
+                this.currentOrderPage = currentPage;
+
+                const startIndex = (currentPage - 1) * ORDERS_PER_PAGE;
+                const endIndex = startIndex + ORDERS_PER_PAGE;
+                const nextPageOrders = orders.slice(startIndex, endIndex);
+
+                this.sendInGameMessage(
+                    Client.client.intlGet(this.guildId, 'foundOrdersSummary', {
+                        foundOrders: orders.length,
+                        currentPage: currentPage,
+                        totalPages: totalPages,
+                        nextCommand: (currentPage < totalPages) ? 'market next' : ''
+                    })
+                );
+
+                for (let i = 0; i < nextPageOrders.length; i++) {
+                    const order = nextPageOrders[i];
+                    
+                    const delay = i * 150; 
+
+                    setTimeout(() => {
+                        this.sendInGameMessage(order.text); 
+                    }, delay);
+                }
+                
+                if (currentPage >= totalPages) {
+                    delete this.currentOrdersList;
+                    delete this.currentOrderPage;
+                }
+
+                return null; 
             } break;
 
             case commandSubEn:
@@ -3016,91 +3170,44 @@ class RustPlus extends RustPlusLib {
 
     getCommandDeepSea(isInfoChannel = false) {
         const instance = Client.client.getInstance(this.guildId);
-        const server = instance.serverList[this.serverId];
+        const deepSeaSettings = instance.serverList[this.serverId];
+        const deepSeaWipeCooldown = deepSeaSettings.deepSeaWipeCooldownMs;
+        const deepSeaWipeDuration = deepSeaSettings.deepSeaWipeDurationMs;
+        const wasOnMap = this.mapMarkers.timeSinceDeepSeaWasOnMap;
+        const isOnMap = this.mapMarkers.timeSinceDeepSeaSpawned;
+        const deepSea = this.mapMarkers.deepSeas[0];
+        const now = new Date();
 
-        const activeDeepSea = this.mapMarkers.deepSea[0];
-        if (activeDeepSea) {
-            const location = activeDeepSea.location.string;
-            let durationMs = server ? (server.deepSeaDurationMs || Constants.DEFAULT_DEEP_SEA_DURATION_MS) :
-                Constants.DEFAULT_DEEP_SEA_DURATION_MS;
-            let timeLeft = null;
-
-            if (durationMs < Constants.DEFAULT_DEEP_SEA_DURATION_MS && server) {
-                durationMs = Constants.DEFAULT_DEEP_SEA_DURATION_MS;
-                server.deepSeaDurationMs = durationMs;
-                Client.client.setInstance(this.guildId, instance);
-            }
-
-            if (durationMs && this.mapMarkers.deepSeaSpawnedAt) {
-                const nowMs = Date.now();
-                const spawnMs = this.mapMarkers.deepSeaSpawnedAt.getTime();
-                const elapsedMs = Math.max(0, nowMs - spawnMs);
-                if (elapsedMs === 0 && spawnMs > nowMs) {
-                    this.mapMarkers.deepSeaSpawnedAt = new Date(nowMs);
-                }
-                const remainingSeconds = Math.max(0, Math.floor((durationMs - elapsedMs) / 1000));
-                timeLeft = Timer.secondsToFullScale(remainingSeconds, isInfoChannel ? 's' : undefined);
-            }
-
+        if (deepSea && isOnMap !== null) {
+            const secondsLeft = Math.max(0, (deepSeaWipeDuration - (now - isOnMap)) / 1000);
             if (isInfoChannel) {
-                if (timeLeft) {
-                    return Client.client.intlGet(this.guildId, 'deepSeaActiveShort', {
-                        location: location,
-                        time: ` ${timeLeft}`
-                    });
-                }
-                return Client.client.intlGet(this.guildId, 'atLocation', { location: location });
+                return Client.client.intlGet(this.guildId, 'activeFor', {
+                    time: Timer.secondsToFullScale(secondsLeft, 's')
+                });
             }
 
-            return Client.client.intlGet(this.guildId, 'deepSeaActive', {
-                location: location,
-                time: timeLeft ? ` (${timeLeft})` : ''
+            return Client.client.intlGet(this.guildId, 'timeDeepSeaIsActiveFor', {
+                time: Timer.secondsToFullScale(secondsLeft)
             });
         }
 
-        const lastSeen = this.mapMarkers.timeSinceDeepSeaWasOnMap;
-        if (!lastSeen) {
+        if (wasOnMap === null) {
             return isInfoChannel ? Client.client.intlGet(this.guildId, 'notActive') :
                 Client.client.intlGet(this.guildId, 'deepSeaNotCurrentlyOnMap');
         }
 
-        const secondsSince = (new Date() - lastSeen) / 1000;
-        const timeSince = Timer.secondsToFullScale(secondsSince, isInfoChannel ? 's' : undefined);
-        const cooldownMs = server ? server.deepSeaCooldownMs : 0;
-        const durationMs = server ? (server.deepSeaDurationMs || Constants.DEFAULT_DEEP_SEA_DURATION_MS) :
-            Constants.DEFAULT_DEEP_SEA_DURATION_MS;
-        const downtimeMs = Math.max(0, cooldownMs - durationMs);
-        let eta = null;
-
-        if (cooldownMs) {
-            const lastSpawnMs = this.mapMarkers.deepSeaLastSpawnAt ? this.mapMarkers.deepSeaLastSpawnAt.getTime() : null;
-            const lastSeenMs = lastSeen ? lastSeen.getTime() : null;
-
-            // If we know the last spawn time, use spawn-to-spawn; otherwise use despawn time plus downtime.
-            const respawnAt = lastSpawnMs ? (lastSpawnMs + cooldownMs) :
-                (lastSeenMs ? (lastSeenMs + downtimeMs) : null);
-
-            if (respawnAt) {
-                const etaSeconds = Math.max(0, Math.floor((respawnAt - Date.now()) / 1000));
-                eta = Timer.secondsToFullScale(etaSeconds, isInfoChannel ? 's' : undefined);
-            }
-        }
-
-        if (eta) {
-            if (isInfoChannel) {
-                return Client.client.intlGet(this.guildId, 'deepSeaRespawnEtaShort', { time: eta });
-            }
-            return Client.client.intlGet(this.guildId, 'deepSeaRespawnEta', {
-                time: eta,
-                location: this.mapMarkers.deepSeaLastLocation === null ? '' : this.mapMarkers.deepSeaLastLocation
+        const secondsSince = (now - wasOnMap) / 1000;
+        if (isInfoChannel) {
+            return Client.client.intlGet(this.guildId, 'timeSinceLast', {
+                time: Timer.secondsToFullScale(secondsSince, 's')
             });
         }
 
-        if (isInfoChannel) {
-            return Client.client.intlGet(this.guildId, 'timeSinceLast', { time: timeSince });
-        }
-
-        return Client.client.intlGet(this.guildId, 'timeSinceDeepSeaWasOnMap', { time: timeSince });
+        const respawnSeconds = Math.max(0, (deepSeaWipeCooldown - (now - wasOnMap)) / 1000);
+        return Client.client.intlGet(this.guildId, 'timeSinceDeepSeaWasOnMap', {
+            time: Timer.secondsToFullScale(secondsSince),
+            respawn: Timer.secondsToFullScale(respawnSeconds, 's')
+        });
     }
 }
 

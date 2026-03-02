@@ -147,6 +147,10 @@ module.exports = {
         await PollingHandler.pollingHandler(rustplus, client);
         rustplus.pollingTaskId = setInterval(PollingHandler.pollingHandler, client.pollingIntervalMs, rustplus, client);
 
+        if (client.webServer) {
+            client.webServer.broadcastGuildsUpdate();
+        }
+
         rustplus.updateLeaderRustPlusLiteInstance();
     },
 };

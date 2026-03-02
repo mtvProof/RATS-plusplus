@@ -87,6 +87,18 @@ module.exports = {
                 label: Client.client.intlGet(guildId, 'customTimerEditCrateOilRigUnlockLabel'),
                 value: `${server.oilRigLockedCrateUnlockTimeMs / 1000}`,
                 style: Discord.TextInputStyle.Short
+            })),
+            new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
+                customId: 'DeepSeaWipeCooldownTime',
+                label: Client.client.intlGet(guildId, 'customTimerEditDeepSeaWipeCooldownLabel'),
+                value: `${server.deepSeaWipeCooldownMs / 1000}`,
+                style: Discord.TextInputStyle.Short
+            })),
+            new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
+                customId: 'DeepSeaWipeDurationTime',
+                label: Client.client.intlGet(guildId, 'customTimerEditDeepSeaWipeDurationLabel'),
+                value: `${server.deepSeaWipeDurationMs / 1000}`,
+                style: Discord.TextInputStyle.Short
             }))
         );
 
@@ -327,6 +339,14 @@ module.exports = {
                 style: Discord.TextInputStyle.Short,
                 required: false,
                 minLength: 0
+            })),
+            new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
+                customId: 'TrackerChannelName',
+                label: Client.client.intlGet(guildId, 'channelName'),
+                value: '', // Se deja vacío para que solo se cambie si se escribe algo, o podríamos intentar buscar el nombre actual
+                style: Discord.TextInputStyle.Short,
+                required: false,
+                placeholder: 'tracker-name'
             }))
         );
 
@@ -374,39 +394,6 @@ module.exports = {
                 placeholder: Client.client.intlGet(guildId, 'trackerRemovePlayerPlaceholder'),
                 value: '',
                 style: Discord.TextInputStyle.Short
-            }))
-        );
-
-        return modal;
-    },
-
-    getBaseCodesEditModal(guildId) {
-        const instance = Client.client.getInstance(guildId);
-        if (!instance.baseCodes) {
-            instance.baseCodes = { main: null, secondary: null };
-        }
-
-        const modal = module.exports.getModal({
-            customId: 'BaseCodesEdit',
-            title: Client.client.intlGet(guildId, 'baseCodesEdit')
-        });
-
-        modal.addComponents(
-            new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
-                customId: 'BaseCodeMain',
-                label: Client.client.intlGet(guildId, 'baseCodeMain'),
-                value: instance.baseCodes.main || '',
-                style: Discord.TextInputStyle.Short,
-                required: false,
-                minLength: 0
-            })),
-            new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
-                customId: 'BaseCodeSecondary',
-                label: Client.client.intlGet(guildId, 'baseCodeSecondary'),
-                value: instance.baseCodes.secondary || '',
-                style: Discord.TextInputStyle.Short,
-                required: false,
-                minLength: 0
             }))
         );
 

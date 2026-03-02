@@ -78,18 +78,16 @@
         "voice": true
     },
     "deepSeaDetectedSetting": {
-        "image": "traveling_vendor_logo.png",
+        "image": "deep_sea_logo.png",
         "discord": true,
         "inGame": false,
-        "voice": false,
-        "prepair": false,
-        "prepairMinutes": 10
+        "voice": true
     },
-    "deepSeaLeftSetting": {
-        "image": "traveling_vendor_logo.png",
+    "deepSeaLeftMapSetting": {
+        "image": "deep_sea_logo.png",
         "discord": true,
         "inGame": false,
-        "voice": false
+        "voice": true
     },
     "vendingMachineDetectedSetting": {
         "image": "vending_machine_logo.png",
