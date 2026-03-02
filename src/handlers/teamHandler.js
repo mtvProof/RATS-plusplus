@@ -20,6 +20,7 @@
 
 const Constants = require('../util/constants.js');
 const DiscordMessages = require('../discordTools/discordMessages.js');
+const SamSiteUtils = require('../util/samSiteUtils.js');
 
 module.exports = {
     handler: async function (rustplus, client, teamInfo) {
@@ -127,6 +128,28 @@ module.exports = {
                             });
                             rustplus.sendInGameMessage(str);
                             rustplus.log(client.intlGet(null, 'infoCap'), str);
+                        }
+                    }
+
+                    // Check for helicopter flying toward SAM sites
+                    if (instance.samSites && instance.samSites.length > 0) {
+                        const isHelicopter = SamSiteUtils.isPlayerFlyingHelicopter(player, playerUpdated);
+                        if (isHelicopter) {
+                            const samSiteGrid = SamSiteUtils.checkPlayerHeadingTowardSamSite(playerUpdated, instance.samSites);
+                            if (samSiteGrid) {
+                                // Initialize warning cooldowns if not exists
+                                if (!rustplus.samSiteWarningCooldowns) {
+                                    rustplus.samSiteWarningCooldowns = new Map();
+                                }
+                                
+                                // Check if we should send warning (cooldown system)
+                                if (SamSiteUtils.shouldSendWarning(rustplus.samSiteWarningCooldowns, player.steamId, samSiteGrid, 3)) {
+                                    const warningMsg = SamSiteUtils.generateSamWarning(samSiteGrid, guildId, client);
+                                    rustplus.sendInGameMessage(warningMsg);
+                                    rustplus.log(client.intlGet(null, 'infoCap'), 
+                                        `SAM Warning for ${player.name} heading to ${samSiteGrid}`);
+                                }
+                            }
                         }
                     }
 
