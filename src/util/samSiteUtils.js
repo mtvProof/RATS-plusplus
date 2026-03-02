@@ -18,6 +18,8 @@
 
 */
 
+const Map = require('./map.js');
+
 module.exports = {
     /**
      * Detects if a player is flying a helicopter based on movement speed
@@ -28,21 +30,22 @@ module.exports = {
      * @returns {boolean} - True if player appears to be flying a helicopter
      */
     isPlayerFlyingHelicopter: function (player, playerUpdated, timeDeltaSeconds = 1) {
-        if (!player.pos || !playerUpdated.x || !playerUpdated.y) {
+        const prevX = Number(player?.x);
+        const prevY = Number(player?.y);
+        const currX = Number(playerUpdated?.x);
+        const currY = Number(playerUpdated?.y);
+
+        if (!Number.isFinite(prevX) || !Number.isFinite(prevY) || !Number.isFinite(currX) || !Number.isFinite(currY)) {
             return false;
         }
 
-        // Calculate distance moved
-        const dx = playerUpdated.x - player.pos.x;
-        const dy = playerUpdated.y - player.pos.y;
-        const distanceMoved = Math.sqrt(dx * dx + dy * dy);
+        const distanceMoved = Map.getDistance(prevX, prevY, currX, currY);
 
-        // Calculate speed in units/second
         const speedPerSecond = distanceMoved / Math.max(timeDeltaSeconds, 0.1);
 
-        // Helicopter speed threshold: > 8 units/second (adjust based on your observations)
-        // Walking speed is ~5.7 u/s, running ~9 u/s, helicopter is much faster
-        const helicopterSpeedThreshold = 12; // u/s
+        // Practical threshold for minicopter/scrap helicopter movement.
+        // (Running players are much slower over polling windows.)
+        const helicopterSpeedThreshold = 25; // u/s
 
         return speedPerSecond > helicopterSpeedThreshold;
     },
@@ -56,26 +59,9 @@ module.exports = {
      * @param {number} gridSize - Size of each grid square in units (default 50)
      * @returns {string} - Grid coordinates like "C25"
      */
-    getGridFromCoordinates: function (x, y, gridSize = 50) {
-        // Rust coordinate system: origin is at (0, 0), max is roughly (2048, 2048)
-        // Grid letters: A-Z (columns)
-        // Grid numbers: 0-51 or similar (rows)
-
-        // Calculate grid position
-        const gridX = Math.floor(x / gridSize);
-        const gridY = Math.floor(y / gridSize);
-
-        // Convert to letter + number format
-        // Columns: A-Z (0-25)
-        const maxGridIndex = 51; // Adjust based on your map size
-        
-        const colIndex = Math.max(0, Math.min(25, gridX % 26));
-        const rowIndex = Math.max(0, Math.min(maxGridIndex, gridY));
-
-        const columnLetter = String.fromCharCode(65 + colIndex); // A=65 in ASCII
-        const rowNumber = rowIndex;
-
-        return `${columnLetter}${rowNumber}`;
+    getGridFromCoordinates: function (x, y, mapSize) {
+        if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(mapSize)) return null;
+        return Map.getGridPos(x, y, mapSize);
     },
 
     /**
@@ -85,27 +71,110 @@ module.exports = {
      * @param {Array} samSites - Array of SAM site grid strings (e.g., ['C25', 'D30'])
      * @returns {string|null} - SAM site grid if player is heading toward one, null otherwise
      */
-    checkPlayerHeadingTowardSamSite: function (playerUpdated, samSites) {
-        if (!samSites || samSites.length === 0) {
+    checkPlayerHeadingTowardSamSite: function (player, playerUpdated, samSites, mapSize) {
+        if (!samSites || samSites.length === 0 || !Number.isFinite(mapSize)) {
             return null;
         }
 
-        const currentGrid = module.exports.getGridFromCoordinates(playerUpdated.x, playerUpdated.y);
+        const prevX = Number(player?.x);
+        const prevY = Number(player?.y);
+        const currX = Number(playerUpdated?.x);
+        const currY = Number(playerUpdated?.y);
+        if (!Number.isFinite(prevX) || !Number.isFinite(prevY) || !Number.isFinite(currX) || !Number.isFinite(currY)) {
+            return null;
+        }
 
-        // Check if current grid or adjacent grids match a SAM site
-        if (samSites.includes(currentGrid)) {
+        const currentGrid = module.exports.getGridFromCoordinates(currX, currY, mapSize);
+        if (!currentGrid) return null;
+
+        const normalizedSamSites = samSites
+            .map(module.exports.normalizeGrid)
+            .filter((g) => g !== null);
+
+        if (normalizedSamSites.includes(currentGrid)) {
             return currentGrid;
         }
 
-        // Also check adjacent grids for proximity warning
-        const adjacentGrids = module.exports.getAdjacentGrids(currentGrid);
-        for (const adjacentGrid of adjacentGrids) {
-            if (samSites.includes(adjacentGrid)) {
-                return adjacentGrid;
+        const gridDiameter = mapSize / Math.max(1, Math.floor(mapSize / Map.gridDiameter));
+        let bestMatch = null;
+        let bestDistance = Number.POSITIVE_INFINITY;
+
+        for (const samGrid of normalizedSamSites) {
+            const center = module.exports.gridToCenterCoordinates(samGrid, mapSize);
+            if (!center) continue;
+
+            const distanceNow = Map.getDistance(currX, currY, center.x, center.y);
+            const distancePrev = Map.getDistance(prevX, prevY, center.x, center.y);
+            const headingToward = module.exports.isHeadingTowardTarget(prevX, prevY, currX, currY, center.x, center.y);
+
+            // Warn when moving toward a SAM grid and within ~2.5 grid squares.
+            if (headingToward && distanceNow < distancePrev && distanceNow <= (gridDiameter * 2.5)) {
+                if (distanceNow < bestDistance) {
+                    bestDistance = distanceNow;
+                    bestMatch = samGrid;
+                }
             }
         }
 
+        if (bestMatch) return bestMatch;
+
+        const adjacentGrids = module.exports.getAdjacentGrids(currentGrid);
+        for (const adjacentGrid of adjacentGrids) {
+            if (normalizedSamSites.includes(adjacentGrid)) return adjacentGrid;
+        }
+
         return null;
+    },
+
+    normalizeGrid: function (grid) {
+        if (!grid) return null;
+        const normalized = String(grid).trim().toUpperCase();
+        return /^([A-Z]+)(\d+)$/.test(normalized) ? normalized : null;
+    },
+
+    lettersToNumber: function (letters) {
+        let value = 0;
+        for (const ch of letters) {
+            value = (value * 26) + (ch.charCodeAt(0) - 64);
+        }
+        return value;
+    },
+
+    gridToCenterCoordinates: function (grid, mapSize) {
+        const normalized = module.exports.normalizeGrid(grid);
+        if (!normalized || !Number.isFinite(mapSize)) return null;
+
+        const match = normalized.match(/^([A-Z]+)(\d+)$/);
+        if (!match) return null;
+
+        const letters = match[1];
+        const row = parseInt(match[2]);
+
+        const numberOfGrids = Math.max(1, Math.floor(mapSize / Map.gridDiameter));
+        const gridDiameter = mapSize / numberOfGrids;
+        const col = module.exports.lettersToNumber(letters) - 1;
+
+        if (col < 0 || col >= numberOfGrids || row < 0 || row >= numberOfGrids) return null;
+
+        const x = ((col + 0.5) * gridDiameter);
+        const y = (mapSize - ((row + 0.5) * gridDiameter));
+
+        return { x, y };
+    },
+
+    isHeadingTowardTarget: function (prevX, prevY, currX, currY, targetX, targetY) {
+        const moveX = currX - prevX;
+        const moveY = currY - prevY;
+        const moveMag = Math.sqrt((moveX * moveX) + (moveY * moveY));
+        if (moveMag < 1) return false;
+
+        const toTargetX = targetX - currX;
+        const toTargetY = targetY - currY;
+        const targetMag = Math.sqrt((toTargetX * toTargetX) + (toTargetY * toTargetY));
+        if (targetMag < 1) return true;
+
+        const dot = ((moveX * toTargetX) + (moveY * toTargetY)) / (moveMag * targetMag);
+        return dot >= 0.65;
     },
 
     /**

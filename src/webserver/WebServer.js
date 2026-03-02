@@ -1220,7 +1220,7 @@ class WebServer {
               rustplus.mapMarkers.patrolHelicopterDestroyedLocation,
             timeSincePatrolHelicopterWasDestroyed:
               rustplus.mapMarkers.timeSincePatrolHelicopterWasDestroyed,
-            samSites: this.getSamSiteMarkers(instance) || [],
+            samSites: this.getSamSiteMarkers(instance, rustplus?.info?.mapSize) || [],
           }
         : null,
       markers: rustplus.markers || {},
@@ -1360,8 +1360,8 @@ class WebServer {
     this.io.to(`guild-${guildId}`).emit("chatMessage", message);
   }
 
-  getSamSiteMarkers(instance) {
-    if (!instance || !instance.samSites || instance.samSites.length === 0) {
+  getSamSiteMarkers(instance, mapSize) {
+    if (!instance || !instance.samSites || instance.samSites.length === 0 || !Number.isFinite(mapSize)) {
       return [];
     }
 
@@ -1369,24 +1369,19 @@ class WebServer {
     const markers = [];
 
     // Convert grid strings to map coordinates for rendering
-    // Each grid is 50 units, and we place a marker at the center of each grid
     for (const gridStr of instance.samSites) {
-      // Parse grid string (e.g., "C25" -> column C (2), row 25)
-      const columnLetter = gridStr.charAt(0);
-      const rowNumber = parseInt(gridStr.substring(1));
+      const normalized = SamSiteUtils.normalizeGrid(gridStr);
+      if (!normalized) continue;
 
-      // Convert back to approximate map coordinates (center of grid)
-      const colIndex = columnLetter.charCodeAt(0) - 65; // A=0, B=1, etc.
-      const gridSize = 50;
-      const x = (colIndex * gridSize) + (gridSize / 2);
-      const y = (rowNumber * gridSize) + (gridSize / 2);
+      const center = SamSiteUtils.gridToCenterCoordinates(normalized, mapSize);
+      if (!center) continue;
 
       markers.push({
-        x: x,
-        y: y,
-        grid: gridStr,
+        x: center.x,
+        y: center.y,
+        grid: normalized,
         type: 'samSite',
-        radius: 50 // Visual radius on the map
+        radius: 75
       });
     }
 

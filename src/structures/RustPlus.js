@@ -2825,6 +2825,80 @@ class RustPlus extends RustPlusLib {
         return showResponse();
     }
 
+    getCommandSamLoc(command) {
+        const prefix = this.generalSettings.prefix;
+        const commandSamLoc = `${prefix}samloc`;
+
+        const instance = Client.client.getInstance(this.guildId);
+        if (!instance.samSites) {
+            instance.samSites = [];
+            Client.client.setInstance(this.guildId, instance);
+        }
+
+        const listResponse = () => {
+            if (instance.samSites.length === 0) {
+                return Client.client.intlGet(this.guildId, 'samLocEmpty');
+            }
+
+            return Client.client.intlGet(this.guildId, 'samLocList', {
+                grids: instance.samSites.join(', ')
+            });
+        };
+
+        const lower = command.toLowerCase();
+        if (lower === commandSamLoc || lower === `${commandSamLoc} list`) {
+            return listResponse();
+        }
+
+        if (!lower.startsWith(`${commandSamLoc} `)) {
+            return null;
+        }
+
+        const args = command.slice(commandSamLoc.length).trim();
+        if (!args) {
+            return listResponse();
+        }
+
+        const [actionRaw, gridRaw] = args.split(/\s+/, 2);
+        const action = (actionRaw || '').toLowerCase();
+        const grid = (gridRaw || '').toUpperCase();
+
+        if (!['add', 'remove', 'rm', 'delete', 'del', 'list'].includes(action)) {
+            return listResponse();
+        }
+
+        if (action === 'list') {
+            return listResponse();
+        }
+
+        if (!grid || !/^[A-Z]{1,2}\d{1,2}$/.test(grid)) {
+            return `${commandSamLoc} add C25 | ${commandSamLoc} remove C25 | ${commandSamLoc} list`;
+        }
+
+        if (action === 'add') {
+            if (instance.samSites.includes(grid)) {
+                return Client.client.intlGet(this.guildId, 'samLocAlreadyExists', { grid: grid });
+            }
+
+            instance.samSites.push(grid);
+            Client.client.setInstance(this.guildId, instance);
+            return Client.client.intlGet(this.guildId, 'samLocAdded', { grid: grid });
+        }
+
+        if (['remove', 'rm', 'delete', 'del'].includes(action)) {
+            const index = instance.samSites.indexOf(grid);
+            if (index === -1) {
+                return Client.client.intlGet(this.guildId, 'samLocNotFound', { grid: grid });
+            }
+
+            instance.samSites.splice(index, 1);
+            Client.client.setInstance(this.guildId, instance);
+            return Client.client.intlGet(this.guildId, 'samLocRemoved', { grid: grid });
+        }
+
+        return listResponse();
+    }
+
     getCommandTime(isInfoChannel = false) {
         if (!this.time) {
             return Client.client.intlGet(this.guildId, 'timeNotAvailableYet');

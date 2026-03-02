@@ -1907,6 +1907,8 @@ class RustPlusWebUI {
         // Normal rendering
         if (this.controls.showRadZones && this.serverData.mapMarkers?.genericRadiuses) this.drawRadZones(ctx);
         if (this.controls.showEvents) this.drawEvents(ctx);
+        // Draw SAM site markers (always visible)
+        if (this.serverData.mapMarkers?.samSites) this.drawSamSiteMarkers(ctx);
         // Draw persistent patrol death markers (always visible)
         this.drawPersistentPatrolMarkers(ctx);
         // Draw recent team deaths (always visible for 5 minutes)
@@ -2310,7 +2312,54 @@ class RustPlusWebUI {
     }
 
     drawCustomMarkers(ctx) {
-        // Implementation for custom markers can be added here
+        // Draw SAM site markers
+        if (this.serverData.mapMarkers?.samSites) {
+            this.serverData.mapMarkers.samSites.forEach(marker => {
+                const { x, y } = this.worldToCanvas(marker.x, marker.y);
+                const radius = marker.radius / this.scale;
+
+                // Draw red circle for SAM site
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+                ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+                ctx.lineWidth = 3 / this.scale;
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+
+                // Draw grid label
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.9)';
+                ctx.font = `bold ${14 / this.scale}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(marker.grid, x, y);
+            });
+        }
+    }
+
+    drawSamSiteMarkers(ctx) {
+        if (!this.serverData.mapMarkers?.samSites) return;
+
+        this.serverData.mapMarkers.samSites.forEach(marker => {
+            const { x, y } = this.worldToCanvas(marker.x, marker.y);
+            const radius = marker.radius / this.scale;
+
+            // Draw red circle for SAM site
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.lineWidth = 3 / this.scale;
+            ctx.beginPath();
+            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw grid label
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.9)';
+            ctx.font = `bold ${14 / this.scale}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(marker.grid, x, y);
+        });
     }
 
     drawPlayerTrails(ctx) {

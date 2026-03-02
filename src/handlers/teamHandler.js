@@ -133,9 +133,16 @@ module.exports = {
 
                     // Check for helicopter flying toward SAM sites
                     if (instance.samSites && instance.samSites.length > 0) {
-                        const isHelicopter = SamSiteUtils.isPlayerFlyingHelicopter(player, playerUpdated);
+                        const timeDeltaSeconds = Math.max(1, (client.pollingIntervalMs || 15000) / 1000);
+                        const mapSize = rustplus?.info?.mapSize;
+                        const isHelicopter = SamSiteUtils.isPlayerFlyingHelicopter(player, playerUpdated, timeDeltaSeconds);
                         if (isHelicopter) {
-                            const samSiteGrid = SamSiteUtils.checkPlayerHeadingTowardSamSite(playerUpdated, instance.samSites);
+                            const samSiteGrid = SamSiteUtils.checkPlayerHeadingTowardSamSite(
+                                player,
+                                playerUpdated,
+                                instance.samSites,
+                                mapSize
+                            );
                             if (samSiteGrid) {
                                 // Initialize warning cooldowns if not exists
                                 if (!rustplus.samSiteWarningCooldowns) {
@@ -145,6 +152,8 @@ module.exports = {
                                 // Check if we should send warning (cooldown system)
                                 if (SamSiteUtils.shouldSendWarning(rustplus.samSiteWarningCooldowns, player.steamId, samSiteGrid, 3)) {
                                     const warningMsg = SamSiteUtils.generateSamWarning(samSiteGrid, guildId, client);
+                                    rustplus.sendInGameMessage(warningMsg);
+                                    rustplus.sendInGameMessage(warningMsg);
                                     rustplus.sendInGameMessage(warningMsg);
                                     rustplus.log(client.intlGet(null, 'infoCap'), 
                                         `SAM Warning for ${player.name} heading to ${samSiteGrid}`);
