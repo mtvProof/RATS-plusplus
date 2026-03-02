@@ -324,19 +324,31 @@ async function updateToolCupboard(candidates, client, message) {
         return;
     }
 
-    if (info.entityInfo.payload.protectionExpiry === 0 &&
-        monitor.decaying === false) {
-        monitor.decaying = true;
+    // Check if we're in reconnection grace period
+    const isReconnecting = client.rustplusReconnecting[guildId] || 
+        client.rustplusSecondaryReconnecting[guildId];
+    const suppressDecayCheck = isReconnecting || (infoSource.uptimeServer &&
+        (Date.now() - infoSource.uptimeServer.getTime()) < 5 * 60 * 1000);
 
-        await DiscordMessages.sendDecayingNotificationMessage(guildId, serverId, entityId);
+    if (!suppressDecayCheck) {
+        if (info.entityInfo.payload.protectionExpiry === 0 &&
+            monitor.decaying === false) {
+            monitor.decaying = true;
 
-        if (monitor.inGame) {
-            infoSource.sendInGameMessage(client.intlGet(guildId, 'isDecaying', {
-                device: monitor.name
-            }));
+            await DiscordMessages.sendDecayingNotificationMessage(guildId, serverId, entityId);
+
+            if (monitor.inGame) {
+                infoSource.sendInGameMessage(client.intlGet(guildId, 'isDecaying', {
+                    device: monitor.name
+                }));
+            }
+        }
+        else if (info.entityInfo.payload.protectionExpiry !== 0) {
+            monitor.decaying = false;
         }
     }
     else if (info.entityInfo.payload.protectionExpiry !== 0) {
+        // During grace period, only reset decay if protection is confirmed valid
         monitor.decaying = false;
     }
     client.setInstance(guildId, instance);

@@ -113,20 +113,27 @@ module.exports = {
                             monitor.type = 'toolCupboard';
                             if (typeof monitor.decaying === 'undefined') monitor.decaying = false;
 
-                            if (info.entityInfo.payload.protectionExpiry === 0 &&
-                                monitor.decaying === false) {
-                                monitor.decaying = true;
+                            // Skip decay checks during reconnection grace period to avoid false positives
+                            if (!suppressNotFound) {
+                                if (info.entityInfo.payload.protectionExpiry === 0 &&
+                                    monitor.decaying === false) {
+                                    monitor.decaying = true;
 
-                                await DiscordMessages.sendDecayingNotificationMessage(
-                                    guildId, serverId, entityId);
+                                    await DiscordMessages.sendDecayingNotificationMessage(
+                                        guildId, serverId, entityId);
 
-                                if (monitor.inGame) {
-                                    rustplus.sendInGameMessage(client.intlGet(rustplus.guildId, 'isDecaying', {
-                                        device: monitor.name
-                                    }));
+                                    if (monitor.inGame) {
+                                        rustplus.sendInGameMessage(client.intlGet(rustplus.guildId, 'isDecaying', {
+                                            device: monitor.name
+                                        }));
+                                    }
+                                }
+                                else if (info.entityInfo.payload.protectionExpiry !== 0) {
+                                    monitor.decaying = false;
                                 }
                             }
                             else if (info.entityInfo.payload.protectionExpiry !== 0) {
+                                // During grace period, only reset decay if protection is confirmed valid
                                 monitor.decaying = false;
                             }
                         }

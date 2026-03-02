@@ -310,7 +310,10 @@ class Map {
     }
 
     async writeMapClean() {
-        await Fs.writeFileSync(this.mapMarkerImageMeta.map.image, Client.client.rustplusMaps[this.rustplus.guildId]);
+        const mapImageBase64 = Client.client.rustplusMaps[this.rustplus.guildId];
+        if (mapImageBase64) {
+            Fs.writeFileSync(this.mapMarkerImageMeta.map.image, Buffer.from(mapImageBase64, 'base64'));
+        }
     }
 
     async setupFont() {

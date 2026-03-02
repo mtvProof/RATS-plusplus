@@ -22,8 +22,26 @@ const DiscordMessages = require('../discordTools/discordMessages.js');
 const DiscordVoice = require('../discordTools/discordVoice.js');
 
 module.exports = async function (rustplus, client, message) {
-    // Send message to Discord
-    await DiscordMessages.sendTeamChatMessage(rustplus.guildId, message);
+    // Don't relay bot-generated messages to Discord (messages starting with the trademark)
+    // These are system messages from the bot itself
+    const trademark = rustplus.generalSettings.trademark;
+    const isBotMessage = message.steamId.toString() === rustplus.playerId || 
+                         (trademark !== 'NOT SHOWING' && message.message.startsWith(trademark));
+    
+    if (!isBotMessage) {
+        // Send message to Discord (only player messages, not bot messages)
+        await DiscordMessages.sendTeamChatMessage(rustplus.guildId, message);
+    }
+
+    // Auto TTS if enabled
+    const instance = client.getInstance(rustplus.guildId);
+    if (instance.generalSettings.autoTtsEnabled) {
+        // Don't TTS bot messages
+        if (message.steamId.toString() !== rustplus.playerId) {
+            const ttsMessage = `${message.name} said: ${message.message}`;
+            await DiscordVoice.sendDiscordVoiceMessage(rustplus.guildId, ttsMessage);
+        }
+    }
 
     // Track message in statistics database
     if (client.statisticsTracker) {

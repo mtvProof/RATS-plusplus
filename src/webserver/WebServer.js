@@ -181,18 +181,39 @@ class WebServer {
       const { guildId } = req.params;
       const rustplus = this.client.rustplusInstances[guildId];
 
-      if (!rustplus || !rustplus.isOperational) {
-        return res.status(404).json({ error: "Server not found" });
+      if (!rustplus) {
+        return res.status(404).json({ error: "Server instance not found" });
       }
 
-      const mapImage = this.client.rustplusMaps[guildId];
+      if (!rustplus.isOperational) {
+        return res.status(503).json({ error: "Server not operational" });
+      }
+
+      let mapImage = this.client.rustplusMaps[guildId];
+      
+      // If map not in memory, try loading from disk
       if (!mapImage) {
-        return res.status(404).json({ error: "Map not available" });
+        const mapPath = Path.join(__dirname, '..', '..', 'maps', `${guildId}_map_full.png`);
+        if (Fs.existsSync(mapPath)) {
+          try {
+            const imageBuffer = Fs.readFileSync(mapPath);
+            res.set("Content-Type", "image/png");
+            return res.send(imageBuffer);
+          } catch (error) {
+            console.error(`[WebUI] Failed to read map from disk for guild ${guildId}:`, error);
+          }
+        }
+        return res.status(404).json({ error: "Map not available yet" });
       }
 
-      const buffer = Buffer.from(mapImage, "base64");
-      res.set("Content-Type", "image/jpeg");
-      res.send(buffer);
+      try {
+        const buffer = Buffer.from(mapImage, "base64");
+        res.set("Content-Type", "image/jpeg");
+        res.send(buffer);
+      } catch (error) {
+        console.error(`[WebUI] Failed to send map for guild ${guildId}:`, error);
+        return res.status(500).json({ error: "Failed to send map image" });
+      }
     });
 
     /* Get switches for a specific guild */

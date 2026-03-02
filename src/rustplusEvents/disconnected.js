@@ -59,8 +59,18 @@ module.exports = {
 
         if (rustplus.isDeleted) return;
 
+        /* Check if this was an active connection that should reconnect */
+        const instance = client.getInstance(guildId);
+        const shouldReconnect = isSecondary ? 
+            client.activeRustplusSecondaryInstances[guildId] : 
+            (client.activeRustplusInstances[guildId] || (instance && instance.activeServer === serverId));
+
+        rustplus.log(client.intlGet(null, 'infoCap'), 
+            `Disconnect check: activeFlag=${isSecondary ? client.activeRustplusSecondaryInstances[guildId] : client.activeRustplusInstances[guildId]}, ` +
+            `activeServer=${instance?.activeServer}, serverId=${serverId}, shouldReconnect=${shouldReconnect}`);
+
         /* Was the disconnection unexpected? */
-        if (isSecondary ? client.activeRustplusSecondaryInstances[guildId] : client.activeRustplusInstances[guildId]) {
+        if (shouldReconnect) {
             if (isSecondary) {
                 client.rustplusSecondaryReconnecting[guildId] = true;
 

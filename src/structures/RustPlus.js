@@ -3174,8 +3174,8 @@ class RustPlus extends RustPlusLib {
         const deepSeaWipeCooldown = deepSeaSettings.deepSeaWipeCooldownMs;
         const deepSeaWipeDuration = deepSeaSettings.deepSeaWipeDurationMs;
         const wasOnMap = this.mapMarkers.timeSinceDeepSeaWasOnMap;
-        const isOnMap = this.mapMarkers.timeSinceDeepSeaSpawned;
-        const deepSea = this.mapMarkers.deepSeas[0];
+        const isOnMap = this.mapMarkers.deepSeaSpawnedAt;
+        const deepSea = this.mapMarkers.deepSea[0];
         const now = new Date();
 
         if (deepSea && isOnMap !== null) {

@@ -24,18 +24,26 @@ const DiscordTools = require('./discordTools.js');
 module.exports = async (client, guild) => {
     const instance = client.getInstance(guild.id);
 
-    // Solo limpiar el canal global si hay trackers que lo usan
-    const globalTrackersExist = Object.values(instance.trackers).some(t => !t.channelId);
-    if (globalTrackersExist && instance.channelId.trackers) {
-        await DiscordTools.clearTextChannel(guild.id, instance.channelId.trackers, 100);
-    }
-
     for (const trackerId in instance.trackers) {
         const tracker = instance.trackers[trackerId];
-        // Si el tracker tiene su propio canal, limpiarlo antes de enviar el nuevo mensaje
-        if (tracker.channelId) {
-            await DiscordTools.clearTextChannel(guild.id, tracker.channelId, 100);
+        
+        // Check if message still exists
+        const channelId = tracker.channelId || instance.channelId.trackers;
+        if (tracker.messageId && channelId) {
+            const message = await DiscordTools.getMessageById(guild.id, channelId, tracker.messageId);
+            
+            // If message exists, update it instead of recreating
+            if (message) {
+                await DiscordMessages.sendTrackerMessage(guild.id, trackerId);
+                // Add delay between tracker updates to avoid Discord rate limiting
+                await new Promise(resolve => setTimeout(resolve, 500));
+                continue;
+            }
         }
+        
+        // Only send new message if messageId doesn't exist or message was deleted
         await DiscordMessages.sendTrackerMessage(guild.id, trackerId);
+        // Add delay between tracker updates to avoid Discord rate limiting
+        await new Promise(resolve => setTimeout(resolve, 500));
     }
 }

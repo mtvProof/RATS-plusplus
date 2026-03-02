@@ -63,17 +63,35 @@ module.exports = {
         
         const data = JSON.stringify(instance, null, 2);
 
-        Fs.writeFileSync(tempPath, data, 'utf8');
         try {
-            const fd = Fs.openSync(tempPath, 'r+');
-            Fs.fsyncSync(fd);
-            Fs.closeSync(fd);
+            Fs.writeFileSync(tempPath, data, 'utf8');
+            
+            // Sync the file to ensure data is written to disk
+            try {
+                const fd = Fs.openSync(tempPath, 'r+');
+                Fs.fsyncSync(fd);
+                Fs.closeSync(fd);
+            } catch (syncError) {
+                console.error(`Failed to sync file data: ${tempPath}:`, syncError);
+                // Don't delete the file yet, try to rename it anyway
+            }
+            
+            // Rename temp file to target, handling case where target might already exist
+            if (Fs.existsSync(targetPath)) {
+                Fs.unlinkSync(targetPath);
+            }
+            Fs.renameSync(tempPath, targetPath);
         } catch (error) {
-            console.error(`Failed to sync file data: ${tempPath}:`, error);
-            Fs.unlinkSync(tempPath); 
+            // Clean up temp file if it still exists
+            if (Fs.existsSync(tempPath)) {
+                try {
+                    Fs.unlinkSync(tempPath);
+                } catch (unlinkError) {
+                    console.error(`Failed to clean up temp file: ${tempPath}:`, unlinkError);
+                }
+            }
             throw error;
         }
-        Fs.renameSync(tempPath, targetPath);
     },
 
     readCredentialsFile: function (guildId) {

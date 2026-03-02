@@ -1,0 +1,543 @@
+nohup: ignoring input
+
+> rustplusplus@1.24.2 start
+> ts-node .
+
+[32m2026-3-02 09:01:19 [39m[33mINFO: Statistics: tracker initialized[39m
+[32m2026-3-02 09:01:19 [39m[33mINFO: WebUI: broadcasting updates every 15000ms (synced with polling)[39m
+Error: listen EADDRINUSE: address already in use :::3000
+    at Server.setupListenHandle [as _listen2] (node:net:1817:16)
+    at listenInCluster (node:net:1865:12)
+    at Server.listen (node:net:1953:7)
+    at WebServer.start (/home/mtvproof/Desktop/RATS-plusplus/src/webserver/WebServer.js:1298:17)
+    at DiscordBot.build (/home/mtvproof/Desktop/RATS-plusplus/src/structures/DiscordBot.js:203:28)
+    at Object.<anonymous> (/home/mtvproof/Desktop/RATS-plusplus/index.ts:41:8)
+    at Module._compile (node:internal/modules/cjs/loader:1364:14)
+    at Module.m._compile (/home/mtvproof/Desktop/RATS-plusplus/node_modules/ts-node/src/index.ts:1618:23)
+    at Module._extensions..js (node:internal/modules/cjs/loader:1422:10)
+    at Object.require.extensions.<computed> [as .ts] (/home/mtvproof/Desktop/RATS-plusplus/node_modules/ts-node/src/index.ts:1621:12)
+[32m2026-3-02 09:01:21 [39m[33mINFO: LOGGED IN AS: RATS++#4971[39m
+[32m2026-3-02 09:01:26 [39m[36m1351633527011147866 [39m[37mRustopia.gg - US Large [39m[33mCONNECTING: CONNECTING TO SERVER...[39m
+[32m2026-3-02 09:01:26 [39m[36m1351633527011147866 [39m[37mRustopia.gg - US Large [39m[33mCONNECTED: CONNECTED TO SERVER.[39m
+[32m2026-3-02 09:01:26 [39m[36m1351633527011147866 [39m[37mRustopia.gg - US Large [39m[33mCONNECTED: RUSTPLUS OPERATIONAL.[39m
+[32m2026-3-02 09:01:26 [39m[33mINFO: Successfully registered application commands for guild: 1351633527011147866.[39m
+[32m2026-3-02 09:01:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:01:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:01:33 [39m[33mINFO: Statistics: starting tracking for guild 1351633527011147866[39m
+[32m2026-3-02 09:01:33 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+(node:16170) ExperimentalWarning: buffer.File is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+[32m2026-3-02 09:01:39 [39m[33mINFO: FCM-listener Host will start in 5 seconds for guildId: 1351633527011147866, steamId: 76561198949075268.[39m
+[32m2026-3-02 09:01:40 [39m[33mINFO: FCM-listener Lite will start in 5 seconds for guildId: 1351633527011147866, steamId: 76561198760954776.[39m
+[32m2026-3-02 09:01:40 [39m[33mINFO: FCM-listener Lite will start in 5 seconds for guildId: 1351633527011147866, steamId: 76561198125703716.[39m
+[32m2026-3-02 09:01:40 [39m[33mRATELIMITED: Timeout: 4387, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:01:40 [39m[33mRATELIMITED: Timeout: 4389, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:01:44 [39m[33mRATELIMITED: Timeout: 4784, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:01:45 [39m[33mRATELIMITED: Timeout: 4987, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:01:50 [39m[33mRATELIMITED: Timeout: 4794, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:01:54 [39m[33mRATELIMITED: Timeout: 4484, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:01:55 [39m[33mRATELIMITED: Timeout: 4770, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:01:58 [39m[33mRATELIMITED: Timeout: 4702, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:02:00 [39m[33mRATELIMITED: Timeout: 4825, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:02:03 [39m[33mRATELIMITED: Timeout: 4811, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:02:05 [39m[33mRATELIMITED: Timeout: 4817, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:02:23 [39m[33mRATELIMITED: Timeout: 4166, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:02:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:02:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:02:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:02:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:02:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:02:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:02:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:02:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:02:27 [39m[33mRATELIMITED: Timeout: 4784, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:02:33 [39m[33mRATELIMITED: Timeout: 4311, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:02:42 [39m[33mRATELIMITED: Timeout: 4576, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:02:46 [39m[33mRATELIMITED: Timeout: 4809, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:02:51 [39m[33mRATELIMITED: Timeout: 4766, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:02:57 [39m[33mRATELIMITED: Timeout: 4350, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:03:06 [39m[33mRATELIMITED: Timeout: 4542, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:03:10 [39m[33mRATELIMITED: Timeout: 4799, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:03:24 [39m[33mRATELIMITED: Timeout: 4416, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:03:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:03:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:03:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:03:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:03:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:03:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:03:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:03:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:03:28 [39m[33mRATELIMITED: Timeout: 4805, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:03:33 [39m[33mRATELIMITED: Timeout: 4844, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:03:39 [39m[33mRATELIMITED: Timeout: 4371, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:03:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198373205509.[39m
+[32m2026-3-02 09:03:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198165763008.[39m
+[32m2026-3-02 09:03:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199537112163.[39m
+[32m2026-3-02 09:03:48 [39m[33mRATELIMITED: Timeout: 4630, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:03:53 [39m[33mRATELIMITED: Timeout: 4510, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:03:57 [39m[33mRATELIMITED: Timeout: 3894, Limit: 5, Method: GET, Path: https://discord.com/api/v10/channels/1473471704339845172/messages/1478007396906565694, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:03:57 [39m[33mRATELIMITED: Timeout: 4842, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:04:02 [39m[33mRATELIMITED: Timeout: 4614, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:04:03 [39m[33mINFO: Statistics: player connected: Hedwig ツ (76561198949075268)[39m
+[32m2026-3-02 09:04:12 [39m[33mRATELIMITED: Timeout: 4611, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:04:16 [39m[33mRATELIMITED: Timeout: 4812, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:04:21 [39m[33mRATELIMITED: Timeout: 4858, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:04:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:04:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:04:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:04:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:04:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:04:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:04:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:04:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:04:27 [39m[33mRATELIMITED: Timeout: 4536, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:04:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198803735423.[39m
+[32m2026-3-02 09:04:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199104346802.[39m
+[32m2026-3-02 09:04:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199208551449.[39m
+[32m2026-3-02 09:04:28 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199150852870.[39m
+[32m2026-3-02 09:04:28 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198969395178.[39m
+[32m2026-3-02 09:04:44 [39m[33mINFO: WebUI: broadcasting guilds update to all clients[39m
+[32m2026-3-02 09:04:45 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198373205509.[39m
+[32m2026-3-02 09:04:45 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198165763008.[39m
+[32m2026-3-02 09:04:46 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199537112163.[39m
+[32m2026-3-02 09:05:01 [39m[33mINFO: WebUI: broadcasting notification to guild 1351633527011147866: vending[39m
+[32m2026-3-02 09:05:01 [39m[36m1351633527011147866 [39m[37mRustopia.gg - US Large [39m[33mEVENT: New Vending Machine located at E7.[39m
+[32m2026-3-02 09:05:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:05:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:05:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:05:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:05:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:05:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:05:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:05:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:05:33 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198373205509.[39m
+[32m2026-3-02 09:05:34 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198165763008.[39m
+[32m2026-3-02 09:05:34 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199537112163.[39m
+[32m2026-3-02 09:05:59 [39m[33mRATELIMITED: Timeout: 4661, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:06:03 [39m[33mRATELIMITED: Timeout: 4658, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:06:08 [39m[33mRATELIMITED: Timeout: 4801, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:06:11 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198778173501.[39m
+[32m2026-3-02 09:06:12 [39m[36m1351633527011147866 [39m[37mRustopia.gg - US Large [39m[33mMESSAGE: RATS++ | OG | T[]p{}k just connected from tracker L23 - Chinawall.[39m
+[32m2026-3-02 09:06:13 [39m[33mRATELIMITED: Timeout: 4782, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:06:15 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:06:18 [39m[33mRATELIMITED: Timeout: 4752, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:06:23 [39m[33mRATELIMITED: Timeout: 4832, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:06:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:06:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:06:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:06:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:06:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:06:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:06:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:06:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:06:28 [39m[33mRATELIMITED: Timeout: 4758, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:06:31 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:06:33 [39m[33mRATELIMITED: Timeout: 4757, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:06:39 [39m[33mRATELIMITED: Timeout: 4414, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944636105424919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:06:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198803735423.[39m
+[32m2026-3-02 09:06:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199104346802.[39m
+[32m2026-3-02 09:06:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199208551449.[39m
+[32m2026-3-02 09:06:41 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199150852870.[39m
+[32m2026-3-02 09:06:41 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198969395178.[39m
+[32m2026-3-02 09:06:48 [39m[33mRATELIMITED: Timeout: 4624, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944636105424919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:06:52 [39m[33mRATELIMITED: Timeout: 4803, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944636105424919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:06:57 [39m[33mRATELIMITED: Timeout: 4875, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944636105424919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:07:03 [39m[33mRATELIMITED: Timeout: 4603, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:07:12 [39m[33mRATELIMITED: Timeout: 4623, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:07:16 [39m[33mRATELIMITED: Timeout: 4768, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:07:21 [39m[33mRATELIMITED: Timeout: 4805, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:07:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:07:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:07:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:07:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:07:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:07:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:07:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:07:27 [39m[33mRATELIMITED: Timeout: 4445, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:07:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:07:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198373205509.[39m
+[32m2026-3-02 09:07:28 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198165763008.[39m
+[32m2026-3-02 09:07:28 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199537112163.[39m
+[32m2026-3-02 09:07:36 [39m[33mRATELIMITED: Timeout: 4319, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:07:40 [39m[33mRATELIMITED: Timeout: 4822, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:07:45 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:07:45 [39m[33mRATELIMITED: Timeout: 4739, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:07:51 [39m[33mRATELIMITED: Timeout: 4525, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944636105424919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:07:59 [39m[33mRATELIMITED: Timeout: 4665, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944636105424919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:08:04 [39m[33mRATELIMITED: Timeout: 4881, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944636105424919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:08:09 [39m[33mRATELIMITED: Timeout: 4858, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944636105424919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:08:15 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:08:20 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198157607530.[39m
+[32m2026-3-02 09:08:21 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198111181165.[39m
+[32m2026-3-02 09:08:21 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198056271214.[39m
+[32m2026-3-02 09:08:22 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198120674280.[39m
+[32m2026-3-02 09:08:22 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198048287612.[39m
+[32m2026-3-02 09:08:22 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198065880525.[39m
+[32m2026-3-02 09:08:23 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198008793836.[39m
+[32m2026-3-02 09:08:23 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199242025836.[39m
+[32m2026-3-02 09:08:23 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199870081683.[39m
+[32m2026-3-02 09:08:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198174244874.[39m
+[32m2026-3-02 09:08:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199191245119.[39m
+[32m2026-3-02 09:08:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:08:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198234666916.[39m
+[32m2026-3-02 09:08:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:08:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:08:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:08:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:08:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:08:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:08:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:08:29 [39m[33mRATELIMITED: Timeout: 4541, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:08:33 [39m[33mRATELIMITED: Timeout: 4849, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:08:38 [39m[33mRATELIMITED: Timeout: 4634, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:08:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198803735423.[39m
+[32m2026-3-02 09:08:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199104346802.[39m
+[32m2026-3-02 09:08:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199208551449.[39m
+[32m2026-3-02 09:08:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199150852870.[39m
+[32m2026-3-02 09:08:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198969395178.[39m
+[32m2026-3-02 09:08:46 [39m[33mRATELIMITED: Timeout: 4719, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471690993307731/messages/1478006822831919105, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:08:46 [39m[31mERROR: Unhandled Rejection: ,Error: ENOENT: no such file or directory, rename '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json.tmp' -> '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json'[39m
+Error: ENOENT: no such file or directory, rename '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json.tmp' -> '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json'
+    at Object.renameSync (node:fs:1035:3)
+    at Object.writeInstanceFile (/home/mtvproof/Desktop/RATS-plusplus/src/util/instanceUtils.js:76:12)
+    at DiscordBot.setInstance (/home/mtvproof/Desktop/RATS-plusplus/src/structures/DiscordBot.js:323:23)
+    at Object.handler (/home/mtvproof/Desktop/RATS-plusplus/src/handlers/smartSwitchHandler.js:194:28)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Object.handlers (/home/mtvproof/Desktop/RATS-plusplus/src/handlers/pollingHandler.js:79:9)
+    at async Timeout.pollingHandler [as _onTimeout] (/home/mtvproof/Desktop/RATS-plusplus/src/handlers/pollingHandler.js:52:9)
+[32m2026-3-02 09:08:48 [39m[33mRATELIMITED: Timeout: 4515, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:08:52 [39m[33mRATELIMITED: Timeout: 4868, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:08:59 [39m[33mRATELIMITED: Timeout: 4439, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:09:03 [39m[33mRATELIMITED: Timeout: 4768, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:09:09 [39m[33mRATELIMITED: Timeout: 4491, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:09:15 [39m[36m1351633527011147866 [39m[37mRustopia.gg - US Large [39m[33mINFO: Hedwig ツ just went AFK.[39m
+[32m2026-3-02 09:09:16 [39m[36m1351633527011147866 [39m[37mRustopia.gg - US Large [39m[33mMESSAGE: RATS++ | Hedwig ツ just went AFK.[39m
+[32m2026-3-02 09:09:18 [39m[33mRATELIMITED: Timeout: 4594, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:09:22 [39m[33mRATELIMITED: Timeout: 4780, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:09:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:09:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:09:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:09:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:09:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:09:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:09:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:09:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:09:27 [39m[33mRATELIMITED: Timeout: 4837, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:09:32 [39m[33mRATELIMITED: Timeout: 4720, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944638357766225, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:09:33 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198298028711.[39m
+[32m2026-3-02 09:09:33 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198319997844.[39m
+[32m2026-3-02 09:09:34 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199010890427.[39m
+[32m2026-3-02 09:09:34 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198136156691.[39m
+[32m2026-3-02 09:09:34 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199207321027.[39m
+[32m2026-3-02 09:09:41 [39m[33mRATELIMITED: Timeout: 4705, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944638357766225, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:09:46 [39m[33mRATELIMITED: Timeout: 4813, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944638357766225, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:09:51 [39m[33mRATELIMITED: Timeout: 4845, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944638357766225, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:09:57 [39m[33mRATELIMITED: Timeout: 4585, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:10:06 [39m[33mRATELIMITED: Timeout: 4556, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:10:10 [39m[33mRATELIMITED: Timeout: 4802, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:10:15 [39m[33mRATELIMITED: Timeout: 4823, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:10:21 [39m[33mRATELIMITED: Timeout: 4450, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:10:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:10:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:10:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:10:30 [39m[33mRATELIMITED: Timeout: 4503, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:10:34 [39m[33mRATELIMITED: Timeout: 4763, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:10:39 [39m[33mRATELIMITED: Timeout: 4686, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:10:45 [39m[33mRATELIMITED: Timeout: 4586, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:10:45 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199854618258.[39m
+[32m2026-3-02 09:10:45 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198783179433.[39m
+[32m2026-3-02 09:10:46 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199737124893.[39m
+[32m2026-3-02 09:10:46 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199732648842.[39m
+[32m2026-3-02 09:10:46 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199200822161.[39m
+[32m2026-3-02 09:10:46 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198155813352.[39m
+[32m2026-3-02 09:10:47 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198778173501.[39m
+[32m2026-3-02 09:10:54 [39m[33mRATELIMITED: Timeout: 4401, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:10:58 [39m[33mRATELIMITED: Timeout: 4794, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:11:03 [39m[33mRATELIMITED: Timeout: 4834, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:11:09 [39m[33mRATELIMITED: Timeout: 4441, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944638357766225, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:11:11 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198969395178.[39m
+[32m2026-3-02 09:11:15 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:11:18 [39m[33mRATELIMITED: Timeout: 4582, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944638357766225, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:11:22 [39m[33mRATELIMITED: Timeout: 4772, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944638357766225, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:11:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:11:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:11:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:11:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:11:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:11:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:11:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:11:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:11:27 [39m[33mRATELIMITED: Timeout: 4860, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944638357766225, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:11:30 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:11:32 [39m[33mRATELIMITED: Timeout: 4620, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:11:33 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198056983256.[39m
+[32m2026-3-02 09:11:33 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198826533870.[39m
+[32m2026-3-02 09:11:33 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198111819326.[39m
+[32m2026-3-02 09:11:34 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198362873835.[39m
+[32m2026-3-02 09:11:34 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122306369.[39m
+[32m2026-3-02 09:11:34 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198055474903.[39m
+[32m2026-3-02 09:11:35 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199219946388.[39m
+[32m2026-3-02 09:11:41 [39m[33mRATELIMITED: Timeout: 4687, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:11:45 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:11:46 [39m[33mRATELIMITED: Timeout: 4834, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:11:51 [39m[33mRATELIMITED: Timeout: 4768, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:11:57 [39m[33mRATELIMITED: Timeout: 4609, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:12:06 [39m[33mRATELIMITED: Timeout: 4631, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:12:10 [39m[33mRATELIMITED: Timeout: 4740, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:12:15 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:12:15 [39m[33mRATELIMITED: Timeout: 4877, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:12:20 [39m[33mRATELIMITED: Timeout: 4685, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:12:21 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198298028711.[39m
+[32m2026-3-02 09:12:21 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198319997844.[39m
+[32m2026-3-02 09:12:22 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199010890427.[39m
+[32m2026-3-02 09:12:22 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198136156691.[39m
+[32m2026-3-02 09:12:22 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199207321027.[39m
+[32m2026-3-02 09:12:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:12:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:12:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:12:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:12:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:12:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:12:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:12:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:12:30 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:12:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199854618258.[39m
+[32m2026-3-02 09:12:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198783179433.[39m
+[32m2026-3-02 09:12:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199737124893.[39m
+[32m2026-3-02 09:12:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199732648842.[39m
+[32m2026-3-02 09:12:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199200822161.[39m
+[32m2026-3-02 09:12:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198155813352.[39m
+[32m2026-3-02 09:12:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198778173501.[39m
+[32m2026-3-02 09:12:45 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:12:45 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198373205509.[39m
+[32m2026-3-02 09:12:46 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198165763008.[39m
+[32m2026-3-02 09:12:46 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199537112163.[39m
+[32m2026-3-02 09:13:15 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:13:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:13:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:13:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:13:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:13:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:13:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:13:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:13:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:13:30 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:13:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198157607530.[39m
+[32m2026-3-02 09:13:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198111181165.[39m
+[32m2026-3-02 09:13:41 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198056271214.[39m
+[32m2026-3-02 09:13:41 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198120674280.[39m
+[32m2026-3-02 09:13:42 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198048287612.[39m
+[32m2026-3-02 09:13:42 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198065880525.[39m
+[32m2026-3-02 09:13:42 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198008793836.[39m
+[32m2026-3-02 09:13:42 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199242025836.[39m
+[32m2026-3-02 09:13:43 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199870081683.[39m
+[32m2026-3-02 09:13:43 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198174244874.[39m
+[32m2026-3-02 09:13:43 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199191245119.[39m
+[32m2026-3-02 09:13:44 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198234666916.[39m
+[32m2026-3-02 09:13:45 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:14:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199854618258.[39m
+[32m2026-3-02 09:14:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198783179433.[39m
+[32m2026-3-02 09:14:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199737124893.[39m
+[32m2026-3-02 09:14:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199732648842.[39m
+[32m2026-3-02 09:14:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199200822161.[39m
+[32m2026-3-02 09:14:17 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198155813352.[39m
+[32m2026-3-02 09:14:17 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198778173501.[39m
+[32m2026-3-02 09:14:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:14:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:14:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:14:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:14:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:14:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:14:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:14:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:15:04 [39m[33mRATELIMITED: Timeout: 4480, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471704339845172/messages/1478007364627075253, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:15:23 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198969395178.[39m
+[32m2026-3-02 09:15:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:15:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:15:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:15:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:15:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:15:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:15:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:15:27 [39m[33mRATELIMITED: Timeout: 4366, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:15:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:15:30 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:15:35 [39m[33mRATELIMITED: Timeout: 4625, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:15:40 [39m[33mRATELIMITED: Timeout: 4827, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:15:45 [39m[33mRATELIMITED: Timeout: 4883, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:15:45 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:15:50 [39m[33mRATELIMITED: Timeout: 4718, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:16:00 [39m[33mRATELIMITED: Timeout: 4566, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:16:04 [39m[33mRATELIMITED: Timeout: 4856, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:16:09 [39m[33mRATELIMITED: Timeout: 4799, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:16:15 [39m[33mRATELIMITED: Timeout: 4635, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944640241143919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:16:15 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198373205509.[39m
+[32m2026-3-02 09:16:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198165763008.[39m
+[32m2026-3-02 09:16:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199537112163.[39m
+[32m2026-3-02 09:16:24 [39m[33mRATELIMITED: Timeout: 4419, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944640241143919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:16:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:16:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:16:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:16:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:16:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:16:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:16:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:16:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:16:28 [39m[33mRATELIMITED: Timeout: 4838, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944640241143919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:16:33 [39m[33mRATELIMITED: Timeout: 4839, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944640241143919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:16:39 [39m[33mRATELIMITED: Timeout: 4562, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:16:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199227125530.[39m
+[32m2026-3-02 09:16:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199226779220.[39m
+[32m2026-3-02 09:16:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198114687229.[39m
+[32m2026-3-02 09:16:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199258366312.[39m
+[32m2026-3-02 09:16:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199527526094.[39m
+[32m2026-3-02 09:16:47 [39m[33mRATELIMITED: Timeout: 4652, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:16:52 [39m[33mRATELIMITED: Timeout: 4806, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:16:57 [39m[33mRATELIMITED: Timeout: 4872, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:17:02 [39m[33mRATELIMITED: Timeout: 4655, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944636105424919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:17:12 [39m[33mRATELIMITED: Timeout: 4613, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944636105424919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:17:15 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:17:16 [39m[33mRATELIMITED: Timeout: 4815, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944636105424919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:17:21 [39m[33mRATELIMITED: Timeout: 4862, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944636105424919, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:17:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:17:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:17:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:17:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:17:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:17:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:17:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:17:26 [39m[33mRATELIMITED: Timeout: 4720, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:17:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:17:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198157607530.[39m
+[32m2026-3-02 09:17:28 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198111181165.[39m
+[32m2026-3-02 09:17:28 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198056271214.[39m
+[32m2026-3-02 09:17:29 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198120674280.[39m
+[32m2026-3-02 09:17:29 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198048287612.[39m
+[32m2026-3-02 09:17:29 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198065880525.[39m
+[32m2026-3-02 09:17:30 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198008793836.[39m
+[32m2026-3-02 09:17:30 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199242025836.[39m
+[32m2026-3-02 09:17:30 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199870081683.[39m
+[32m2026-3-02 09:17:31 [39m[31mERROR: Unhandled Rejection: ,Error: ENOENT: no such file or directory, rename '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json.tmp' -> '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json'[39m
+Error: ENOENT: no such file or directory, rename '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json.tmp' -> '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json'
+    at Object.renameSync (node:fs:1035:3)
+    at Object.writeInstanceFile (/home/mtvproof/Desktop/RATS-plusplus/src/util/instanceUtils.js:76:12)
+    at DiscordBot.setInstance (/home/mtvproof/Desktop/RATS-plusplus/src/structures/DiscordBot.js:323:23)
+    at Object.handler (/home/mtvproof/Desktop/RATS-plusplus/src/handlers/smartSwitchHandler.js:144:28)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at async Object.handlers (/home/mtvproof/Desktop/RATS-plusplus/src/handlers/pollingHandler.js:79:9)
+    at async Timeout.pollingHandler [as _onTimeout] (/home/mtvproof/Desktop/RATS-plusplus/src/handlers/pollingHandler.js:52:9)
+[32m2026-3-02 09:17:31 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198174244874.[39m
+[32m2026-3-02 09:17:31 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199191245119.[39m
+[32m2026-3-02 09:17:31 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198234666916.[39m
+[32m2026-3-02 09:17:32 [39m[33mRATELIMITED: Timeout: 4234, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471690993307731/messages/1478006822831919105, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:17:35 [39m[33mRATELIMITED: Timeout: 4641, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:17:40 [39m[33mRATELIMITED: Timeout: 4782, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:17:45 [39m[33mRATELIMITED: Timeout: 4803, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:17:46 [39m[31mERROR: Unhandled Rejection: ,Error: ENOENT: no such file or directory, rename '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json.tmp' -> '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json'[39m
+Error: ENOENT: no such file or directory, rename '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json.tmp' -> '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json'
+    at Object.renameSync (node:fs:1035:3)
+    at Object.writeInstanceFile (/home/mtvproof/Desktop/RATS-plusplus/src/util/instanceUtils.js:76:12)
+    at DiscordBot.setInstance (/home/mtvproof/Desktop/RATS-plusplus/src/structures/DiscordBot.js:323:23)
+    at Object.sendSmartSwitchMessage (/home/mtvproof/Desktop/RATS-plusplus/src/discordTools/discordMessages.js:264:27)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+[32m2026-3-02 09:17:46 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:17:50 [39m[33mRATELIMITED: Timeout: 4709, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:17:59 [39m[33mRATELIMITED: Timeout: 4598, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:18:04 [39m[33mRATELIMITED: Timeout: 4832, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:18:09 [39m[33mRATELIMITED: Timeout: 4839, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:18:15 [39m[33mRATELIMITED: Timeout: 4581, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:18:15 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198803735423.[39m
+[32m2026-3-02 09:18:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199104346802.[39m
+[32m2026-3-02 09:18:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199208551449.[39m
+[32m2026-3-02 09:18:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199150852870.[39m
+[32m2026-3-02 09:18:17 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198969395178.[39m
+[32m2026-3-02 09:18:24 [39m[33mRATELIMITED: Timeout: 4633, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:18:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:18:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:18:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:18:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:18:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:18:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:18:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:18:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:18:28 [39m[33mRATELIMITED: Timeout: 4713, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:18:33 [39m[33mRATELIMITED: Timeout: 4798, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:18:38 [39m[33mRATELIMITED: Timeout: 4630, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:18:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199854618258.[39m
+[32m2026-3-02 09:18:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198783179433.[39m
+[32m2026-3-02 09:18:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199737124893.[39m
+[32m2026-3-02 09:18:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199732648842.[39m
+[32m2026-3-02 09:18:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199200822161.[39m
+[32m2026-3-02 09:18:41 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198155813352.[39m
+[32m2026-3-02 09:18:41 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198778173501.[39m
+[32m2026-3-02 09:18:48 [39m[33mRATELIMITED: Timeout: 4516, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:18:52 [39m[33mRATELIMITED: Timeout: 4848, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:18:57 [39m[33mRATELIMITED: Timeout: 4865, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:19:03 [39m[33mRATELIMITED: Timeout: 4634, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944638357766225, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:19:11 [39m[33mRATELIMITED: Timeout: 4615, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944638357766225, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:19:16 [39m[33mRATELIMITED: Timeout: 4802, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944638357766225, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:19:21 [39m[33mRATELIMITED: Timeout: 4705, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944638357766225, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:19:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:19:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:19:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:19:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:19:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:19:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:19:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:19:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:19:27 [39m[33mRATELIMITED: Timeout: 4655, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944649481064651, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:19:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198056983256.[39m
+[32m2026-3-02 09:19:28 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198826533870.[39m
+[32m2026-3-02 09:19:28 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198111819326.[39m
+[32m2026-3-02 09:19:28 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198362873835.[39m
+[32m2026-3-02 09:19:29 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122306369.[39m
+[32m2026-3-02 09:19:29 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198055474903.[39m
+[32m2026-3-02 09:19:29 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199219946388.[39m
+[32m2026-3-02 09:19:36 [39m[33mRATELIMITED: Timeout: 4527, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944649481064651, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:19:40 [39m[33mRATELIMITED: Timeout: 4812, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944649481064651, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:19:45 [39m[33mRATELIMITED: Timeout: 4855, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944649481064651, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:19:50 [39m[33mRATELIMITED: Timeout: 4670, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:20:00 [39m[33mRATELIMITED: Timeout: 4586, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:20:04 [39m[33mRATELIMITED: Timeout: 4740, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:20:09 [39m[33mRATELIMITED: Timeout: 4778, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944631856464058, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:20:15 [39m[33mRATELIMITED: Timeout: 4554, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:20:15 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198949075268.[39m
+[32m2026-3-02 09:20:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198803735423.[39m
+[32m2026-3-02 09:20:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199104346802.[39m
+[32m2026-3-02 09:20:16 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199208551449.[39m
+[32m2026-3-02 09:20:17 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199150852870.[39m
+[32m2026-3-02 09:20:17 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198969395178.[39m
+[32m2026-3-02 09:20:23 [39m[33mRATELIMITED: Timeout: 4622, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:20:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:20:24 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:20:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:20:25 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:20:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:20:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:20:26 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:20:27 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:20:28 [39m[33mRATELIMITED: Timeout: 4833, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:20:33 [39m[33mRATELIMITED: Timeout: 4847, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944819576737868, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:20:38 [39m[33mRATELIMITED: Timeout: 4841, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944822680784998, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:20:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198373205509.[39m
+[32m2026-3-02 09:20:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198165763008.[39m
+[32m2026-3-02 09:20:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199537112163.[39m
+[32m2026-3-02 09:20:53 [39m[33mRATELIMITED: Timeout: 4420, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:21:35 [39m[33mRATELIMITED: Timeout: 4246, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:21:38 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199122118121.[39m
+[32m2026-3-02 09:21:38 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199836645857.[39m
+[32m2026-3-02 09:21:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199261729601.[39m
+[32m2026-3-02 09:21:39 [39m[33mRATELIMITED: Timeout: 4780, Limit: 5, Method: PATCH, Path: https://discord.com/api/v10/channels/1473471713168724082/messages/1477944633890701404, Route: /channels/:id/messages/:id, Global: false[39m
+[32m2026-3-02 09:21:39 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199841502304.[39m
+[32m2026-3-02 09:21:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199589368298.[39m
+[32m2026-3-02 09:21:40 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198020305769.[39m
+[32m2026-3-02 09:21:41 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561198884938993.[39m
+[32m2026-3-02 09:21:41 [39m[31mERROR: Failed to scrape profile name: https://steamcommunity.com/profiles/76561199682447908.[39m
+[32m2026-3-02 09:21:41 [39m[31mERROR: Unhandled Rejection: ,Error: ENOENT: no such file or directory, rename '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json.tmp' -> '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json'[39m
+Error: ENOENT: no such file or directory, rename '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json.tmp' -> '/home/mtvproof/Desktop/RATS-plusplus/instances/1351633527011147866.json'
+    at Object.renameSync (node:fs:1035:3)
+    at Object.writeInstanceFile (/home/mtvproof/Desktop/RATS-plusplus/src/util/instanceUtils.js:76:12)
+    at DiscordBot.setInstance (/home/mtvproof/Desktop/RATS-plusplus/src/structures/DiscordBot.js:323:23)
+    at Timeout.handler [as _onTimeout] (/home/mtvproof/Desktop/RATS-plusplus/src/handlers/battlemetricsHandler.js:93:28)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+[32m2026-3-02 09:23:02 [39m[36m1351633527011147866 [39m[37mRustopia.gg - US Large [39m[31mERROR: Timeout reached while waiting for response.[39m

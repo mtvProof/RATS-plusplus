@@ -83,27 +83,18 @@ module.exports = {
         /* Process map if successfully retrieved */
         if (map && map.map) {
             if (!isSecondary) {
-                if (client.rustplusMaps.hasOwnProperty(guildId)) {
-                    if (client.isJpgImageChanged(guildId, map.map)) {
-                        rustplus.map = new Map(map.map, rustplus);
+                const mapChanged = client.rustplusMaps.hasOwnProperty(guildId) && 
+                    client.isJpgImageChanged(guildId, map.map);
+                
+                rustplus.map = new Map(map.map, rustplus);
 
-                        await rustplus.map.writeMap(false, true);
-                        await DiscordMessages.sendServerWipeDetectedMessage(guildId, serverId);
-                        await DiscordMessages.sendInformationMapMessage(guildId);
-                    }
-                    else {
-                        rustplus.map = new Map(map.map, rustplus);
-
-                        await rustplus.map.writeMap(false, true);
-                        await DiscordMessages.sendInformationMapMessage(guildId);
-                    }
+                await rustplus.map.writeMap(false, true);
+                
+                if (mapChanged) {
+                    await DiscordMessages.sendServerWipeDetectedMessage(guildId, serverId);
                 }
-                else {
-                    rustplus.map = new Map(map.map, rustplus);
-
-                    await rustplus.map.writeMap(false, true);
-                    await DiscordMessages.sendInformationMapMessage(guildId);
-                }
+                
+                await DiscordMessages.sendInformationMapMessage(guildId);
             }
             else {
                 // Secondary retains map data locally but does not post information updates.

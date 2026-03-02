@@ -1470,13 +1470,27 @@ class RustPlusWebUI {
         }
     }
 
-    async loadMapImage(guildId) {
+    async loadMapImage(guildId, retries = 3, delay = 1000) {
         try {
             const response = await fetch(`/api/map/${guildId}`);
-            if (!response.ok) throw new Error(`Failed to fetch map: ${response.statusText}`);
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const errorMsg = errorData.error || response.statusText;
+                console.warn(`[WebUI] Map API error (${response.status}): ${errorMsg}`);
+                
+                // Retry if map is not available yet (still loading)
+                if (response.status === 404 && retries > 0 && errorMsg.includes('not available')) {
+                    console.log(`[WebUI] Map not ready yet, retrying in ${delay}ms... (${retries} retries left)`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    return this.loadMapImage(guildId, retries - 1, delay);
+                }
+                
+                throw new Error(`Failed to fetch map: ${response.status} ${errorMsg}`);
+            }
             const blob = await response.blob();
             const img = new Image();
             img.onload = () => {
+                console.log('[WebUI] Map image loaded successfully');
                 this.mapImage = img;
                 this.minimapBaseDirty = true;
 
@@ -1493,9 +1507,12 @@ class RustPlusWebUI {
                 this.drawStaticLayers();
                 this.resetView();
             };
+            img.onerror = () => {
+                console.error('[WebUI] Failed to load map image - invalid blob');
+            };
             img.src = URL.createObjectURL(blob);
         } catch (error) {
-            console.error('Failed to load map:', error);
+            console.error('[WebUI] Failed to load map:', error);
         }
     }
 
@@ -2672,12 +2689,41 @@ class RustPlusWebUI {
             if (document.pictureInPictureElement) {
                 await document.exitPictureInPicture();
             } else {
+                // Check for browser support
+                if (!document.pictureInPictureEnabled) {
+                    throw new Error('Picture-in-Picture is not enabled in this browser');
+                }
+
+                if (!this.minimapCanvas) {
+                    throw new Error('Minimap canvas not initialized');
+                }
+
+                if (typeof this.minimapCanvas.captureStream !== 'function') {
+                    throw new Error('Canvas.captureStream() is not supported in this browser');
+                }
+
                 const video = document.createElement('video');
                 video.muted = true;
-                video.srcObject = this.minimapCanvas.captureStream();
+                video.autoplay = true;
+                video.playsInline = true;
+                
+                // Capture stream from canvas
+                const stream = this.minimapCanvas.captureStream(30); // 30 FPS
+                if (!stream || stream.getTracks().length === 0) {
+                    throw new Error('Failed to capture stream from canvas');
+                }
+                
+                video.srcObject = stream;
                 video.style.width = '100%';
                 video.style.height = '100%';
+                
+                // Wait for video to be ready
                 await video.play();
+
+                // Check if video element supports PiP
+                if (typeof video.requestPictureInPicture !== 'function') {
+                    throw new Error('Video element does not support Picture-in-Picture');
+                }
 
                 // Request PiP with smaller minimum size
                 const pipWindow = await video.requestPictureInPicture();
@@ -2691,10 +2737,17 @@ class RustPlusWebUI {
                         // Resize not supported in this browser
                     }
                 }
+
+                // Clean up when PiP is closed
+                video.addEventListener('leavepictureinpicture', () => {
+                    stream.getTracks().forEach(track => track.stop());
+                    video.srcObject = null;
+                });
             }
         } catch (error) {
             console.error('PiP failed:', error);
-            alert('Picture-in-Picture not supported or failed.');
+            const message = error.message || 'Picture-in-Picture not supported or failed.';
+            alert(`Picture-in-Picture Error:\n${message}\n\nTry using Chrome or Edge browser for best compatibility.`);
         }
     }
 

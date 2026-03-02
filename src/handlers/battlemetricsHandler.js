@@ -168,6 +168,9 @@ module.exports = {
                 client.setInstance(guildId, instance);
 
                 await DiscordMessages.sendTrackerMessage(guildId, trackerId);
+                
+                // Add delay between tracker updates to avoid Discord rate limiting
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
         }
 
