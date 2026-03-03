@@ -105,10 +105,9 @@ module.exports = {
 
             const distanceNow = Map.getDistance(currX, currY, center.x, center.y);
             const distancePrev = Map.getDistance(prevX, prevY, center.x, center.y);
-            const headingToward = module.exports.isHeadingTowardTarget(prevX, prevY, currX, currY, center.x, center.y);
 
-            // Warn when moving toward a SAM grid and within ~2.5 grid squares.
-            if (headingToward && distanceNow < distancePrev && distanceNow <= (gridDiameter * 2.5)) {
+            // Warn when within ~5 grid squares (doubled from 2.5) or getting closer
+            if (distanceNow <= (gridDiameter * 5)) {
                 if (distanceNow < bestDistance) {
                     bestDistance = distanceNow;
                     bestMatch = samGrid;
@@ -220,29 +219,38 @@ module.exports = {
     },
 
     /**
-     * Checks if a warning has been sent recently to avoid spam
-     * @param {Map} warningCooldowns - Map of {playerId: {grid: lastWarnTime}}
+     * Checks if a warning should be sent based on counter system
+     * Sends warning up to maxWarnings times per approach to the SAM site
+     * @param {Map} warningCounters - Map of {playerId: {grid: warningCount}}
      * @param {string} playerId - Steam ID of player
      * @param {string} grid - Grid coordinate
-     * @param {number} cooldownSeconds - Minimum seconds between warnings (default 5)
-     * @returns {boolean} - True if enough time has passed since last warning
+     * @param {number} maxWarnings - Maximum number of warnings per approach (default 4)
+     * @returns {boolean} - True if warning count is less than max
      */
-    shouldSendWarning: function (warningCooldowns, playerId, grid, cooldownSeconds = 5) {
-        const now = Date.now();
-
-        if (!warningCooldowns.has(playerId)) {
-            warningCooldowns.set(playerId, {});
+    shouldSendWarning: function (warningCounters, playerId, grid, maxWarnings = 4) {
+        if (!warningCounters.has(playerId)) {
+            warningCounters.set(playerId, {});
         }
 
-        const playerCooldowns = warningCooldowns.get(playerId);
-        const lastWarnTime = playerCooldowns[grid] || 0;
-        const timeSinceLastWarn = (now - lastWarnTime) / 1000;
+        const playerCounters = warningCounters.get(playerId);
+        const currentCount = (playerCounters[grid] || 0);
 
-        if (timeSinceLastWarn >= cooldownSeconds) {
-            playerCooldowns[grid] = now;
+        if (currentCount < maxWarnings) {
+            playerCounters[grid] = currentCount + 1;
             return true;
         }
 
         return false;
+    },
+
+    /**
+     * Resets warning counter for a player when they leave danger zone
+     * @param {Map} warningCounters - Map of {playerId: {grid: warningCount}}
+     * @param {string} playerId - Steam ID of player
+     */
+    resetWarningCounters: function (warningCounters, playerId) {
+        if (warningCounters.has(playerId)) {
+            warningCounters.set(playerId, {});
+        }
     }
 };

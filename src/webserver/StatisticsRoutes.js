@@ -51,6 +51,19 @@ function setupStatisticsRoutes(app, statisticsTracker) {
         }
     });
 
+    /* Get known players from historical statistics */
+    router.get('/players/:guildId', (req, res) => {
+        try {
+            const { guildId } = req.params;
+            const serverId = req.query.serverId;
+            const limit = parseInt(req.query.limit) || 500;
+            const players = statisticsTracker.getKnownPlayers(guildId, serverId, limit);
+            res.json(players);
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    });
+
     /* Get server statistics */
     router.get('/server/:guildId', (req, res) => {
         try {

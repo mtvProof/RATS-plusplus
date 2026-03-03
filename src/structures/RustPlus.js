@@ -117,7 +117,6 @@ class RustPlus extends RustPlusLib {
         this.time = null;           /* Stores the Time structure. */
         this.team = null;           /* Stores the Team structure. */
         this.mapMarkers = null;     /* Stores the MapMarkers structure. */
-        this.lastMapSeed = null;    /* Tracks map seed to detect wipes. */
 
         this.loadRustPlusEvents();
     }
@@ -214,27 +213,36 @@ class RustPlus extends RustPlusLib {
     checkForMapWipeAndClearPlaytimes() {
         if (!this.info) return;
 
-        if (this.lastMapSeed === null) {
-            this.lastMapSeed = this.info.seed;
+        // Get the persisted last map seed from the server instance data
+        const instance = Client.client.getInstance(this.guildId);
+        const server = instance.serverList[this.serverId];
+        if (!server) return;
+
+        // Initialize lastMapSeed in the server object if it doesn't exist
+        if (server.lastMapSeed === undefined || server.lastMapSeed === null) {
+            server.lastMapSeed = this.info.seed;
+            Client.client.setInstance(this.guildId, instance);
             return;
         }
 
-        if (this.info.isSeedChanged({ seed: this.lastMapSeed })) {
-            this.lastMapSeed = this.info.seed;
+        // Check if the map seed has changed (actual wipe)
+        if (this.info.isSeedChanged({ seed: server.lastMapSeed })) {
+            server.lastMapSeed = this.info.seed;
             
             // Clear all playtimes for this server on wipe
-            const instance = Client.client.getInstance(this.guildId);
-            const server = instance.serverList[this.serverId];
-            if (server) {
-                server.playerPlaytimes = {};
-                server.cameraCodes = [];
-                Client.client.setInstance(this.guildId, instance);
-                this.log(Client.client.intlGet(null, 'infoCap'), 'Map seed changed - playtime stats cleared for wipe');
-            }
+            server.playerPlaytimes = {};
+            server.cameraCodes = [];
+            Client.client.setInstance(this.guildId, instance);
+            this.log(Client.client.intlGet(null, 'infoCap'), 'Map seed changed - playtime stats cleared for wipe');
 
             // A wipe invalidates all cached map state (deep sea location, vending machines, etc.).
             if (this.mapMarkers) {
                 this.mapMarkers.reset();
+            }
+
+            // Reset persistent statistics for this server/wipe.
+            if (Client.client.statisticsTracker) {
+                Client.client.statisticsTracker.resetWipeStats(this.guildId, this.serverId);
             }
         }
     }
@@ -2828,6 +2836,7 @@ class RustPlus extends RustPlusLib {
     getCommandSamLoc(command) {
         const prefix = this.generalSettings.prefix;
         const commandSamLoc = `${prefix}samloc`;
+        const asInGameText = (str) => `${str}`.replace(/\*\*/g, '');
 
         const instance = Client.client.getInstance(this.guildId);
         if (!instance.samSites) {
@@ -2837,12 +2846,12 @@ class RustPlus extends RustPlusLib {
 
         const listResponse = () => {
             if (instance.samSites.length === 0) {
-                return Client.client.intlGet(this.guildId, 'samLocEmpty');
+                return asInGameText(Client.client.intlGet(this.guildId, 'samLocEmpty'));
             }
 
-            return Client.client.intlGet(this.guildId, 'samLocList', {
+            return asInGameText(Client.client.intlGet(this.guildId, 'samLocList', {
                 grids: instance.samSites.join(', ')
-            });
+            }));
         };
 
         const lower = command.toLowerCase();
@@ -2877,23 +2886,23 @@ class RustPlus extends RustPlusLib {
 
         if (action === 'add') {
             if (instance.samSites.includes(grid)) {
-                return Client.client.intlGet(this.guildId, 'samLocAlreadyExists', { grid: grid });
+                return asInGameText(Client.client.intlGet(this.guildId, 'samLocAlreadyExists', { grid: grid }));
             }
 
             instance.samSites.push(grid);
             Client.client.setInstance(this.guildId, instance);
-            return Client.client.intlGet(this.guildId, 'samLocAdded', { grid: grid });
+            return asInGameText(Client.client.intlGet(this.guildId, 'samLocAdded', { grid: grid }));
         }
 
         if (['remove', 'rm', 'delete', 'del'].includes(action)) {
             const index = instance.samSites.indexOf(grid);
             if (index === -1) {
-                return Client.client.intlGet(this.guildId, 'samLocNotFound', { grid: grid });
+                return asInGameText(Client.client.intlGet(this.guildId, 'samLocNotFound', { grid: grid }));
             }
 
             instance.samSites.splice(index, 1);
             Client.client.setInstance(this.guildId, instance);
-            return Client.client.intlGet(this.guildId, 'samLocRemoved', { grid: grid });
+            return asInGameText(Client.client.intlGet(this.guildId, 'samLocRemoved', { grid: grid }));
         }
 
         return listResponse();
@@ -3249,11 +3258,13 @@ class RustPlus extends RustPlusLib {
         const deepSeaWipeDuration = deepSeaSettings.deepSeaWipeDurationMs;
         const wasOnMap = this.mapMarkers.timeSinceDeepSeaWasOnMap;
         const isOnMap = this.mapMarkers.deepSeaSpawnedAt;
+        const lastSpawnAt = this.mapMarkers.deepSeaLastSpawnAt;
         const deepSea = this.mapMarkers.deepSea[0];
         const now = new Date();
 
-        if (deepSea && isOnMap !== null) {
-            const secondsLeft = Math.max(0, (deepSeaWipeDuration - (now - isOnMap)) / 1000);
+        if (deepSea) {
+            const activeSince = isOnMap || lastSpawnAt || now;
+            const secondsLeft = Math.max(0, (deepSeaWipeDuration - (now - activeSince)) / 1000);
             if (isInfoChannel) {
                 return Client.client.intlGet(this.guildId, 'activeFor', {
                     time: Timer.secondsToFullScale(secondsLeft, 's')

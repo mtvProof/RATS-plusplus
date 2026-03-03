@@ -2340,25 +2340,29 @@ class RustPlusWebUI {
     drawSamSiteMarkers(ctx) {
         if (!this.serverData.mapMarkers?.samSites) return;
 
+        // Fixed pixel radius for SAM site circles (approximately 2.5 grids)
+        const fixedPixelRadius = 75;
+
         this.serverData.mapMarkers.samSites.forEach(marker => {
             const { x, y } = this.worldToCanvas(marker.x, marker.y);
-            const radius = marker.radius / this.scale;
 
-            // Draw red circle for SAM site
+            // Draw red circle for SAM site with fixed pixel size
             ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
             ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
-            ctx.lineWidth = 3 / this.scale;
+            ctx.lineWidth = 2;
             ctx.beginPath();
-            ctx.arc(x, y, radius, 0, Math.PI * 2);
+            ctx.arc(x, y, fixedPixelRadius, 0, Math.PI * 2);
             ctx.fill();
             ctx.stroke();
 
-            // Draw grid label
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.9)';
-            ctx.font = `bold ${14 / this.scale}px Arial`;
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(marker.grid, x, y);
+            // Draw grid label (only show if zoomed in enough to read)
+            if (this.scale > 0.5) {
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.9)';
+                ctx.font = `bold 12px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(marker.grid, x, y);
+            }
         });
     }
 

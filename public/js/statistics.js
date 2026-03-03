@@ -11,6 +11,8 @@ class StatisticsManager {
         this.isChatLoaded = false;
         this.isLoadingChat = false;
         this.hasSyncedThisSession = false;
+        this.statsPlayers = [];
+        this.playerNameBySteamId = {};
     }
 
     async init() {
@@ -384,15 +386,15 @@ class StatisticsManager {
 
         try {
             const t = (key) => window.rustplusUI?.languageManager?.get(key) || key;
-            const teamData = window.rustplusUI?.serverData?.team;
-            if (!teamData || !teamData.players || teamData.players.length === 0) {
+            const statsPlayers = await this.getStatsPlayers();
+            if (!statsPlayers || statsPlayers.length === 0) {
                 body.innerHTML = `
                     <div class="info">${t('stats.noTeamData')}</div>
                 `;
                 return;
             }
 
-            const steamIds = teamData.players.map(p => p.steamId);
+            const steamIds = statsPlayers.map(p => p.steamId);
             const defaultHours = 168; // 7 days default
             const [teamStats, connectionStats] = await Promise.all([
                 this.apiClient.get(`/api/statistics/team/${this.guildId}?steamIds=${steamIds.join(',')}&serverId=${this.serverId}`),
@@ -484,24 +486,53 @@ class StatisticsManager {
         }
     }
     getPlayerName(steamId) {
+        if (this.playerNameBySteamId && this.playerNameBySteamId[steamId]) {
+            return this.playerNameBySteamId[steamId];
+        }
+
         const teamData = window.rustplusUI?.serverData?.team;
         if (!teamData) return 'Unknown';
         const player = teamData.players.find(p => p.steamId === steamId);
         return player ? player.name : 'Unknown';
     }
 
+    async getStatsPlayers() {
+        try {
+            const players = await this.apiClient.get(`/api/statistics/players/${this.guildId}?serverId=${this.serverId || ''}&limit=1000`);
+            if (Array.isArray(players) && players.length > 0) {
+                this.statsPlayers = players.map((p) => ({ steamId: `${p.steamId}`, name: p.name || 'Unknown' }));
+                this.playerNameBySteamId = {};
+                this.statsPlayers.forEach((p) => {
+                    this.playerNameBySteamId[p.steamId] = p.name;
+                });
+                return this.statsPlayers;
+            }
+        } catch (error) {
+            console.warn('[Statistics] Failed to fetch historical players, falling back to current team list:', error);
+        }
+
+        const teamData = window.rustplusUI?.serverData?.team;
+        const fallback = (teamData?.players || []).map((p) => ({ steamId: `${p.steamId}`, name: p.name || 'Unknown' }));
+        this.statsPlayers = fallback;
+        this.playerNameBySteamId = {};
+        fallback.forEach((p) => {
+            this.playerNameBySteamId[p.steamId] = p.name;
+        });
+        return fallback;
+    }
+
     async loadPlayers() {
         try {
             const t = (key) => window.rustplusUI?.languageManager?.get(key) || key;
-            const teamData = window.rustplusUI?.serverData?.team;
-            if (!teamData || !teamData.players) {
+            const statsPlayers = await this.getStatsPlayers();
+            if (!statsPlayers || !statsPlayers.length) {
                 document.getElementById('statisticsBody').innerHTML = `
                     <div class="info">${t('stats.noTeamData')}</div>
                 `;
                 return;
             }
 
-            const steamIds = teamData.players.map(p => p.steamId);
+            const steamIds = statsPlayers.map(p => p.steamId);
             const playerStats = await Promise.all(
                 steamIds.map(id => this.apiClient.get(`/api/statistics/player/${this.guildId}/${id}?serverId=${this.serverId}`))
             );
@@ -512,7 +543,7 @@ class StatisticsManager {
                     <h3>${t('stats.teamPlayers')}</h3>
                     <div class="players-list">
                         ${playerStats.map((data, idx) => {
-                const player = teamData.players[idx];
+                const player = statsPlayers[idx];
                 const stats = data.stats;
                 return `
                                 <div class="player-stat-card" style="border-left: 4px solid ${data.color};">
@@ -715,8 +746,8 @@ class StatisticsManager {
     }
 
     async loadSessions() {
-        const teamData = window.rustplusUI?.serverData?.team;
-        if (!teamData || !teamData.players || teamData.players.length === 0) {
+        const statsPlayers = await this.getStatsPlayers();
+        if (!statsPlayers || statsPlayers.length === 0) {
             document.getElementById('statisticsBody').innerHTML = '<div class="info">No team data available.</div>';
             return;
         }
@@ -823,12 +854,7 @@ class StatisticsManager {
             const avgDeathsPerDay = totalDeaths / (timeRange === 'all' ? 30 : parseInt(timeRange) / 24);
 
             // Get player names
-            const teamData = window.rustplusUI?.serverData?.team;
-            const getPlayerName = (steamId) => {
-                if (!teamData) return 'Unknown';
-                const player = teamData.players.find(p => p.steamId === steamId);
-                return player ? player.name : 'Unknown';
-            };
+            const getPlayerName = (steamId) => this.getPlayerName(steamId);
             // Top death leaders
             const topDeaths = Object.entries(playerDeathCounts)
                 .sort((a, b) => b[1] - a[1])
@@ -1627,14 +1653,15 @@ Database: ${info.size.megabytes} MB |
     }
 
     async updateSessionTimeline() {
-        const teamData = window.rustplusUI?.serverData?.team;
-        if (!teamData || !teamData.players) {
+        const statsPlayers = this.statsPlayers && this.statsPlayers.length > 0 ?
+            this.statsPlayers : await this.getStatsPlayers();
+        if (!statsPlayers || !statsPlayers.length) {
             console.log('[Sessions] No team data available');
             return;
         }
 
         const timeRange = document.getElementById('timeRangeSelect')?.value || '168';
-        const steamIds = teamData.players.map(p => p.steamId).join(',');
+        const steamIds = statsPlayers.map(p => p.steamId).join(',');
 
         let url = `/api/statistics/sessions/${this.guildId}?steamIds=${steamIds}&serverId=${this.serverId}`;
         if (timeRange !== 'all') {
@@ -1654,7 +1681,7 @@ Database: ${info.size.megabytes} MB |
             const sessions = await this.apiClient.get(url);
             console.log('[Sessions] Received data:', sessions);
             console.log('[Sessions] Session counts per player:', Object.entries(sessions).map(([id, s]) => `${id}: ${s.length}`));
-            requestAnimationFrame(() => this.renderTimelineChart(sessions, teamData.players));
+            requestAnimationFrame(() => this.renderTimelineChart(sessions, statsPlayers));
         } catch (error) {
             console.error('Error loading session timeline:', error);
         }

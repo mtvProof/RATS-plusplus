@@ -24,26 +24,10 @@ const DiscordTools = require('./discordTools.js');
 module.exports = async (client, guild) => {
     const instance = client.getInstance(guild.id);
 
+    await DiscordTools.clearTextChannel(guild.id, instance.channelId.trackers, 100);
+    await DiscordMessages.sendTrackersCreateButtonMessage(guild.id);
+
     for (const trackerId in instance.trackers) {
-        const tracker = instance.trackers[trackerId];
-        
-        // Check if message still exists
-        const channelId = tracker.channelId || instance.channelId.trackers;
-        if (tracker.messageId && channelId) {
-            const message = await DiscordTools.getMessageById(guild.id, channelId, tracker.messageId);
-            
-            // If message exists, update it instead of recreating
-            if (message) {
-                await DiscordMessages.sendTrackerMessage(guild.id, trackerId);
-                // Add delay between tracker updates to avoid Discord rate limiting
-                await new Promise(resolve => setTimeout(resolve, 500));
-                continue;
-            }
-        }
-        
-        // Only send new message if messageId doesn't exist or message was deleted
         await DiscordMessages.sendTrackerMessage(guild.id, trackerId);
-        // Add delay between tracker updates to avoid Discord rate limiting
-        await new Promise(resolve => setTimeout(resolve, 500));
     }
 }

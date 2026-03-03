@@ -275,7 +275,9 @@ async function pairingServer(client, guild, title, message, body) {
         deepSeaWipeCooldownMs: server ? server.deepSeaWipeCooldownMs : Constants.DEFAULT_DEEP_SEA_WIPE_COOLDOWN_MS,
         deepSeaWipeDurationMs: server ? server.deepSeaWipeDurationMs : Constants.DEFAULT_DEEP_SEA_WIPE_DURATION_MS,
         timeTillDay: server ? server.timeTillDay : null,
-        timeTillNight: server ? server.timeTillNight : null
+        timeTillNight: server ? server.timeTillNight : null,
+        lastMapSeed: server ? server.lastMapSeed : null,
+        playerTimestamps: server ? server.playerTimestamps : {}
     };
 
     if (!instance.serverListLite.hasOwnProperty(serverId)) instance.serverListLite[serverId] = new Object();

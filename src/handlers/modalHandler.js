@@ -354,29 +354,19 @@ module.exports = async (client, interaction) => {
     else if (interaction.customId.startsWith('TrackerEdit')) {
         const ids = JSON.parse(interaction.customId.replace('TrackerEdit', ''));
         const tracker = instance.trackers[ids.trackerId];
-        const trackerCoordinates = interaction.fields.getTextInputValue('TrackerCoordinates');
+        const trackerName = interaction.fields.getTextInputValue('TrackerName');
         const trackerBattlemetricsId = interaction.fields.getTextInputValue('TrackerBattlemetricsId');
         const trackerClanTag = interaction.fields.getTextInputValue('TrackerClanTag');
-        const trackerChannelName = interaction.fields.getTextInputValue('TrackerChannelName');
 
         if (!tracker) {
             interaction.deferUpdate();
             return;
         }
 
-        tracker.name = trackerCoordinates;
-        tracker.clanTag = trackerClanTag;
-
-        // Cambiar el nombre del canal de Discord si se proporcionó uno
-        if (trackerChannelName && tracker.channelId) {
-            const channel = DiscordTools.getTextChannelById(guildId, tracker.channelId);
-            if (channel) {
-                try {
-                    await channel.setName(trackerChannelName);
-                } catch (e) {
-                    client.log(client.intlGet(null, 'errorCap'), `Could not rename tracker channel: ${e}`, 'error');
-                }
-            }
+        tracker.name = trackerName;
+        if (trackerClanTag !== tracker.clanTag) {
+            tracker.clanTag = trackerClanTag;
+            client.battlemetricsIntervalCounter = 0;
         }
 
         if (trackerBattlemetricsId !== tracker.battlemetricsId) {
@@ -403,7 +393,7 @@ module.exports = async (client, interaction) => {
 
         client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
             id: `${verifyId}`,
-            value: `${trackerClanTag} (${trackerCoordinates}), ${tracker.battlemetricsId}`
+            value: `${trackerName}, ${tracker.battlemetricsId}, ${tracker.clanTag}`
         }));
 
         await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);

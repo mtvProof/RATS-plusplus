@@ -570,6 +570,7 @@ module.exports = {
     sendTeamChatMessage: async function (guildId, message) {
         const instance = Client.client.getInstance(guildId);
 
+        const teamLabel = message.teamLabel === 'secondary' ? 'Team 2' : 'Team 1';
         const playerName = `${message.name ?? ''}`;
         const playerMessage = `${message.message ?? ''}`;
         const steamIdText = message.steamId !== undefined && message.steamId !== null ?
@@ -586,8 +587,7 @@ module.exports = {
         const content = {
             embeds: [DiscordEmbeds.getEmbed({
                 color: color,
-                description: `**${playerName}**: ${playerMessage}`,
-                footer: { text: steamIdText }
+                description: `**[${teamLabel}] ${playerName}**: ${playerMessage}`
             })]
         }
 
@@ -699,7 +699,7 @@ module.exports = {
                 Path.join(__dirname, '..', 'resources/images/team_info_logo.png')
             )]
         }
-
+        
         const message = await module.exports.sendMessage(rustplus.guildId, content,
             instance.informationMessageId.team, instance.channelId.information);
 

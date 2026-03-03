@@ -237,6 +237,12 @@ module.exports = (client, guild) => {
         if (!content.hasOwnProperty('deepSeaWipeDurationMs')) {
             content.deepSeaWipeDurationMs = Constants.DEFAULT_DEEP_SEA_WIPE_DURATION_MS;
         }
+        if (!content.hasOwnProperty('lastMapSeed')) {
+            content.lastMapSeed = null;
+        }
+        if (!content.hasOwnProperty('playerTimestamps')) {
+            content.playerTimestamps = {};
+        }
     }
 
     client.setInstance(guild.id, instance);

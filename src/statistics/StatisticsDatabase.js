@@ -247,7 +247,7 @@ class StatisticsDatabase {
         if (serverId && serverId !== '') {
             const stmt = this.db.prepare(`
                 SELECT * FROM player_sessions
-                WHERE guild_id = ? AND (server_id = ? OR server_id IS NULL OR server_id = '') AND steam_id = ?
+                WHERE guild_id = ? AND server_id = ? AND steam_id = ?
                 ORDER BY session_start DESC
                 LIMIT ?
             `);
@@ -401,7 +401,7 @@ class StatisticsDatabase {
         if (serverId && serverId !== '') {
             const stmt = this.db.prepare(`
                 SELECT * FROM player_positions
-                WHERE guild_id = ? AND (server_id = ? OR server_id IS NULL OR server_id = '') AND steam_id = ? AND timestamp BETWEEN ? AND ?
+                WHERE guild_id = ? AND server_id = ? AND steam_id = ? AND timestamp BETWEEN ? AND ?
                 ORDER BY timestamp ASC
             `);
             return stmt.all(guildId, serverId, steamId, startTime, endTime);
@@ -420,7 +420,7 @@ class StatisticsDatabase {
         if (serverId && serverId !== '') {
             const stmt = this.db.prepare(`
                 SELECT * FROM player_positions
-                WHERE guild_id = ? AND (server_id = ? OR server_id IS NULL OR server_id = '') AND timestamp > ?
+                WHERE guild_id = ? AND server_id = ? AND timestamp > ?
                 ORDER BY timestamp ASC
             `);
             return stmt.all(guildId, serverId, startTime);
@@ -449,7 +449,7 @@ class StatisticsDatabase {
         if (serverId && serverId !== '') {
             const stmt = this.db.prepare(`
                 SELECT * FROM player_deaths
-                WHERE guild_id = ? AND (server_id = ? OR server_id IS NULL OR server_id = '') AND steam_id = ?
+                WHERE guild_id = ? AND server_id = ? AND steam_id = ?
                 ORDER BY death_time DESC
                 LIMIT ?
             `);
@@ -469,7 +469,7 @@ class StatisticsDatabase {
         if (serverId && serverId !== '') {
             const stmt = this.db.prepare(`
                 SELECT * FROM player_deaths
-                WHERE guild_id = ? AND (server_id = ? OR server_id IS NULL OR server_id = '')
+                WHERE guild_id = ? AND server_id = ?
                 ORDER BY death_time DESC
                 LIMIT ?
             `);
@@ -489,7 +489,7 @@ class StatisticsDatabase {
         if (serverId && serverId !== '') {
             const stmt = this.db.prepare(`
                 SELECT COUNT(*) as count FROM player_deaths
-                WHERE guild_id = ? AND (server_id = ? OR server_id IS NULL OR server_id = '') AND steam_id = ?
+                WHERE guild_id = ? AND server_id = ? AND steam_id = ?
             `);
             return stmt.get(guildId, serverId, steamId).count;
         } else {
@@ -510,8 +510,8 @@ class StatisticsDatabase {
                 VALUES (?, ?, ?, ?, ?, ?)
             `);
             const timestamp = Math.floor(Date.now() / 1000);
-            const result = stmt.run(guildId, serverId || 'all', steamId, playerName, message, timestamp);
-            console.log(`[StatisticsDB] Recorded message from ${playerName} for guild ${guildId} (server: ${serverId || 'all'})`);
+            const result = stmt.run(guildId, serverId || '', steamId, playerName, message, timestamp);
+            console.log(`[StatisticsDB] Recorded message from ${playerName} for guild ${guildId} (server: ${serverId || 'unknown'})`);
             return result;
         } catch (error) {
             console.error(`[StatisticsDB] Failed to record chat message: ${error.message}`);
@@ -526,27 +526,13 @@ class StatisticsDatabase {
             if (serverId && serverId !== '') {
                 const stmt = this.db.prepare(`
                     SELECT * FROM chat_history
-                    WHERE guild_id = ? AND (server_id = ? OR server_id IS NULL OR server_id = '' OR server_id = 'all')
+                    WHERE guild_id = ? AND server_id = ?
                     ORDER BY timestamp DESC
                     LIMIT ?
                 `);
-                let results = stmt.all(guildId, serverId, limit);
+                const results = stmt.all(guildId, serverId, limit);
 
                 console.log(`[StatisticsDB] Query with serverId returned ${results.length} messages`);
-
-                // Fallback: if no results for this server, try getting all for the guild
-                if (results.length === 0) {
-                    console.log(`[StatisticsDB] Falling back to all messages for guild ${guildId}`);
-                    const fallbackStmt = this.db.prepare(`
-                        SELECT * FROM chat_history
-                        WHERE guild_id = ?
-                        ORDER BY timestamp DESC
-                        LIMIT ?
-                    `);
-                    results = fallbackStmt.all(guildId, limit);
-                    console.log(`[StatisticsDB] Fallback returned ${results.length} messages`);
-                }
-
                 return results;
             } else {
                 const stmt = this.db.prepare(`
@@ -581,7 +567,7 @@ class StatisticsDatabase {
                 INSERT INTO chat_history (guild_id, server_id, steam_id, player_name, message, timestamp)
                 VALUES (?, ?, ?, ?, ?, ?)
             `);
-            return stmt.run(guildId, serverId || 'all', steamId, playerName, message, timestamp);
+            return stmt.run(guildId, serverId || '', steamId, playerName, message, timestamp);
         } catch (error) {
             console.error(`[StatisticsDB] Failed to upsert chat message: ${error.message}`);
             return { changes: 0, error: error.message };
@@ -617,7 +603,7 @@ class StatisticsDatabase {
         if (serverId && serverId !== '') {
             const stmt = this.db.prepare(`
                 SELECT * FROM chat_history
-                WHERE guild_id = ? AND (server_id = ? OR server_id IS NULL OR server_id = '') AND steam_id = ?
+                WHERE guild_id = ? AND server_id = ? AND steam_id = ?
                 ORDER BY timestamp DESC
                 LIMIT ?
             `);
@@ -648,7 +634,7 @@ class StatisticsDatabase {
         if (serverId && serverId !== '') {
             const stmt = this.db.prepare(`
                 SELECT * FROM command_history
-                WHERE guild_id = ? AND (server_id = ? OR server_id IS NULL OR server_id = '')
+                WHERE guild_id = ? AND server_id = ?
                 ORDER BY timestamp DESC
                 LIMIT ?
             `);
@@ -679,7 +665,7 @@ class StatisticsDatabase {
         if (serverId && serverId !== '') {
             const stmt = this.db.prepare(`
                 SELECT * FROM connection_stats
-                WHERE guild_id = ? AND (server_id = ? OR server_id IS NULL OR server_id = '') AND timestamp BETWEEN ? AND ?
+                WHERE guild_id = ? AND server_id = ? AND timestamp BETWEEN ? AND ?
                 ORDER BY timestamp ASC
             `);
             return stmt.all(guildId, serverId, startTime, endTime);
@@ -777,6 +763,69 @@ class StatisticsDatabase {
         };
     }
 
+    getKnownPlayers(guildId, serverId, limit = 500) {
+        const whereServerSessions = (serverId && serverId !== '') ?
+            "AND server_id = ?" : '';
+        const whereServerDeaths = (serverId && serverId !== '') ?
+            "AND server_id = ?" : '';
+        const whereServerChat = (serverId && serverId !== '') ?
+            "AND server_id = ?" : '';
+
+        const query = `
+            SELECT steam_id, player_name, ts FROM (
+                SELECT steam_id, player_name, MAX(session_start) as ts
+                FROM player_sessions
+                WHERE guild_id = ? ${whereServerSessions}
+                GROUP BY steam_id, player_name
+
+                UNION ALL
+
+                SELECT steam_id, player_name, MAX(death_time) as ts
+                FROM player_deaths
+                WHERE guild_id = ? ${whereServerDeaths}
+                GROUP BY steam_id, player_name
+
+                UNION ALL
+
+                SELECT steam_id, player_name, MAX(timestamp) as ts
+                FROM chat_history
+                WHERE guild_id = ? ${whereServerChat}
+                GROUP BY steam_id, player_name
+            )
+            WHERE steam_id IS NOT NULL AND steam_id != '' AND steam_id != 'unknown'
+            ORDER BY ts DESC
+            LIMIT ?
+        `;
+
+        const params = [];
+        params.push(guildId);
+        if (serverId && serverId !== '') params.push(serverId);
+
+        params.push(guildId);
+        if (serverId && serverId !== '') params.push(serverId);
+
+        params.push(guildId);
+        if (serverId && serverId !== '') params.push(serverId);
+
+        params.push(limit);
+
+        const rows = this.db.prepare(query).all(...params);
+
+        // Keep latest known name for each steamId
+        const uniqueBySteamId = new Map();
+        for (const row of rows) {
+            if (!uniqueBySteamId.has(row.steam_id)) {
+                uniqueBySteamId.set(row.steam_id, {
+                    steamId: row.steam_id,
+                    name: row.player_name || 'Unknown',
+                    lastSeen: row.ts || 0
+                });
+            }
+        }
+
+        return Array.from(uniqueBySteamId.values());
+    }
+
     getServerStatistics(guildId, serverId, days = 7) {
         const startTime = Math.floor(Date.now() / 1000) - (days * 24 * 3600);
 
@@ -788,7 +837,7 @@ class StatisticsDatabase {
                     SUM(CASE WHEN duration_seconds IS NOT NULL THEN duration_seconds ELSE 0 END) as total_playtime,
                     AVG(CASE WHEN duration_seconds IS NOT NULL THEN duration_seconds ELSE NULL END) as avg_session
                 FROM player_sessions
-                WHERE guild_id = ? AND (server_id = ? OR server_id IS NULL OR server_id = '') AND session_start > ?
+                WHERE guild_id = ? AND server_id = ? AND session_start > ?
             `);
             return stmt.get(guildId, serverId, startTime);
         } else {
@@ -931,6 +980,38 @@ class StatisticsDatabase {
         console.log(`[Statistics] Reset statistics for guild ${guildId}: ${totalDeleted} records deleted`);
 
         return { deleted: totalDeleted };
+    }
+
+    resetServerStats(guildId, serverId) {
+        // Reset statistics for a specific server (when switching servers)
+        const tables = [
+            'player_sessions',
+            'player_positions',
+            'player_deaths',
+            'chat_history',
+            'command_history',
+            'connection_stats'
+        ];
+        let totalDeleted = 0;
+        tables.forEach(table => {
+            const result = this.db.prepare(`DELETE FROM ${table} WHERE guild_id = ? AND server_id = ?`).run(guildId, serverId);
+            totalDeleted += result.changes;
+        });
+        // Log the reset
+        const now = Math.floor(Date.now() / 1000);
+        this.db.prepare(`
+            INSERT INTO maintenance_log (maintenance_type, records_deleted, timestamp)
+            VALUES (?, ?, ?)
+        `).run('server_reset', totalDeleted, now);
+
+        console.log(`[Statistics] Reset statistics for server ${serverId} on guild ${guildId}: ${totalDeleted} records deleted`);
+
+        return { deleted: totalDeleted };
+    }
+
+    resetWipeStats(guildId, serverId) {
+        // Reset statistics for a wipe (called when map seed changes)
+        return this.resetServerStats(guildId, serverId);
     }
 
     // ==================== PIN CODE MANAGEMENT ====================

@@ -28,10 +28,15 @@ const Team = require('../structures/Team');
 const TeamHandler = require('../handlers/teamHandler.js');
 const Time = require('../structures/Time');
 const TimeHandler = require('../handlers/timeHandler.js');
+const EventStateManager = require('../util/EventStateManager.js');
 const VendingMachines = require('../handlers/vendingMachineHandler.js');
 
 module.exports = {
     pollingHandler: async function (rustplus, client) {
+        if (rustplus.isPollingHandlerRunning) return;
+        rustplus.isPollingHandlerRunning = true;
+
+        try {
         /* Poll information such as info, mapMarkers, teamInfo and time */
         let info = await rustplus.getInfoAsync();
         if (!(await rustplus.isResponseValid(info))) return;
@@ -47,6 +52,12 @@ module.exports = {
             rustplus.time = new Time(time.time, rustplus, client);
             rustplus.team = new Team(teamInfo.teamInfo, rustplus);
             rustplus.mapMarkers = new MapMarkers(mapMarkers.mapMarkers, rustplus, client);
+            
+            // Restore event timers from previous session
+            const instance = client.getInstance(rustplus.guildId);
+            if (instance) {
+                EventStateManager.restoreEventState(instance, rustplus.mapMarkers);
+            }
         }
 
         await module.exports.handlers(rustplus, client, info, mapMarkers, teamInfo, time);
@@ -64,6 +75,10 @@ module.exports = {
                 client.rustplusReconnecting[guildId] = false;
             }
         }
+        }
+        finally {
+            rustplus.isPollingHandlerRunning = false;
+        }
     },
 
     handlers: async function (rustplus, client, info, mapMarkers, teamInfo, time) {
@@ -73,9 +88,6 @@ module.exports = {
         await TeamHandler.handler(rustplus, client, teamInfo.teamInfo);
         rustplus.team.updateTeam(teamInfo.teamInfo);
 
-        // Secondary (hoster2) should only maintain team info/chat; skip other duties.
-        if (rustplus.instanceLabel === 'secondary') return;
-
         await SmartSwitchHandler.handler(rustplus, client, time.time);
         TimeHandler.handler(rustplus, client, time.time);
         await VendingMachines.handler(rustplus, client, mapMarkers.mapMarkers);
@@ -83,6 +95,12 @@ module.exports = {
         rustplus.time.updateTime(time.time);
         rustplus.info.updateInfo(info.info);
         rustplus.mapMarkers.updateMapMarkers(mapMarkers.mapMarkers);
+
+        // Save event state periodically to persist across bot reboots
+        const instance = client.getInstance(rustplus.guildId);
+        if (instance) {
+            EventStateManager.saveEventState(instance, rustplus.mapMarkers);
+        }
 
         await InformationHandler.handler(rustplus);
         await StorageMonitorHandler.handler(rustplus, client);
