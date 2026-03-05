@@ -174,6 +174,10 @@ module.exports = {
             commandLowerCase.startsWith(`${prefix}${client.intlGet(guildId, 'commandSyntaxCams')} `)) {
             rustplus.sendInGameMessage(rustplus.getCommandCams(command));
         }
+        else if (commandLowerCase === `${prefix}samloc` ||
+            commandLowerCase.startsWith(`${prefix}samloc `)) {
+            rustplus.sendInGameMessage(rustplus.getCommandSamloc(command));
+        }
         else if (commandLowerCase === `${prefix}${client.intlGet('en', 'commandSyntaxCode')}` ||
             commandLowerCase === `${prefix}${client.intlGet(guildId, 'commandSyntaxCode')}` ||
             commandLowerCase === `${prefix}codes` ||

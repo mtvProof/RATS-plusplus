@@ -11,7 +11,6 @@ class TrackersModalManager {
         this.editNameInput = document.getElementById('editTrackerName');
         this.editBMIdInput = document.getElementById('editTrackerBMId');
         this.editClanTagInput = document.getElementById('editTrackerClanTag');
-        this.editChannelNameInput = document.getElementById('editTrackerChannelName');
         this.editEveryoneToggle = document.getElementById('editTrackerEveryone');
         this.editInGameToggle = document.getElementById('editTrackerInGame');
 
@@ -301,11 +300,6 @@ class TrackersModalManager {
         this.editBMIdInput.value = tracker.battlemetricsId || '';
         this.editClanTagInput.value = tracker.clanTag || '';
 
-        // Find channel name if possible, or leave empty to not rename
-        // The backend doesn't explicitly store channelName in tracker object, 
-        // but it's used for the Discord side. We'll populate with a default or leave blank.
-        this.editChannelNameInput.value = `tracker-${trackerId}`;
-
         this.editEveryoneToggle.checked = tracker.everyone || false;
         this.editInGameToggle.checked = tracker.inGame !== false;
 
@@ -402,8 +396,7 @@ class TrackersModalManager {
             battlemetricsId: this.editBMIdInput.value.trim(),
             clanTag: this.editClanTagInput.value.trim(),
             everyone: this.editEveryoneToggle.checked,
-            inGame: this.editInGameToggle.checked,
-            channelName: this.editChannelNameInput.value.trim()
+            inGame: this.editInGameToggle.checked
         };
 
         try {

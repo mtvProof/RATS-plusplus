@@ -24,6 +24,10 @@ const InstanceUtils = require('../util/instanceUtils.js');
 
 module.exports = {
     handler: async function (rustplus) {
+        if (rustplus.isInformationHandlerRunning) return;
+        rustplus.isInformationHandlerRunning = true;
+
+        try {
         // Only primary (hoster1) updates the information channel.
         if (rustplus.instanceLabel === 'secondary') return;
 
@@ -58,12 +62,41 @@ module.exports = {
         }
 
         if (rustplus.informationIntervalCounter === 0) {
-            await DiscordMessages.sendUpdateServerInformationMessage(rustplus);
-            await DiscordMessages.sendUpdateEventInformationMessage(rustplus);
-            await DiscordMessages.sendUpdateTeamInformationMessage(rustplus);
-            await DiscordMessages.sendUpdateToolCupboardUpkeepInformationMessage(rustplus);
-            await DiscordMessages.sendUpdateMarketWatchlistInformationMessage(rustplus);
-            await DiscordMessages.sendUpdateLootInformationMessage(rustplus);
+            try {
+                await DiscordMessages.sendUpdateServerInformationMessage(rustplus);
+            } catch (e) {
+                rustplus.log('Error', `sendUpdateServerInformationMessage failed: ${e}`, 'error');
+            }
+
+            try {
+                await DiscordMessages.sendUpdateEventInformationMessage(rustplus);
+            } catch (e) {
+                rustplus.log('Error', `sendUpdateEventInformationMessage failed: ${e}`, 'error');
+            }
+
+            try {
+                await DiscordMessages.sendUpdateTeamInformationMessage(rustplus);
+            } catch (e) {
+                rustplus.log('Error', `sendUpdateTeamInformationMessage failed: ${e}`, 'error');
+            }
+
+            try {
+                await DiscordMessages.sendUpdateToolCupboardUpkeepInformationMessage(rustplus);
+            } catch (e) {
+                rustplus.log('Error', `sendUpdateToolCupboardUpkeepInformationMessage failed: ${e}`, 'error');
+            }
+
+            try {
+                await DiscordMessages.sendUpdateMarketWatchlistInformationMessage(rustplus);
+            } catch (e) {
+                rustplus.log('Error', `sendUpdateMarketWatchlistInformationMessage failed: ${e}`, 'error');
+            }
+
+            try {
+                await DiscordMessages.sendUpdateLootInformationMessage(rustplus);
+            } catch (e) {
+                rustplus.log('Error', `sendUpdateLootInformationMessage failed: ${e}`, 'error');
+            }
         }
 
         if (rustplus.informationIntervalCounter === 5) {
@@ -71,6 +104,9 @@ module.exports = {
         }
         else {
             rustplus.informationIntervalCounter += 1;
+        }
+        } finally {
+            rustplus.isInformationHandlerRunning = false;
         }
     },
 }

@@ -32,13 +32,15 @@ module.exports = {
             client.log(client.intlGet(null, 'warningCap'), client.intlGet(null, 'interactionInvalidChannel'))
             if (interaction.isButton()) {
                 try {
-                    interaction.deferUpdate();
+                    await interaction.deferUpdate();
                 }
                 catch (e) {
                     client.log(client.intlGet(null, 'errorCap'),
                         client.intlGet(null, 'couldNotDeferInteraction'), 'error');
                 }
             }
+
+            return;
         }
 
         if (interaction.isButton()) {

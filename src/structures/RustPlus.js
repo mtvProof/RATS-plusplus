@@ -2727,6 +2727,72 @@ class RustPlus extends RustPlusLib {
         return listResponse();
     }
 
+    getCommandSamloc(command) {
+        const prefix = this.generalSettings.prefix;
+        const commandSamloc = `${prefix}samloc`;
+
+        const instance = Client.client.getInstance(this.guildId);
+        const server = instance.serverList[this.serverId];
+        if (!server) return null;
+        if (!Array.isArray(server.samLocations)) server.samLocations = [];
+
+        const lower = command.toLowerCase();
+        const matchesExact = (syntax) => lower === syntax.toLowerCase();
+        const startsWithSyntax = (syntax) => lower.startsWith(`${syntax.toLowerCase()} `);
+
+        const listResponse = () => {
+            if (server.samLocations.length === 0) {
+                return 'No saved SAM locations';
+            }
+
+            const locations = [...server.samLocations].sort();
+            return `Known SAM Locations: ${locations.join(', ')}`;
+        };
+
+        if (matchesExact(commandSamloc)) {
+            return listResponse();
+        }
+
+        if (!startsWithSyntax(commandSamloc)) {
+            return null;
+        }
+
+        const args = command.slice(commandSamloc.length).trim();
+        if (!args) return listResponse();
+
+        const [actionRaw, ...rest] = args.split(/\s+/);
+        const action = (actionRaw || '').toLowerCase();
+        const location = rest.join(' ').trim();
+
+        if (!location) {
+            return 'Location name required';
+        }
+
+        const locationNormalized = location.toUpperCase();
+
+        if (action === 'add') {
+            if (server.samLocations.includes(locationNormalized)) {
+                return `${locationNormalized} is already in the SAM locations list`;
+            }
+
+            server.samLocations.push(locationNormalized);
+            Client.client.setInstance(this.guildId, instance);
+            return `${locationNormalized} added to SAM locations`;
+        }
+
+        if (['remove', 'rm', 'delete', 'del'].includes(action)) {
+            if (!server.samLocations.includes(locationNormalized)) {
+                return `${locationNormalized} not found in SAM locations`;
+            }
+
+            server.samLocations = server.samLocations.filter(loc => loc !== locationNormalized);
+            Client.client.setInstance(this.guildId, instance);
+            return `${locationNormalized} removed from SAM locations`;
+        }
+
+        return listResponse();
+    }
+
     getCommandCode(command) {
         const prefix = this.generalSettings.prefix;
         const commandCode = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxCode')}`;

@@ -221,11 +221,9 @@ class RustPlusWebUI {
         // Notification Manager
         this.notificationManager = new NotificationManager();
         this.switchesManager = new SwitchesModalManager(this);
-        this.trackersManager = new TrackersModalManager(this);
 
         // Expose to global scope for onclick handlers in HTML templates
         window.switchesModal = this.switchesManager;
-        window.trackersModal = this.trackersManager;
 
         this.setupPlayerListModal(); // Initialize player list modal listeners
 
@@ -497,11 +495,6 @@ class RustPlusWebUI {
             // Update switches modal if open
             if (this.switchesManager && this.switchesManager.modal && this.switchesManager.modal.classList.contains('open')) {
                 this.switchesManager.fetchAndRender();
-            }
-
-            // Update trackers modal if open
-            if (this.trackersManager && this.trackersManager.modal && this.trackersManager.modal.classList.contains('open')) {
-                this.trackersManager.fetchAndRender();
             }
 
             this.updateLastUpdateTime();
@@ -1914,6 +1907,8 @@ class RustPlusWebUI {
         // Draw historical death markers (only when enabled)
         if (this.controls.showDeathMarkers && !this.mapReplay?.isReplayMode) this.drawDeathMarkers(ctx);
         if (this.controls.showMarkers && this.serverData.markers) this.drawCustomMarkers(ctx);
+        // Draw SAM locations (always visible)
+        if (this.serverData.samLocations) this.drawSamLocations(ctx);
         // Render live trails with colors
         if (this.controls.showTrails && !this.mapReplay?.isReplayMode) {
             this.drawPlayerTrails(ctx);
@@ -1988,6 +1983,36 @@ class RustPlusWebUI {
         const row = cellY;
 
         return `${col}${row}`;
+    }
+
+    gridToWorld(gridString) {
+        if (!this.serverData?.info?.mapSize || !this.worldRect) return null;
+
+        const mapSize = this.serverData.info.mapSize;
+        const gridSize = 150;
+        const numCells = Math.ceil(mapSize / gridSize);
+        const cellSize = this.worldRect.width / numCells;
+
+        // Parse grid string (e.g., "T15" -> col='T', row=15)
+        const match = gridString.match(/^([A-Z]+)(\d+)$/i);
+        if (!match) return null;
+
+        const colString = match[1].toUpperCase();
+        const row = parseInt(match[2]);
+
+        // Convert column letters back to number (A=0, B=1, ..., Z=25, AA=26, etc.)
+        let colNum = 0;
+        for (let i = 0; i < colString.length; i++) {
+            colNum = colNum * 26 + (colString.charCodeAt(i) - 'A'.charCodeAt(0) + 1);
+        }
+        colNum -= 1; // Adjust to 0-based
+
+        // Use the same coordinate system as the grid drawing
+        // This matches how grid labels are positioned in drawGrid()
+        const worldX = this.worldRect.x + colNum * cellSize + cellSize / 2;
+        const worldY = this.worldRect.y + row * cellSize + cellSize / 2;
+
+        return { x: worldX, y: worldY };
     }
 
     drawMonuments(ctx) {
@@ -2305,6 +2330,44 @@ class RustPlusWebUI {
                 ctx.beginPath();
                 ctx.arc(x, y, size / 2, 0, Math.PI * 2);
                 ctx.fill();
+            }
+        });
+    }
+
+    drawSamLocations(ctx) {
+        const samLocations = this.serverData.samLocations;
+        if (!samLocations?.length) return;
+
+        // Fixed radius in screen pixels (2.5 grids worth)
+        // Grid is 150 units, so 2.5 grids = 375 world units
+        // But we want it fixed in screen space (not scale with zoom)
+        const fixedRadiusPixels = 67.5; // Fixed size in screen pixels (1.5x larger)
+
+        samLocations.forEach(gridLocation => {
+            const worldCoords = this.gridToWorld(gridLocation);
+            if (!worldCoords) return;
+
+            const { x, y } = this.worldToCanvas(worldCoords.x, worldCoords.y);
+
+            // Draw red circle with fixed screen size (doesn't scale with zoom)
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x, y, fixedRadiusPixels, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw grid label if zoomed in enough
+            if (this.scale > 0.8) {
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+                ctx.lineWidth = 2;
+                ctx.font = `bold ${12}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.strokeText(gridLocation, x, y);
+                ctx.fillText(gridLocation, x, y);
             }
         });
     }

@@ -53,13 +53,31 @@ module.exports = {
             }
         }
 
+        // Remove stale unique temp files created by writeInstanceFile
+        const instanceDir = Path.join(__dirname, '..', '..', 'instances');
+        const tempPrefix = `${guildId}.json.tmp.`;
+        try {
+            for (const file of Fs.readdirSync(instanceDir)) {
+                if (file.startsWith(tempPrefix)) {
+                    const filePath = Path.join(instanceDir, file);
+                    try {
+                        Fs.unlinkSync(filePath);
+                    } catch (e) {
+                        /* Ignore */
+                    }
+                }
+            }
+        } catch (e) {
+            /* Ignore */
+        }
+
         // Fahren Sie mit dem normalen Lesen fort
         return JSON.parse(Fs.readFileSync(targetPath, 'utf8'));
     },
 
     writeInstanceFile: function (guildId, instance) {
         const targetPath = Path.join(__dirname, '..', '..', 'instances', `${guildId}.json`);
-        const tempPath = targetPath + '.tmp';
+        const tempPath = `${targetPath}.tmp.${process.pid}.${Date.now()}`;
         
         const data = JSON.stringify(instance, null, 2);
 
@@ -77,6 +95,10 @@ module.exports = {
             }
             
             // Rename temp file to target, handling case where target might already exist
+            if (!Fs.existsSync(tempPath)) {
+                throw new Error(`Temp file does not exist: ${tempPath}`);
+            }
+
             if (Fs.existsSync(targetPath)) {
                 Fs.unlinkSync(targetPath);
             }

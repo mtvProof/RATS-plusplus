@@ -357,7 +357,6 @@ module.exports = async (client, interaction) => {
         const trackerCoordinates = interaction.fields.getTextInputValue('TrackerCoordinates');
         const trackerBattlemetricsId = interaction.fields.getTextInputValue('TrackerBattlemetricsId');
         const trackerClanTag = interaction.fields.getTextInputValue('TrackerClanTag');
-        const trackerChannelName = interaction.fields.getTextInputValue('TrackerChannelName');
 
         if (!tracker) {
             interaction.deferUpdate();
@@ -366,18 +365,6 @@ module.exports = async (client, interaction) => {
 
         tracker.name = trackerCoordinates;
         tracker.clanTag = trackerClanTag;
-
-        // Cambiar el nombre del canal de Discord si se proporcionó uno
-        if (trackerChannelName && tracker.channelId) {
-            const channel = DiscordTools.getTextChannelById(guildId, tracker.channelId);
-            if (channel) {
-                try {
-                    await channel.setName(trackerChannelName);
-                } catch (e) {
-                    client.log(client.intlGet(null, 'errorCap'), `Could not rename tracker channel: ${e}`, 'error');
-                }
-            }
-        }
 
         if (trackerBattlemetricsId !== tracker.battlemetricsId) {
             if (client.battlemetricsInstances.hasOwnProperty(trackerBattlemetricsId)) {
@@ -637,5 +624,7 @@ module.exports = async (client, interaction) => {
         id: `${verifyId}`
     }));
 
-    interaction.deferUpdate();
+    if (!interaction.replied && !interaction.deferred) {
+        interaction.deferUpdate();
+    }
 }

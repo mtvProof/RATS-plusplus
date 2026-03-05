@@ -43,7 +43,7 @@ class Player {
         this._cameOnlineTime = player.isOnline ? new Date() : null;
         this._lastActivePlaytimeUpdate = new Date();
 
-        // Load playtime from instance file for this server
+        // Load playtime and timestamps from instance file for this server
         const Client = require('../../index.ts');
         const instance = Client.client.getInstance(rustplus.guildId);
         const server = instance.serverList[rustplus.serverId];
@@ -51,6 +51,17 @@ class Player {
             this._totalActivePlaytimeSeconds = server.playerPlaytimes[this._steamId];
         } else {
             this._totalActivePlaytimeSeconds = 0;
+        }
+
+        // Restore offline/online timestamps
+        if (server && server.playerTimestamps && server.playerTimestamps[this._steamId]) {
+            const timestamps = server.playerTimestamps[this._steamId];
+            if (timestamps.wentOfflineTime) {
+                this._wentOfflineTime = new Date(timestamps.wentOfflineTime);
+            }
+            if (timestamps.cameOnlineTime) {
+                this._cameOnlineTime = new Date(timestamps.cameOnlineTime);
+            }
         }
 
         this.updatePos();
@@ -124,6 +135,7 @@ class Player {
         if (this.isGoneOffline(player)) {
             this.wentOfflineTime = new Date();
             this.cameOnlineTime = null;
+            this.persistTimestamps();
         }
 
         if (this.isGoneOnline(player)) {
@@ -131,6 +143,7 @@ class Player {
             this.cameOnlineTime = new Date();
             this._lastActivePlaytimeUpdate = new Date();
             this.afkSeconds = 0;
+            this.persistTimestamps();
         }
 
         if (this.isMoved(player)) {
@@ -227,6 +240,22 @@ class Player {
                 server.playerPlaytimes = {};
             }
             server.playerPlaytimes[this._steamId] = this._totalActivePlaytimeSeconds;
+            Client.client.setInstance(this._rustplus.guildId, instance);
+        }
+    }
+
+    persistTimestamps() {
+        const Client = require('../../index.ts');
+        const instance = Client.client.getInstance(this._rustplus.guildId);
+        const server = instance.serverList[this._rustplus.serverId];
+        if (server) {
+            if (!server.playerTimestamps) {
+                server.playerTimestamps = {};
+            }
+            server.playerTimestamps[this._steamId] = {
+                wentOfflineTime: this._wentOfflineTime,
+                cameOnlineTime: this._cameOnlineTime
+            };
             Client.client.setInstance(this._rustplus.guildId, instance);
         }
     }

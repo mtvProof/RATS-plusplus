@@ -296,6 +296,9 @@ async function setupGeneralSettings(client, guildId, channel) {
 
 async function setupNotificationSettings(client, guildId, channel) {
     const instance = client.getInstance(guildId);
+    const translationFallback = {
+        deepSeaLeftMapSetting: 'deepSeaLeftSetting'
+    };
 
     await client.messageSend(channel, {
         files: [new Discord.AttachmentBuilder(
@@ -322,10 +325,15 @@ async function setupNotificationSettings(client, guildId, channel) {
                 guildId, setting, notification.prepairMinutes));
         }
 
+        let title = client.intlGet(guildId, setting);
+        if (title === setting && translationFallback[setting]) {
+            title = client.intlGet(guildId, translationFallback[setting]);
+        }
+
         await client.messageSend(channel, {
             embeds: [DiscordEmbeds.getEmbed({
                 color: Constants.COLOR_SETTINGS,
-                title: client.intlGet(guildId, setting),
+                title: title,
                 thumbnail: `attachment://${notification.image}`
             })],
             components: components,

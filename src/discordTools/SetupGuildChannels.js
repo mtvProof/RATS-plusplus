@@ -22,20 +22,19 @@ const DiscordTools = require('../discordTools/discordTools.js');
 const PermissionHandler = require('../handlers/permissionHandler.js');
 
 module.exports = async (client, guild, category) => {
-    await addTextChannel(client.intlGet(guild.id, 'channelNameInformation'), 'information', client, guild, category);
-    await addTextChannel(client.intlGet(guild.id, 'channelNameImportantAlerts'), 'importantAlerts', client, guild, category);
-    await addTextChannel(client.intlGet(guild.id, 'channelNameServers'), 'servers', client, guild, category);
-    await addTextChannel(client.intlGet(guild.id, 'channelNameSettings'), 'settings', client, guild, category);
-    await addTextChannel(client.intlGet(guild.id, 'channelNameCommands'), 'commands', client, guild, category, true);
-    await addTextChannel(client.intlGet(guild.id, 'channelNameEvents'), 'events', client, guild, category);
-    await addTextChannel(client.intlGet(guild.id, 'channelNameTeamchat'), 'teamchat', client, guild, category, true);
-    await addTextChannel(client.intlGet(guild.id, 'channelNameSwitches'), 'switches', client, guild, category);
-    await addTextChannel(client.intlGet(guild.id, 'channelNameSwitchGroups'), 'switchGroups', client, guild, category);
-    await addTextChannel(client.intlGet(guild.id, 'channelNameAlarms'), 'alarms', client, guild, category);
-    await addTextChannel(client.intlGet(guild.id, 'channelNameStorageMonitors'),
-        'storageMonitors', client, guild, category);
-    await addTextChannel(client.intlGet(guild.id, 'channelNameActivity'), 'activity', client, guild, category);
-    await addTextChannel(client.intlGet(guild.id, 'channelNameTrackers'), 'trackers', client, guild, category);
+    await addTextChannel('ℹ️information', 'information', client, guild, category);
+    await addTextChannel('💥important-alerts', 'importantAlerts', client, guild, category);
+    await addTextChannel('🟢switchgroups', 'switchGroups', client, guild, category);
+    await addTextChannel('🕵️trackers', 'trackers', client, guild, category);
+    await addTextChannel('commands', 'commands', client, guild, category, true);
+    await addTextChannel('events', 'events', client, guild, category);
+    await addTextChannel('activity', 'activity', client, guild, category);
+    await addTextChannel('teamchat', 'teamchat', client, guild, category, true);
+    await addTextChannel('⚙️servers', 'servers', client, guild, category);
+    await addTextChannel('⚙️settings', 'settings', client, guild, category);
+    await addTextChannel('⚙️switches', 'switches', client, guild, category);
+    await addTextChannel('⚙️storagemonitors', 'storageMonitors', client, guild, category);
+    await addTextChannel('⚙️alarms', 'alarms', client, guild, category);
 };
 
 async function addTextChannel(name, idName, client, guild, parent, permissionWrite = false) {

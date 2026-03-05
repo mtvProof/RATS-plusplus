@@ -21,6 +21,7 @@
 const Info = require('../structures/Info');
 const InformationHandler = require('../handlers/informationHandler.js');
 const MapMarkers = require('../structures/MapMarkers.js');
+const SamSiteWarningHandler = require('../handlers/samSiteWarningHandler.js');
 const SmartAlarmHandler = require('../handlers/smartAlarmHandler.js');
 const SmartSwitchHandler = require('../handlers/smartSwitchHandler.js');
 const StorageMonitorHandler = require('../handlers/storageMonitorHandler.js');
@@ -32,60 +33,82 @@ const VendingMachines = require('../handlers/vendingMachineHandler.js');
 
 module.exports = {
     pollingHandler: async function (rustplus, client) {
-        /* Poll information such as info, mapMarkers, teamInfo and time */
-        let info = await rustplus.getInfoAsync();
-        if (!(await rustplus.isResponseValid(info))) return;
-        let mapMarkers = await rustplus.getMapMarkersAsync();
-        if (!(await rustplus.isResponseValid(mapMarkers))) return;
-        let teamInfo = await rustplus.getTeamInfoAsync();
-        if (!(await rustplus.isResponseValid(teamInfo))) return;
-        let time = await rustplus.getTimeAsync();
-        if (!(await rustplus.isResponseValid(time))) return;
+        if (rustplus.isPollingHandlerRunning) return;
+        rustplus.isPollingHandlerRunning = true;
 
-        if (rustplus.isFirstPoll) {
-            rustplus.info = new Info(info.info);
-            rustplus.time = new Time(time.time, rustplus, client);
-            rustplus.team = new Team(teamInfo.teamInfo, rustplus);
-            rustplus.mapMarkers = new MapMarkers(mapMarkers.mapMarkers, rustplus, client);
-        }
+        try {
+            /* Poll information such as info, mapMarkers, teamInfo and time */
+            let info = await rustplus.getInfoAsync();
+            if (!(await rustplus.isResponseValid(info))) return;
+            let mapMarkers = await rustplus.getMapMarkersAsync();
+            if (!(await rustplus.isResponseValid(mapMarkers))) return;
+            let teamInfo = await rustplus.getTeamInfoAsync();
+            if (!(await rustplus.isResponseValid(teamInfo))) return;
+            let time = await rustplus.getTimeAsync();
+            if (!(await rustplus.isResponseValid(time))) return;
 
-        await module.exports.handlers(rustplus, client, info, mapMarkers, teamInfo, time);
-        rustplus.isFirstPoll = false;
-
-        // Clear reconnecting flags AFTER first poll to ensure grace period suppression works
-        const guildId = rustplus.guildId;
-        const isSecondary = rustplus.instanceLabel === 'secondary';
-        if (isSecondary) {
-            if (client.rustplusSecondaryReconnecting[guildId]) {
-                client.rustplusSecondaryReconnecting[guildId] = false;
+            if (rustplus.isFirstPoll) {
+                rustplus.info = new Info(info.info);
+                rustplus.time = new Time(time.time, rustplus, client);
+                rustplus.team = new Team(teamInfo.teamInfo, rustplus);
+                rustplus.mapMarkers = new MapMarkers(mapMarkers.mapMarkers, rustplus, client);
             }
-        } else {
-            if (client.rustplusReconnecting[guildId]) {
-                client.rustplusReconnecting[guildId] = false;
+
+            await module.exports.handlers(rustplus, client, info, mapMarkers, teamInfo, time);
+            rustplus.isFirstPoll = false;
+
+            // Clear reconnecting flags AFTER first poll to ensure grace period suppression works
+            const guildId = rustplus.guildId;
+            const isSecondary = rustplus.instanceLabel === 'secondary';
+            if (isSecondary) {
+                if (client.rustplusSecondaryReconnecting[guildId]) {
+                    client.rustplusSecondaryReconnecting[guildId] = false;
+                }
+            } else {
+                if (client.rustplusReconnecting[guildId]) {
+                    client.rustplusReconnecting[guildId] = false;
+                }
             }
+        } catch (error) {
+            console.error('CRITICAL: Polling handler error:', error);
+            rustplus.log(null, `POLLING ERROR: ${error.message}`);
+        } finally {
+            rustplus.isPollingHandlerRunning = false;
         }
     },
 
     handlers: async function (rustplus, client, info, mapMarkers, teamInfo, time) {
-        // Check for map wipe and clear playtimes if needed
-        rustplus.checkForMapWipeAndClearPlaytimes();
+        try {
+            // Check for map wipe and clear playtimes if needed
+            rustplus.checkForMapWipeAndClearPlaytimes();
 
-        await TeamHandler.handler(rustplus, client, teamInfo.teamInfo);
-        rustplus.team.updateTeam(teamInfo.teamInfo);
+            await TeamHandler.handler(rustplus, client, teamInfo.teamInfo);
+            rustplus.team.updateTeam(teamInfo.teamInfo);
 
-        // Secondary (hoster2) should only maintain team info/chat; skip other duties.
-        if (rustplus.instanceLabel === 'secondary') return;
+            // Secondary (hoster2) should only maintain team info/chat; skip other duties.
+            if (rustplus.instanceLabel === 'secondary') return;
 
-        await SmartSwitchHandler.handler(rustplus, client, time.time);
-        TimeHandler.handler(rustplus, client, time.time);
-        await VendingMachines.handler(rustplus, client, mapMarkers.mapMarkers);
+            await SmartSwitchHandler.handler(rustplus, client, time.time);
+            TimeHandler.handler(rustplus, client, time.time);
+            await VendingMachines.handler(rustplus, client, mapMarkers.mapMarkers);
 
-        rustplus.time.updateTime(time.time);
-        rustplus.info.updateInfo(info.info);
-        rustplus.mapMarkers.updateMapMarkers(mapMarkers.mapMarkers);
+            rustplus.time.updateTime(time.time);
+            rustplus.info.updateInfo(info.info);
+            rustplus.mapMarkers.updateMapMarkers(mapMarkers.mapMarkers);
 
-        await InformationHandler.handler(rustplus);
-        await StorageMonitorHandler.handler(rustplus, client);
-        await SmartAlarmHandler.handler(rustplus, client);
+            await SamSiteWarningHandler.handler(rustplus, client);
+
+            await StorageMonitorHandler.handler(rustplus, client);
+            await SmartAlarmHandler.handler(rustplus, client);
+
+            // Non-critical and potentially slow (Discord/web requests): do not block polling loop.
+            InformationHandler.handler(rustplus).catch((error) => {
+                console.error('INFORMATION HANDLER ERROR:', error);
+                rustplus.log(null, `INFORMATION HANDLER ERROR: ${error.message}`);
+            });
+        } catch (error) {
+            console.error('CRITICAL: Polling handlers error:', error);
+            rustplus.log(null, `HANDLERS ERROR: ${error.message}`);
+        }
     },
 };

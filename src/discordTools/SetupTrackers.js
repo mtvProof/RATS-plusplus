@@ -27,10 +27,9 @@ module.exports = async (client, guild) => {
     for (const trackerId in instance.trackers) {
         const tracker = instance.trackers[trackerId];
         
-        // Check if message still exists
-        const channelId = tracker.channelId || instance.channelId.trackers;
-        if (tracker.messageId && channelId) {
-            const message = await DiscordTools.getMessageById(guild.id, channelId, tracker.messageId);
+        // Check if message still exists in the trackers channel
+        if (tracker.messageId && instance.channelId.trackers) {
+            const message = await DiscordTools.getMessageById(guild.id, instance.channelId.trackers, tracker.messageId);
             
             // If message exists, update it instead of recreating
             if (message) {
@@ -46,4 +45,7 @@ module.exports = async (client, guild) => {
         // Add delay between tracker updates to avoid Discord rate limiting
         await new Promise(resolve => setTimeout(resolve, 500));
     }
+
+    // Send the "Create Tracker" button to the trackers channel
+    await DiscordMessages.sendTrackersCreateButtonMessage(guild.id);
 }

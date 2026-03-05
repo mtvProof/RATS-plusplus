@@ -596,56 +596,32 @@ class WebServer {
 
         if (!server) return res.status(404).json({ error: "Server not found" });
 
-        const DiscordTools = require("../discordTools/discordTools.js");
         const DiscordMessages = require("../discordTools/discordMessages.js");
 
         const trackerId = this.client.findAvailableTrackerId(guildId);
-        const trackerChannelName = `tracker-${trackerId}`;
-        const newChannel = await DiscordTools.addTextChannel(
-          guildId,
-          trackerChannelName
-        );
 
-        if (newChannel) {
-          const category = DiscordTools.getCategoryById(
-            guildId,
-            instance.channelId.category
-          );
-          if (category) {
-            try {
-              await newChannel.setParent(category.id);
-              await newChannel.lockPermissions();
-            } catch (e) {
-              console.error("Error setting parent for tracker channel:", e);
-            }
-          }
+        instance.trackers[trackerId] = {
+          name: "Tracker",
+          serverId: serverId,
+          battlemetricsId: server.battlemetricsId,
+          title: server.title,
+          img: server.img,
+          clanTag: "",
+          everyone: false,
+          inGame: true,
+          players: [],
+          messageId: null,
+        };
 
-          instance.trackers[trackerId] = {
-            name: "Tracker",
-            serverId: serverId,
-            battlemetricsId: server.battlemetricsId,
-            title: server.title,
-            img: server.img,
-            clanTag: "",
-            everyone: false,
-            inGame: true,
-            players: [],
-            messageId: null,
-            channelId: newChannel.id,
-          };
+        this.client.setInstance(guildId, instance);
+        await DiscordMessages.sendTrackerMessage(guildId, trackerId);
+        this.broadcastServerUpdate(guildId);
 
-          this.client.setInstance(guildId, instance);
-          await DiscordMessages.sendTrackerMessage(guildId, trackerId);
-          this.broadcastServerUpdate(guildId);
-
-          res.json({
-            success: true,
-            trackerId,
-            tracker: instance.trackers[trackerId],
-          });
-        } else {
-          res.status(500).json({ error: "Could not create Discord channel" });
-        }
+        res.json({
+          success: true,
+          trackerId,
+          tracker: instance.trackers[trackerId],
+        });
       } catch (error) {
         res.status(500).json({ error: error.message });
       }
@@ -681,20 +657,6 @@ class WebServer {
         }
         if (everyone !== undefined) tracker.everyone = everyone;
         if (inGame !== undefined) tracker.inGame = inGame;
-
-        if (channelName && tracker.channelId) {
-          const channel = DiscordTools.getTextChannelById(
-            guildId,
-            tracker.channelId
-          );
-          if (channel) {
-            try {
-              await channel.setName(channelName);
-            } catch (e) {
-              console.error("Error renaming channel:", e);
-            }
-          }
-        }
 
         if (battlemetricsId && battlemetricsId !== tracker.battlemetricsId) {
           if (
@@ -741,16 +703,6 @@ class WebServer {
 
           if (!tracker)
             return res.status(404).json({ error: "Tracker not found" });
-
-          const DiscordTools = require("../discordTools/discordTools.js");
-
-          if (tracker.channelId) {
-            try {
-              await DiscordTools.removeTextChannel(guildId, tracker.channelId);
-            } catch (e) {
-              console.error("Error deleting channel:", e);
-            }
-          }
 
           delete instance.trackers[trackerId];
           this.client.setInstance(guildId, instance);
@@ -1237,6 +1189,7 @@ class WebServer {
         guildId,
         instance.trackers || {}
       ),
+      samLocations: serverInfo?.samLocations || [],
     };
 
     // Cache the data

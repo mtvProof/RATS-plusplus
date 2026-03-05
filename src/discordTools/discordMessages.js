@@ -84,11 +84,9 @@ module.exports = {
             components: DiscordButtons.getTrackerButtons(guildId, trackerId)
         }
 
-        // Usar el canal específico del tracker si existe, si no, el global
-        const channelId = tracker.channelId || instance.channelId.trackers;
-
+        // Always use the shared trackers channel
         const message = await module.exports.sendMessage(guildId, content, tracker.messageId,
-            channelId, interaction);
+            instance.channelId.trackers, interaction);
 
         if (!interaction && message) {
             instance.trackers[trackerId].messageId = message.id;
@@ -586,8 +584,7 @@ module.exports = {
         const content = {
             embeds: [DiscordEmbeds.getEmbed({
                 color: color,
-                description: `**${playerName}**: ${playerMessage}`,
-                footer: { text: steamIdText }
+                description: `**${playerName}**: ${playerMessage}`
             })]
         }
 

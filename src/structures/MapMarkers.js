@@ -80,6 +80,9 @@ class MapMarkers {
         /* Deep Sea timers */
         this.deepSeaPrepairTimer = null;
 
+        // Load event times from instance file
+        this.loadEventTimes();
+
         this.updateMapMarkers(mapMarkers);
     }
 
@@ -408,6 +411,7 @@ class MapMarkers {
                 if (!deepSeaLeftHandled) {
                     this.timeSinceDeepSeaWasOnMap = new Date();
                     this.deepSeaSpawnedAt = null;
+                    this.persistEventTimes();
                 }
 
                 this.deepSea = this.deepSea.filter(e => e.x !== marker.x || e.y !== marker.y);
@@ -499,6 +503,7 @@ class MapMarkers {
 
                         this.crateSmallOilRigLocation = oilRigLocation.location;
                         this.timeSinceSmallOilRigWasTriggered = new Date();
+                        this.persistEventTimes();
                         break;
                     }
                 }
@@ -534,6 +539,7 @@ class MapMarkers {
 
                         this.crateLargeOilRigLocation = oilRigLocation.location;
                         this.timeSinceLargeOilRigWasTriggered = new Date();
+                        this.persistEventTimes();
                         break;
                     }
                 }
@@ -568,6 +574,7 @@ class MapMarkers {
         for (let marker of leftMarkers) {
             if (marker.ch47Type === 'crate') {
                 this.timeSinceCH47WasOut = new Date();
+                this.persistEventTimes();
                 this.rustplus.log(this.client.intlGet(null, 'eventCap'),
                     this.client.intlGet(null, 'chinook47LeftMap', { location: marker.location.string }));
             }
@@ -646,6 +653,7 @@ class MapMarkers {
             }
 
             this.timeSinceCargoShipWasOut = new Date();
+            this.persistEventTimes();
 
             this.cargoShips = this.cargoShips.filter(e => e.id !== marker.id);
             delete this.rustplus.cargoShipTracers[marker.id];
@@ -782,6 +790,7 @@ class MapMarkers {
                     Constants.COLOR_PATROL_HELICOPTER_LEFT_MAP);
 
                 this.timeSincePatrolHelicopterWasOnMap = new Date();
+                this.persistEventTimes();
             }
             else {
                 this.rustplus.sendEvent(
@@ -794,6 +803,7 @@ class MapMarkers {
 
                 this.timeSincePatrolHelicopterWasDestroyed = new Date();
                 this.timeSincePatrolHelicopterWasOnMap = new Date();
+                this.persistEventTimes();
 
                 this.patrolHelicopterDestroyedLocation = Map.getGridPos(marker.x, marker.y, mapSize);
             }
@@ -847,6 +857,7 @@ class MapMarkers {
                 Constants.COLOR_TRAVELING_VENDOR_LEFT_MAP);
 
             this.timeSinceTravelingVendorWasOnMap = new Date();
+            this.persistEventTimes();
 
             this.travelingVendors = this.travelingVendors.filter(e => e.id !== marker.id);
         }
@@ -1076,6 +1087,44 @@ class MapMarkers {
         this.crateLargeOilRigLocation = null;
 
         this.isDeepSeaActive = false;
+    }
+
+    loadEventTimes() {
+        const Client = require('../../index.ts');
+        const instance = Client.client.getInstance(this.rustplus.guildId);
+        const server = instance.serverList[this.rustplus.serverId];
+        
+        if (server && server.eventTimes) {
+            const et = server.eventTimes;
+            if (et.timeSinceCargoShipWasOut) this.timeSinceCargoShipWasOut = new Date(et.timeSinceCargoShipWasOut);
+            if (et.timeSinceCH47WasOut) this.timeSinceCH47WasOut = new Date(et.timeSinceCH47WasOut);
+            if (et.timeSinceSmallOilRigWasTriggered) this.timeSinceSmallOilRigWasTriggered = new Date(et.timeSinceSmallOilRigWasTriggered);
+            if (et.timeSinceLargeOilRigWasTriggered) this.timeSinceLargeOilRigWasTriggered = new Date(et.timeSinceLargeOilRigWasTriggered);
+            if (et.timeSincePatrolHelicopterWasOnMap) this.timeSincePatrolHelicopterWasOnMap = new Date(et.timeSincePatrolHelicopterWasOnMap);
+            if (et.timeSincePatrolHelicopterWasDestroyed) this.timeSincePatrolHelicopterWasDestroyed = new Date(et.timeSincePatrolHelicopterWasDestroyed);
+            if (et.timeSinceTravelingVendorWasOnMap) this.timeSinceTravelingVendorWasOnMap = new Date(et.timeSinceTravelingVendorWasOnMap);
+            if (et.timeSinceDeepSeaWasOnMap) this.timeSinceDeepSeaWasOnMap = new Date(et.timeSinceDeepSeaWasOnMap);
+        }
+    }
+
+    persistEventTimes() {
+        const Client = require('../../index.ts');
+        const instance = Client.client.getInstance(this.rustplus.guildId);
+        const server = instance.serverList[this.rustplus.serverId];
+        
+        if (server) {
+            server.eventTimes = {
+                timeSinceCargoShipWasOut: this.timeSinceCargoShipWasOut,
+                timeSinceCH47WasOut: this.timeSinceCH47WasOut,
+                timeSinceSmallOilRigWasTriggered: this.timeSinceSmallOilRigWasTriggered,
+                timeSinceLargeOilRigWasTriggered: this.timeSinceLargeOilRigWasTriggered,
+                timeSincePatrolHelicopterWasOnMap: this.timeSincePatrolHelicopterWasOnMap,
+                timeSincePatrolHelicopterWasDestroyed: this.timeSincePatrolHelicopterWasDestroyed,
+                timeSinceTravelingVendorWasOnMap: this.timeSinceTravelingVendorWasOnMap,
+                timeSinceDeepSeaWasOnMap: this.timeSinceDeepSeaWasOnMap
+            };
+            Client.client.setInstance(this.rustplus.guildId, instance);
+        }
     }
 }
 
