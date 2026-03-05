@@ -1909,6 +1909,8 @@ class RustPlusWebUI {
         if (this.controls.showMarkers && this.serverData.markers) this.drawCustomMarkers(ctx);
         // Draw SAM locations (always visible)
         if (this.serverData.samLocations) this.drawSamLocations(ctx);
+        // Draw group markers from trackers (always visible)
+        if (this.serverData.trackers) this.drawGroupMarkers(ctx);
         // Render live trails with colors
         if (this.controls.showTrails && !this.mapReplay?.isReplayMode) {
             this.drawPlayerTrails(ctx);
@@ -2372,6 +2374,44 @@ class RustPlusWebUI {
                 ctx.strokeText(gridLocation, x, y);
                 ctx.fillText(gridLocation, x, y);
             }
+        });
+    }
+
+    drawGroupMarkers(ctx) {
+        const trackers = this.serverData.trackers;
+        if (!trackers) return;
+
+        // Slightly smaller than SAM site circles
+        const fixedRadiusPixels = 55;
+
+        Object.values(trackers).forEach(tracker => {
+            // Only draw if tracker has coordinates set
+            if (!tracker.clanTag || tracker.clanTag.trim() === '') return;
+
+            const gridLocation = tracker.clanTag.trim().toUpperCase();
+            const worldCoords = this.gridToWorld(gridLocation);
+            if (!worldCoords) return;
+
+            const { x, y } = this.worldToCanvas(worldCoords.x, worldCoords.y);
+
+            // Draw blue circle with fixed screen size
+            ctx.fillStyle = 'rgba(52, 152, 219, 0.3)';
+            ctx.strokeStyle = 'rgba(52, 152, 219, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x, y, fixedRadiusPixels, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            // Draw tracker name in the center
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+            ctx.strokeStyle = 'rgba(0, 0, 0, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.font = `bold ${12}px Arial`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.strokeText(tracker.name, x, y);
+            ctx.fillText(tracker.name, x, y);
         });
     }
 

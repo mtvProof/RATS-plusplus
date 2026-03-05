@@ -352,6 +352,8 @@ module.exports = async (client, interaction) => {
         await DiscordMessages.sendStorageMonitorMessage(interaction.guildId, ids.serverId, ids.entityId);
     }
     else if (interaction.customId.startsWith('TrackerEdit')) {
+        await interaction.deferUpdate();
+
         const ids = JSON.parse(interaction.customId.replace('TrackerEdit', ''));
         const tracker = instance.trackers[ids.trackerId];
         let trackerName = '';
@@ -364,7 +366,6 @@ module.exports = async (client, interaction) => {
         }
 
         if (!tracker) {
-            interaction.deferUpdate();
             return;
         }
 
