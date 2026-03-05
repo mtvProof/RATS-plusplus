@@ -336,6 +336,10 @@ class StatisticsTracker {
         return this.db.getTeamStatistics(guildId, serverId, steamIds);
     }
 
+    getKnownPlayers(guildId, serverId, limit = 500) {
+        return this.db.getKnownPlayers(guildId, serverId, limit);
+    }
+
     getServerStats(guildId, serverId, days = 7) {
         return this.db.getServerStatistics(guildId, serverId, days);
     }
@@ -444,6 +448,24 @@ class StatisticsTracker {
     resetGuildStats(guildId) {
         this.client.log(this.client.intlGet(null, 'infoCap'), `Statistics: resetting statistics for guild ${guildId}`);
         return this.db.resetGuildStats(guildId);
+    }
+
+    resetServerStats(guildId, serverId) {
+        this.client.log(this.client.intlGet(null, 'infoCap'),
+            `Statistics: resetting statistics for guild ${guildId}, server ${serverId}`);
+        this.lastKnownPlayerStates[guildId] = {};
+        this.reconnectPending[guildId] = false;
+        this.reconnectMode[guildId] = false;
+        return this.db.resetServerStats(guildId, serverId);
+    }
+
+    resetWipeStats(guildId, serverId) {
+        this.client.log(this.client.intlGet(null, 'infoCap'),
+            `Statistics: wipe reset for guild ${guildId}, server ${serverId}`);
+        this.lastKnownPlayerStates[guildId] = {};
+        this.reconnectPending[guildId] = false;
+        this.reconnectMode[guildId] = false;
+        return this.db.resetWipeStats(guildId, serverId);
     }
 
     /* PIN CODE MANAGEMENT */

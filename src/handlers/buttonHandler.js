@@ -519,6 +519,7 @@ module.exports = async (client, interaction) => {
             await DiscordMessages.sendServerMessage(guildId, instance.activeServer, null);
         }
 
+        const previousActiveServer = instance.activeServer;
         instance.activeServer = ids.serverId;
         client.setInstance(guildId, instance);
 

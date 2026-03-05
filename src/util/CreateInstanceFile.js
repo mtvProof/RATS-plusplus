@@ -104,6 +104,10 @@ module.exports = (client, guild) => {
             instance.baseCodes = { main: null, secondary: null };
         }
 
+        if (!instance.hasOwnProperty('samSites')) {
+            instance.samSites = [];
+        }
+
         if (!instance.hasOwnProperty('notificationSettings')) {
             instance.notificationSettings = client.readNotificationSettingsTemplate();
         }
@@ -232,6 +236,12 @@ module.exports = (client, guild) => {
         }
         if (!content.hasOwnProperty('deepSeaWipeDurationMs')) {
             content.deepSeaWipeDurationMs = Constants.DEFAULT_DEEP_SEA_WIPE_DURATION_MS;
+        }
+        if (!content.hasOwnProperty('lastMapSeed')) {
+            content.lastMapSeed = null;
+        }
+        if (!content.hasOwnProperty('playerTimestamps')) {
+            content.playerTimestamps = {};
         }
     }
 

@@ -356,10 +356,12 @@ class MapMarkers {
                     }
 
                     this.deepSeaLastLocation = pos.string;
-                    // If detected during the initial poll, we don't know when it actually spawned;
-                    // leave deepSeaSpawnedAt null so downstream callers omit an inaccurate timer.
-                    this.deepSeaSpawnedAt = this.rustplus.isFirstPoll ? null : now;
-                    this.deepSeaLastSpawnAt = now;
+                    // Preserve restored spawn state on first poll after reboot.
+                    // If there is no prior state, use current time so Deep Sea is treated as active.
+                    if (!this.deepSeaSpawnedAt) {
+                        this.deepSeaSpawnedAt = now;
+                    }
+                    this.deepSeaLastSpawnAt = this.deepSeaLastSpawnAt || this.deepSeaSpawnedAt || now;
                     this.deepSeaRespawnAt = null;
                     this.timeSinceDeepSeaWasOnMap = null;
 

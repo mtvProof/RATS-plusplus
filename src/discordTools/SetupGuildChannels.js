@@ -44,7 +44,9 @@ async function addTextChannel(name, idName, client, guild, parent, permissionWri
     if (instance.channelId[idName] !== null) {
         channel = DiscordTools.getTextChannelById(guild.id, instance.channelId[idName]);
     }
-    if (channel === undefined && (!instance.channelId[idName] || instance.firstTime)) {
+    
+    // Recreate channel if it doesn't exist (either no ID or channel was deleted)
+    if (channel === undefined) {
         channel = await DiscordTools.addTextChannel(guild.id, name);
         instance.channelId[idName] = channel.id;
         client.setInstance(guild.id, instance);
@@ -69,6 +71,10 @@ async function addTextChannel(name, idName, client, guild, parent, permissionWri
     }
 
     const perms = PermissionHandler.getPermissionsReset(client, guild, permissionWrite);
+
+    if (channel === undefined) {
+        return;
+    }
 
     try {
         await channel.permissionOverwrites.set(perms);
