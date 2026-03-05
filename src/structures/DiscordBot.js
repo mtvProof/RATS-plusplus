@@ -321,6 +321,10 @@ class DiscordBot extends Discord.Client {
     setInstance(guildId, instance) {
         this.instances[guildId] = instance;
         InstanceUtils.writeInstanceFile(guildId, instance);
+        // Invalidate WebUI cache when instance data is updated
+        if (this.webServer) {
+            this.webServer.invalidateCache(guildId);
+        }
     }
 
     readNotificationSettingsTemplate() {

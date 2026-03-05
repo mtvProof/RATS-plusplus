@@ -1083,6 +1083,17 @@ class WebServer {
     this.cctvSessions.set(socketId, socketSessions);
   }
 
+  invalidateCache(guildId) {
+    // Clear cache for a specific guild or all guilds
+    if (guildId) {
+      delete this.cachedServerData[guildId];
+      delete this.lastCacheUpdate[guildId];
+    } else {
+      this.cachedServerData = {};
+      this.lastCacheUpdate = {};
+    }
+  }
+
   getServerData(guildId, useCache = true) {
     // Use cached data if it's less than 5 seconds old
     const now = Date.now();
@@ -1149,6 +1160,7 @@ class WebServer {
               isAlive: p.isAlive,
               spawnTime: p.spawnTime,
               deathTime: p.deathTime,
+              inTeam: p.inTeam !== undefined ? p.inTeam : true, // Include team status
             })),
           }
         : null,
@@ -1172,7 +1184,6 @@ class WebServer {
               rustplus.mapMarkers.patrolHelicopterDestroyedLocation,
             timeSincePatrolHelicopterWasDestroyed:
               rustplus.mapMarkers.timeSincePatrolHelicopterWasDestroyed,
-            samSites: this.getSamSiteMarkers(instance, rustplus?.info?.mapSize) || [],
           }
         : null,
       markers: rustplus.markers || {},
@@ -1311,34 +1322,6 @@ class WebServer {
       `WebUI: broadcasting chat message to guild ${guildId} from ${message.player_name}`
     );
     this.io.to(`guild-${guildId}`).emit("chatMessage", message);
-  }
-
-  getSamSiteMarkers(instance, mapSize) {
-    if (!instance || !instance.samSites || instance.samSites.length === 0 || !Number.isFinite(mapSize)) {
-      return [];
-    }
-
-    const SamSiteUtils = require('../util/samSiteUtils.js');
-    const markers = [];
-
-    // Convert grid strings to map coordinates for rendering
-    for (const gridStr of instance.samSites) {
-      const normalized = SamSiteUtils.normalizeGrid(gridStr);
-      if (!normalized) continue;
-
-      const center = SamSiteUtils.gridToCenterCoordinates(normalized, mapSize);
-      if (!center) continue;
-
-      markers.push({
-        x: center.x,
-        y: center.y,
-        grid: normalized,
-        type: 'samSite',
-        radius: 75
-      });
-    }
-
-    return markers;
   }
 
   stop() {

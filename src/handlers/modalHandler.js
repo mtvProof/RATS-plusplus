@@ -354,17 +354,39 @@ module.exports = async (client, interaction) => {
     else if (interaction.customId.startsWith('TrackerEdit')) {
         const ids = JSON.parse(interaction.customId.replace('TrackerEdit', ''));
         const tracker = instance.trackers[ids.trackerId];
-        const trackerCoordinates = interaction.fields.getTextInputValue('TrackerCoordinates');
-        const trackerBattlemetricsId = interaction.fields.getTextInputValue('TrackerBattlemetricsId');
-        const trackerClanTag = interaction.fields.getTextInputValue('TrackerClanTag');
+        let trackerName = '';
+        try {
+            trackerName = interaction.fields.getTextInputValue('TrackerName');
+        }
+        catch (e) {
+            // Backward compatibility with older modal field id
+            trackerName = interaction.fields.getTextInputValue('TrackerCoordinates');
+        }
 
         if (!tracker) {
             interaction.deferUpdate();
             return;
         }
 
-        tracker.name = trackerCoordinates;
-        tracker.clanTag = trackerClanTag;
+        let trackerBattlemetricsId = tracker.battlemetricsId;
+        try {
+            trackerBattlemetricsId = interaction.fields.getTextInputValue('TrackerBattlemetricsId');
+        }
+        catch (e) {
+            // Hidden in current edit modal. Keep existing value.
+        }
+
+        let trackerCoordinates = '';
+        try {
+            trackerCoordinates = interaction.fields.getTextInputValue('TrackerCoordinates');
+        }
+        catch (e) {
+            // Backward compatibility with older modal field id
+            trackerCoordinates = interaction.fields.getTextInputValue('TrackerClanTag');
+        }
+
+        tracker.name = trackerName;
+        tracker.clanTag = trackerCoordinates;
 
         if (trackerBattlemetricsId !== tracker.battlemetricsId) {
             if (client.battlemetricsInstances.hasOwnProperty(trackerBattlemetricsId)) {
@@ -390,7 +412,7 @@ module.exports = async (client, interaction) => {
 
         client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
             id: `${verifyId}`,
-            value: `${trackerClanTag} (${trackerCoordinates}), ${tracker.battlemetricsId}`
+            value: `${trackerName} (${trackerCoordinates}), ${tracker.battlemetricsId}`
         }));
 
         await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);

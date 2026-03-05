@@ -229,7 +229,7 @@ module.exports = {
         }
 
         return module.exports.getEmbed({
-            title: `${tracker.clanTag !== '' ? tracker.clanTag + ' ' : ''}(${tracker.name})`,
+            title: `${tracker.name}${tracker.clanTag !== '' ? ` (${tracker.clanTag})` : ''}`,
             color: Constants.COLOR_DEFAULT,
             description: description,
             thumbnail: `${tracker.img}`,

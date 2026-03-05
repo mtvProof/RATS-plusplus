@@ -76,7 +76,9 @@ class Team {
         for (let player of team.members) {
             let steamId = player.steamId.toString();
             if (this.players.some(e => e.steamId === steamId)) {
-                this.getPlayer(steamId).updatePlayer(player);
+                let existingPlayer = this.getPlayer(steamId);
+                existingPlayer.updatePlayer(player);
+                existingPlayer.inTeam = true; // Mark as actively in team
                 unhandled = unhandled.filter(e => e.steamId !== steamId);
             }
             else {
@@ -94,9 +96,9 @@ class Team {
             }
         }
 
-        /* Remove players that have left */
+        /* Mark players that have left team (but keep them in players array for WebUI) */
         for (let player of unhandled) {
-            this.removePlayer(player);
+            player.inTeam = false; // Mark as not currently in team, but don't remove
         }
 
         /* Update variables */
@@ -120,7 +122,9 @@ class Team {
     addPlayer(player) {
         /* Add player if it does not already exist */
         if (!this.players.some(e => e.steamId === player.steamId)) {
-            this.players.push(new Player(player, this.rustplus));
+            let newPlayer = new Player(player, this.rustplus);
+            newPlayer.inTeam = true; // Mark as actively in team
+            this.players.push(newPlayer);
         }
     }
 

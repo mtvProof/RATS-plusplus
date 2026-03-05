@@ -20,7 +20,6 @@
 
 const Constants = require('../util/constants.js');
 const DiscordMessages = require('../discordTools/discordMessages.js');
-const SamSiteUtils = require('../util/samSiteUtils.js');
 
 module.exports = {
     handler: async function (rustplus, client, teamInfo) {
@@ -126,42 +125,6 @@ module.exports = {
                             });
                             rustplus.sendInGameMessage(str);
                             rustplus.log(client.intlGet(null, 'infoCap'), str);
-                        }
-                    }
-
-                    // Check for helicopter flying toward SAM sites
-                    if (instance.samSites && instance.samSites.length > 0) {
-                        const timeDeltaSeconds = Math.max(1, (client.pollingIntervalMs || 15000) / 1000);
-                        const mapSize = rustplus?.info?.mapSize;
-                        const isHelicopter = SamSiteUtils.isPlayerFlyingHelicopter(player, playerUpdated, timeDeltaSeconds);
-                        
-                        // Initialize warning counters if not exists
-                        if (!rustplus.samSiteWarningCounters) {
-                            rustplus.samSiteWarningCounters = new Map();
-                        }
-                        
-                        if (isHelicopter) {
-                            const samSiteGrid = SamSiteUtils.checkPlayerHeadingTowardSamSite(
-                                player,
-                                playerUpdated,
-                                instance.samSites,
-                                mapSize
-                            );
-                            if (samSiteGrid) {
-                                // Check if we should send warning (4 warnings per approach)
-                                if (SamSiteUtils.shouldSendWarning(rustplus.samSiteWarningCounters, player.steamId, samSiteGrid, 4)) {
-                                    const warningMsg = SamSiteUtils.generateSamWarning(samSiteGrid, guildId, client);
-                                    rustplus.sendInGameMessage(warningMsg);
-                                    rustplus.log(client.intlGet(null, 'infoCap'), 
-                                        `SAM Warning for ${player.name} heading to ${samSiteGrid}`);
-                                }
-                            } else {
-                                // Player left danger zone, reset warning counter for all SAM sites
-                                SamSiteUtils.resetWarningCounters(rustplus.samSiteWarningCounters, player.steamId);
-                            }
-                        } else {
-                            // Player not in helicopter, reset warning counter for all SAM sites
-                            SamSiteUtils.resetWarningCounters(rustplus.samSiteWarningCounters, player.steamId);
                         }
                     }
 

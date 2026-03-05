@@ -42,6 +42,7 @@ class Player {
         this._wentOfflineTime = null;
         this._cameOnlineTime = player.isOnline ? new Date() : null;
         this._lastActivePlaytimeUpdate = new Date();
+        this._inTeam = true; // Track whether player is currently in the team
 
         // Load playtime and timestamps from instance file for this server
         const Client = require('../../index.ts');
@@ -102,6 +103,8 @@ class Player {
     set totalActivePlaytimeSeconds(seconds) { this._totalActivePlaytimeSeconds = seconds; }
     get lastActivePlaytimeUpdate() { return this._lastActivePlaytimeUpdate; }
     set lastActivePlaytimeUpdate(date) { this._lastActivePlaytimeUpdate = date; }
+    get inTeam() { return this._inTeam; }
+    set inTeam(inTeam) { this._inTeam = inTeam; }
 
     /* Change checkers */
     isSteamIdChanged(player) { return (this.steamId !== player.steamId.toString()); }

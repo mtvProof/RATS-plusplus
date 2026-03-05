@@ -327,14 +327,8 @@ module.exports = {
                 style: Discord.TextInputStyle.Short
             })),
             new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
-                customId: 'TrackerBattlemetricsId',
-                label: Client.client.intlGet(guildId, 'battlemetricsId'),
-                value: tracker.battlemetricsId,
-                style: Discord.TextInputStyle.Short
-            })),
-            new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
-                customId: 'TrackerClanTag',
-                label: Client.client.intlGet(guildId, 'clanTag'),
+                customId: 'TrackerCoordinates',
+                label: 'Coordinates',
                 value: tracker.clanTag,
                 style: Discord.TextInputStyle.Short,
                 required: false,

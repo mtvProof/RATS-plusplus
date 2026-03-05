@@ -1900,8 +1900,6 @@ class RustPlusWebUI {
         // Normal rendering
         if (this.controls.showRadZones && this.serverData.mapMarkers?.genericRadiuses) this.drawRadZones(ctx);
         if (this.controls.showEvents) this.drawEvents(ctx);
-        // Draw SAM site markers (always visible)
-        if (this.serverData.mapMarkers?.samSites) this.drawSamSiteMarkers(ctx);
         // Draw persistent patrol death markers (always visible)
         this.drawPersistentPatrolMarkers(ctx);
         // Draw recent team deaths (always visible for 5 minutes)
@@ -1988,19 +1986,18 @@ class RustPlusWebUI {
     }
 
     gridToWorld(gridString) {
-        if (!this.serverData?.info?.mapSize || !this.worldRect) return null;
+        if (!this.serverData?.info?.mapSize) return null;
 
         const mapSize = this.serverData.info.mapSize;
         const gridSize = 150;
         const numCells = Math.ceil(mapSize / gridSize);
-        const cellSize = this.worldRect.width / numCells;
 
         // Parse grid string (e.g., "T15" -> col='T', row=15)
         const match = gridString.match(/^([A-Z]+)(\d+)$/i);
         if (!match) return null;
 
         const colString = match[1].toUpperCase();
-        const row = parseInt(match[2]);
+        const row = parseInt(match[2], 10);
 
         // Convert column letters back to number (A=0, B=1, ..., Z=25, AA=26, etc.)
         let colNum = 0;
@@ -2009,10 +2006,14 @@ class RustPlusWebUI {
         }
         colNum -= 1; // Adjust to 0-based
 
-        // Use the same coordinate system as the grid drawing
-        // This matches how grid labels are positioned in drawGrid()
-        const worldX = this.worldRect.x + colNum * cellSize + cellSize / 2;
-        const worldY = this.worldRect.y + row * cellSize + cellSize / 2;
+        if (colNum < 0 || colNum >= numCells || row < 0 || row >= numCells) {
+            return null;
+        }
+
+        // Convert grid cell center to world coordinates.
+        // Y is inverted because world Y=0 is bottom of map.
+        const worldX = colNum * gridSize + gridSize / 2;
+        const worldY = mapSize - (row * gridSize + gridSize / 2);
 
         return { x: worldX, y: worldY };
     }
@@ -2398,35 +2399,6 @@ class RustPlusWebUI {
                 ctx.fillText(marker.grid, x, y);
             });
         }
-    }
-
-    drawSamSiteMarkers(ctx) {
-        if (!this.serverData.mapMarkers?.samSites) return;
-
-        // Fixed pixel radius for SAM site circles (approximately 2.5 grids)
-        const fixedPixelRadius = 75;
-
-        this.serverData.mapMarkers.samSites.forEach(marker => {
-            const { x, y } = this.worldToCanvas(marker.x, marker.y);
-
-            // Draw red circle for SAM site with fixed pixel size
-            ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
-            ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.arc(x, y, fixedPixelRadius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-
-            // Draw grid label (only show if zoomed in enough to read)
-            if (this.scale > 0.5) {
-                ctx.fillStyle = 'rgba(255, 0, 0, 0.9)';
-                ctx.font = `bold 12px Arial`;
-                ctx.textAlign = 'center';
-                ctx.textBaseline = 'middle';
-                ctx.fillText(marker.grid, x, y);
-            }
-        });
     }
 
     drawPlayerTrails(ctx) {

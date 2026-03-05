@@ -104,10 +104,6 @@ module.exports = (client, guild) => {
             instance.baseCodes = { main: null, secondary: null };
         }
 
-        if (!instance.hasOwnProperty('samSites')) {
-            instance.samSites = [];
-        }
-
         if (!instance.hasOwnProperty('notificationSettings')) {
             instance.notificationSettings = client.readNotificationSettingsTemplate();
         }
