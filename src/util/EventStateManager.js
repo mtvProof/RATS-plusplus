@@ -44,6 +44,7 @@ module.exports = {
         instance.eventTimers.deepSeaRespawnAt = mapMarkers.deepSeaRespawnAt;
         instance.eventTimers.deepSeaLastSpawnAt = mapMarkers.deepSeaLastSpawnAt ? 
             mapMarkers.deepSeaLastSpawnAt.getTime() : null;
+        instance.eventTimers.deepSeaLastSide = mapMarkers.deepSeaLastSide;
         instance.eventTimers.isDeepSeaActive = mapMarkers.isDeepSeaActive;
 
         // Save Cargoship event timers
@@ -89,6 +90,9 @@ module.exports = {
         }
         if (timers.deepSeaLastSpawnAt) {
             mapMarkers.deepSeaLastSpawnAt = new Date(timers.deepSeaLastSpawnAt);
+        }
+        if (timers.deepSeaLastSide) {
+            mapMarkers.deepSeaLastSide = timers.deepSeaLastSide;
         }
         if (timers.isDeepSeaActive !== undefined && timers.isDeepSeaActive !== null) {
             mapMarkers.isDeepSeaActive = timers.isDeepSeaActive;

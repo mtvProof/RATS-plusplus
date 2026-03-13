@@ -47,27 +47,54 @@ module.exports = {
             rustplus.log(client.intlGet(null, 'errorCap'),
                 client.intlGet(null, 'somethingWrongWithConnection'), 'error');
 
-            if (!isSecondary) {
-                instance.activeServer = null;
-                client.setInstance(guildId, instance);
+            if (rustplus.isNewConnection) {
+                /* User manually initiated the connection — clear state and inform them. */
+                if (!isSecondary) {
+                    instance.activeServer = null;
+                    client.setInstance(guildId, instance);
 
-                await DiscordMessages.sendServerConnectionInvalidMessage(guildId, serverId);
-                await DiscordMessages.sendServerMessage(guildId, serverId, null);
-            }
+                    await DiscordMessages.sendServerConnectionInvalidMessage(guildId, serverId);
+                    await DiscordMessages.sendServerMessage(guildId, serverId, null);
+                }
 
-            client.resetRustplusVariables(guildId, rustplus.instanceLabel);
+                client.resetRustplusVariables(guildId, rustplus.instanceLabel);
 
-            rustplus.disconnect();
-            if (isSecondary) {
-                delete client.rustplusSecondaryInstances[guildId];
+                rustplus.disconnect();
+                if (isSecondary) {
+                    delete client.rustplusSecondaryInstances[guildId];
+                }
+                else {
+                    delete client.rustplusInstances[guildId];
+                }
             }
             else {
-                delete client.rustplusInstances[guildId];
+                /* Auto-reconnect attempt — the App API is not ready yet.
+                   Do NOT clear activeServer or resetRustplusVariables; that would permanently
+                   kill the reconnect loop. Instead, increment the failure streak so backoff
+                   applies correctly, then disconnect to let disconnected.js schedule the
+                   next retry. */
+                rustplus.connectFailureStreak = (rustplus.connectFailureStreak || 0) + 1;
+                rustplus.lastConnectErrorCode = rustplus.lastConnectErrorCode || 'INVALID_RESPONSE';
+                rustplus.log(client.intlGet(null, 'infoCap'),
+                    `Connection validated as invalid during auto-reconnect ` +
+                    `(streak=${rustplus.connectFailureStreak}); will retry with backoff.`);
+
+                rustplus.disconnect();
+                if (isSecondary) {
+                    delete client.rustplusSecondaryInstances[guildId];
+                }
+                else {
+                    delete client.rustplusInstances[guildId];
+                }
             }
             return;
         }
         rustplus.info = new Info(info.info);
         rustplus.log(client.intlGet(null, 'connectedCap'), client.intlGet(null, 'rustplusOperational'));
+
+        // Successful operational connection resets connect failure tracking.
+        rustplus.connectFailureStreak = 0;
+        rustplus.lastConnectErrorCode = null;
 
         /* Set operational early to allow basic commands while map loads */
         rustplus.isOperational = true;

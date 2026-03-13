@@ -207,8 +207,14 @@ module.exports = async (client, interaction) => {
         }
 
         if (!server || (server && !server.switches.hasOwnProperty(ids.entityId))) {
-            interaction.deferUpdate();
+            try { await interaction.deferUpdate(); } catch (e) { /* silently ignore */ }
             return;
+        }
+
+        try {
+            await interaction.deferUpdate();
+        } catch (e) {
+            client.log(client.intlGet(null, 'errorCap'), `Modal deferUpdate failed: ${e}`);
         }
 
         server.switches[ids.entityId].name = smartSwitchName;
@@ -237,8 +243,14 @@ module.exports = async (client, interaction) => {
         const groupCommand = interaction.fields.getTextInputValue('GroupCommand');
 
         if (!server || (server && !server.switchGroups.hasOwnProperty(ids.groupId))) {
-            interaction.deferUpdate();
+            try { await interaction.deferUpdate(); } catch (e) { /* silently ignore */ }
             return;
+        }
+
+        try {
+            await interaction.deferUpdate();
+        } catch (e) {
+            client.log(client.intlGet(null, 'errorCap'), `Modal deferUpdate failed: ${e}`);
         }
 
         server.switchGroups[ids.groupId].name = groupName;
@@ -262,14 +274,20 @@ module.exports = async (client, interaction) => {
         const switchId = interaction.fields.getTextInputValue('GroupAddSwitchId');
 
         if (!server || (server && !server.switchGroups.hasOwnProperty(ids.groupId))) {
-            interaction.deferUpdate();
+            try { await interaction.deferUpdate(); } catch (e) { /* silently ignore */ }
             return;
         }
 
         if (!Object.keys(server.switches).includes(switchId) ||
             server.switchGroups[ids.groupId].switches.includes(switchId)) {
-            interaction.deferUpdate();
+            try { await interaction.deferUpdate(); } catch (e) { /* silently ignore */ }
             return;
+        }
+
+        try {
+            await interaction.deferUpdate();
+        } catch (e) {
+            client.log(client.intlGet(null, 'errorCap'), `Modal deferUpdate failed: ${e}`);
         }
 
         server.switchGroups[ids.groupId].switches.push(switchId);
@@ -288,8 +306,14 @@ module.exports = async (client, interaction) => {
         const switchId = interaction.fields.getTextInputValue('GroupRemoveSwitchId');
 
         if (!server || (server && !server.switchGroups.hasOwnProperty(ids.groupId))) {
-            interaction.deferUpdate();
+            try { await interaction.deferUpdate(); } catch (e) { /* silently ignore */ }
             return;
+        }
+
+        try {
+            await interaction.deferUpdate();
+        } catch (e) {
+            client.log(client.intlGet(null, 'errorCap'), `Modal deferUpdate failed: ${e}`);
         }
 
         server.switchGroups[ids.groupId].switches =
@@ -311,8 +335,18 @@ module.exports = async (client, interaction) => {
         const smartAlarmCommand = interaction.fields.getTextInputValue('SmartAlarmCommand');
 
         if (!server || (server && !server.alarms.hasOwnProperty(ids.entityId))) {
-            interaction.deferUpdate();
+            try {
+                await interaction.deferUpdate();
+            } catch (e) {
+                // Interaction likely expired; silently ignore
+            }
             return;
+        }
+
+        try {
+            await interaction.deferUpdate();
+        } catch (e) {
+            client.log(client.intlGet(null, 'errorCap'), `Modal deferUpdate failed: ${e}`);
         }
 
         server.alarms[ids.entityId].name = smartAlarmName;
@@ -337,8 +371,18 @@ module.exports = async (client, interaction) => {
         const storageMonitorName = interaction.fields.getTextInputValue('StorageMonitorName');
 
         if (!server || (server && !server.storageMonitors.hasOwnProperty(ids.entityId))) {
-            interaction.deferUpdate();
+            try {
+                await interaction.deferUpdate();
+            } catch (e) {
+                // Interaction likely expired; silently ignore
+            }
             return;
+        }
+
+        try {
+            await interaction.deferUpdate();
+        } catch (e) {
+            client.log(client.intlGet(null, 'errorCap'), `Modal deferUpdate failed: ${e}`);
         }
 
         server.storageMonitors[ids.entityId].name = storageMonitorName;

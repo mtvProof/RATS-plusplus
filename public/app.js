@@ -2014,8 +2014,9 @@ class RustPlusWebUI {
 
         // Convert grid cell center to world coordinates.
         // Y is inverted because world Y=0 is bottom of map.
-        const worldX = colNum * gridSize + gridSize / 2;
-        const worldY = mapSize - (row * gridSize + gridSize / 2);
+        // Small offset adjustment to better center circles in grid cells
+        const worldX = colNum * gridSize + gridSize / 2 - 2;
+        const worldY = mapSize - (row * gridSize + gridSize / 2) + 3;
 
         return { x: worldX, y: worldY };
     }

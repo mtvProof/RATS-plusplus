@@ -428,7 +428,7 @@ class StatisticsManager {
 
                     <h3>${t('stats.teamMembersOverview')}</h3>
                     <div class="team-stats-grid">
-                        ${teamStats.playerStats.map(stat => `
+                        ${teamStats.playerStats.sort((a, b) => b.totalPlaytimeSeconds - a.totalPlaytimeSeconds).map(stat => `
                             <div class="team-member-card">
                                 <div class="member-name">${this.getPlayerName(stat.steamId)}</div>
                                 <div class="member-stats">
@@ -497,28 +497,40 @@ class StatisticsManager {
     }
 
     async getStatsPlayers() {
+        const teamData = window.rustplusUI?.serverData?.team;
+        const currentTeam = (teamData?.players || []).map((p) => ({ steamId: `${p.steamId}`, name: p.name || 'Unknown' }));
+        
         try {
             const players = await this.apiClient.get(`/api/statistics/players/${this.guildId}?serverId=${this.serverId || ''}&limit=1000`);
             if (Array.isArray(players) && players.length > 0) {
-                this.statsPlayers = players.map((p) => ({ steamId: `${p.steamId}`, name: p.name || 'Unknown' }));
-                this.playerNameBySteamId = {};
-                this.statsPlayers.forEach((p) => {
-                    this.playerNameBySteamId[p.steamId] = p.name;
+                // Merge historical players with current team members
+                const historicalMap = {};
+                players.forEach(p => {
+                    historicalMap[p.steamId] = p.name || 'Unknown';
                 });
+                
+                // Add any current team members not in historical data
+                currentTeam.forEach(p => {
+                    if (!historicalMap[p.steamId]) {
+                        historicalMap[p.steamId] = p.name;
+                    }
+                });
+                
+                this.statsPlayers = Object.entries(historicalMap).map(([steamId, name]) => ({ steamId, name }));
+                this.playerNameBySteamId = historicalMap;
                 return this.statsPlayers;
             }
         } catch (error) {
             console.warn('[Statistics] Failed to fetch historical players, falling back to current team list:', error);
         }
 
-        const teamData = window.rustplusUI?.serverData?.team;
-        const fallback = (teamData?.players || []).map((p) => ({ steamId: `${p.steamId}`, name: p.name || 'Unknown' }));
-        this.statsPlayers = fallback;
+        // Fallback to current team only
+        this.statsPlayers = currentTeam;
         this.playerNameBySteamId = {};
-        fallback.forEach((p) => {
+        currentTeam.forEach((p) => {
             this.playerNameBySteamId[p.steamId] = p.name;
         });
-        return fallback;
+        return currentTeam;
     }
 
     async loadPlayers() {
@@ -537,13 +549,17 @@ class StatisticsManager {
                 steamIds.map(id => this.apiClient.get(`/api/statistics/player/${this.guildId}/${id}?serverId=${this.serverId}`))
             );
 
+            // Sort by playtime descending
+            const sortedPlayerStats = playerStats
+                .map((data, idx) => ({ data, player: statsPlayers[idx] }))
+                .sort((a, b) => b.data.stats.totalPlaytimeSeconds - a.data.stats.totalPlaytimeSeconds);
+
             const body = document.getElementById('statisticsBody');
             body.innerHTML = `
                 <div class="players-stats">
                     <h3>${t('stats.teamPlayers')}</h3>
                     <div class="players-list">
-                        ${playerStats.map((data, idx) => {
-                const player = statsPlayers[idx];
+                        ${sortedPlayerStats.map(({ data, player }) => {
                 const stats = data.stats;
                 return `
                                 <div class="player-stat-card" style="border-left: 4px solid ${data.color};">

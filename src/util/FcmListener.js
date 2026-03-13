@@ -246,16 +246,18 @@ async function pairingServer(client, guild, title, message, body) {
         }
     }
 
-    // Keep the primary hoster credentials in the main server entry; do not let secondary overwrite them.
-    const steamIdToStore = (!server || isPrimaryHoster || !server.steamId) ? body.playerId : server.steamId;
-    const playerTokenToStore = (!server || isPrimaryHoster || !server.playerToken) ? body.playerToken : server.playerToken;
+    // Never let non-primary host pairing overwrite the primary connection credentials.
+    const nextSteamId = isPrimaryHoster ? body.playerId : (server ? server.steamId : body.playerId);
+    const nextPlayerToken = isPrimaryHoster ? body.playerToken : (server ? server.playerToken : body.playerToken);
+
+
 
     instance.serverList[serverId] = {
         title: title,
         serverIp: body.ip,
         appPort: body.port,
-        steamId: steamIdToStore,
-        playerToken: playerTokenToStore,
+        steamId: nextSteamId,
+        playerToken: nextPlayerToken,
         description: body.desc.replace(/\\n/g, '\n').replace(/\\t/g, '\t'),
         img: isValidUrl(body.img) ? body.img.replace(/ /g, '%20') : Constants.DEFAULT_SERVER_IMG,
         url: isValidUrl(body.url) ? body.url.replace(/ /g, '%20') : Constants.DEFAULT_SERVER_URL,
@@ -302,6 +304,11 @@ async function pairingServer(client, guild, title, message, body) {
     }
 
     if (isSecondaryHoster && !rustplusSecondary && instance.activeServer === serverId && liteEntry) {
+        if (client.rustplusSecondaryReconnectTimers[guild.id]) {
+            clearTimeout(client.rustplusSecondaryReconnectTimers[guild.id]);
+            client.rustplusSecondaryReconnectTimers[guild.id] = null;
+        }
+        client.rustplusSecondaryReconnecting[guild.id] = false;
         client.createRustplusInstance(
             guild.id,
             liteEntry.serverIp,
@@ -313,6 +320,11 @@ async function pairingServer(client, guild, title, message, body) {
     }
 
     if (isPrimaryHoster && !rustplusPrimary && instance.activeServer === serverId && liteEntry) {
+        if (client.rustplusReconnectTimers[guild.id]) {
+            clearTimeout(client.rustplusReconnectTimers[guild.id]);
+            client.rustplusReconnectTimers[guild.id] = null;
+        }
+        client.rustplusReconnecting[guild.id] = false;
         client.createRustplusInstance(
             guild.id,
             liteEntry.serverIp,

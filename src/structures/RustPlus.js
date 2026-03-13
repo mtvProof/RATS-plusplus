@@ -61,6 +61,8 @@ class RustPlus extends RustPlusLib {
         this.isNewConnection = false;       /* Is it an actively selected connection (pressed CONNECT button)? */
         this.isFirstPoll = true;            /* Is this the first poll since connection started? */
         this.consecutiveTimeouts = 0;       /* Counter for consecutive RPC timeouts. */
+        this.connectFailureStreak = 0;      /* Counter for consecutive connection failures before full operational state. */
+        this.lastConnectErrorCode = null;   /* Last socket/connect error code observed on this instance. */
 
         /* Interval ids */
         this.pollingTaskId = 0;             /* The id of the main polling mechanism of the rustplus instance. */
@@ -229,9 +231,14 @@ class RustPlus extends RustPlusLib {
         if (this.info.isSeedChanged({ seed: server.lastMapSeed })) {
             server.lastMapSeed = this.info.seed;
             
-            // Clear all playtimes for this server on wipe
+            // Clear all instance data for this server on wipe
             server.playerPlaytimes = {};
             server.cameraCodes = [];
+            server.switches = {};
+            server.alarms = {};
+            server.storageMonitors = {};
+            server.markers = {};
+            server.switchGroups = {};
             Client.client.setInstance(this.guildId, instance);
             this.log(Client.client.intlGet(null, 'infoCap'), 'Map seed changed - playtime stats cleared for wipe');
 
@@ -3244,46 +3251,65 @@ class RustPlus extends RustPlusLib {
     }
 
     getCommandDeepSea(isInfoChannel = false) {
-        const instance = Client.client.getInstance(this.guildId);
-        const deepSeaSettings = instance.serverList[this.serverId];
-        const deepSeaWipeCooldown = deepSeaSettings.deepSeaWipeCooldownMs;
-        const deepSeaWipeDuration = deepSeaSettings.deepSeaWipeDurationMs;
+        const isActive = this.mapMarkers.isDeepSeaActive;
         const wasOnMap = this.mapMarkers.timeSinceDeepSeaWasOnMap;
-        const isOnMap = this.mapMarkers.deepSeaSpawnedAt;
-        const lastSpawnAt = this.mapMarkers.deepSeaLastSpawnAt;
-        const deepSea = this.mapMarkers.deepSea[0];
+        const lastSide = this.mapMarkers.deepSeaLastSide;
+        const despawnMs = wasOnMap ? wasOnMap.getTime() : null;
+        const respawnEarliestMs = despawnMs ? despawnMs + (90 * 60 * 1000) : null;
+        const respawnLatestMs = despawnMs ? despawnMs + (150 * 60 * 1000) : null;
         const now = new Date();
 
-        if (deepSea) {
-            const activeSince = isOnMap || lastSpawnAt || now;
-            const secondsLeft = Math.max(0, (deepSeaWipeDuration - (now - activeSince)) / 1000);
+        const getSideLabel = (side) => {
+            if (!side) return null;
+            const sideMap = {
+                'north': Client.client.intlGet(this.guildId, 'deepSeaSideNorth'),
+                'south': Client.client.intlGet(this.guildId, 'deepSeaSideSouth'),
+                'east': Client.client.intlGet(this.guildId, 'deepSeaSideEast'),
+                'west': Client.client.intlGet(this.guildId, 'deepSeaSideWest')
+            };
+            return sideMap[side] || side;
+        };
+
+        // Currently active
+        if (isActive) {
+            const sideLabel = getSideLabel(this.mapMarkers.deepSeaLastSide);
             if (isInfoChannel) {
-                return Client.client.intlGet(this.guildId, 'activeFor', {
-                    time: Timer.secondsToFullScale(secondsLeft, 's')
+                return Client.client.intlGet(this.guildId, 'deepSeaActiveShort', {
+                    side: sideLabel
                 });
             }
-
-            return Client.client.intlGet(this.guildId, 'timeDeepSeaIsActiveFor', {
-                time: Timer.secondsToFullScale(secondsLeft)
+            return Client.client.intlGet(this.guildId, 'deepSeaActiveOnSide', {
+                side: sideLabel
             });
         }
 
-        if (wasOnMap === null) {
-            return isInfoChannel ? Client.client.intlGet(this.guildId, 'notActive') :
-                Client.client.intlGet(this.guildId, 'deepSeaNotCurrentlyOnMap');
+        // Not seen yet or reset
+        if (!wasOnMap || !despawnMs) {
+            return Client.client.intlGet(this.guildId, 'deepSeaNotCurrentlyOnMap');
         }
 
-        const secondsSince = (now - wasOnMap) / 1000;
+        // Despawned, showing respawn window
+        const sideLabel = getSideLabel(lastSide);
+        const timeSince = now - wasOnMap;
+        const timeSinceSeconds = Math.floor(timeSince / 1000);
+        const timeSinceStr = Timer.secondsToFullScale(timeSinceSeconds);
+
+        const earliestEta = Math.max(0, respawnEarliestMs - now);
+        const latestEta = Math.max(0, respawnLatestMs - now);
+        const earliestStr = Timer.secondsToFullScale(Math.ceil(earliestEta / 1000), 's');
+        const latestStr = Timer.secondsToFullScale(Math.ceil(latestEta / 1000), 's');
+
         if (isInfoChannel) {
-            return Client.client.intlGet(this.guildId, 'timeSinceLast', {
-                time: Timer.secondsToFullScale(secondsSince, 's')
+            return Client.client.intlGet(this.guildId, 'deepSeaLastSeenShort', {
+                side: sideLabel || 'Unknown',
+                time: timeSinceStr
             });
         }
 
-        const respawnSeconds = Math.max(0, (deepSeaWipeCooldown - (now - wasOnMap)) / 1000);
-        return Client.client.intlGet(this.guildId, 'timeSinceDeepSeaWasOnMap', {
-            time: Timer.secondsToFullScale(secondsSince),
-            respawn: Timer.secondsToFullScale(respawnSeconds, 's')
+        return Client.client.intlGet(this.guildId, 'deepSeaRespawnWindow', {
+            side: sideLabel || 'Unknown',
+            earliest: earliestStr,
+            latest: latestStr
         });
     }
 }

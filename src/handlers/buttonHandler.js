@@ -535,19 +535,28 @@ module.exports = async (client, interaction) => {
             delete client.rustplusSecondaryInstances[guildId];
         }
 
+        const credentials = InstanceUtils.readCredentialsFile(guildId);
+        const primaryLite = credentials.hoster && instance.serverListLite[ids.serverId] &&
+            instance.serverListLite[ids.serverId][credentials.hoster]
+            ? instance.serverListLite[ids.serverId][credentials.hoster]
+            : null;
+
         /* Create the rustplus instance */
         const newRustplus = client.createRustplusInstance(
-            guildId, server.serverIp, server.appPort, server.steamId, server.playerToken);
+            guildId,
+            primaryLite ? primaryLite.serverIp : server.serverIp,
+            primaryLite ? primaryLite.appPort : server.appPort,
+            primaryLite ? primaryLite.steamId : server.steamId,
+            primaryLite ? primaryLite.playerToken : server.playerToken);
 
         /* Spin up secondary if hoster2 is paired on this server */
-        const credentials = InstanceUtils.readCredentialsFile(guildId);
         if (credentials.hoster2 && instance.serverListLite[ids.serverId] &&
             instance.serverListLite[ids.serverId][credentials.hoster2]) {
             const lite = instance.serverListLite[ids.serverId][credentials.hoster2];
             client.createRustplusInstance(
                 guildId,
-                server.serverIp,
-                server.appPort,
+                lite.serverIp,
+                lite.appPort,
                 lite.steamId,
                 lite.playerToken,
                 'secondary'

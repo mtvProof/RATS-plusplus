@@ -18,6 +18,7 @@
 
 */
 
+const EventStateManager = require('../util/EventStateManager');
 const Info = require('../structures/Info');
 const InformationHandler = require('../handlers/informationHandler.js');
 const MapMarkers = require('../structures/MapMarkers.js');
@@ -52,6 +53,9 @@ module.exports = {
                 rustplus.time = new Time(time.time, rustplus, client);
                 rustplus.team = new Team(teamInfo.teamInfo, rustplus);
                 rustplus.mapMarkers = new MapMarkers(mapMarkers.mapMarkers, rustplus, client);
+                /* Restore event state from last session (Deep Sea, Cargo, Heli, Oil Rigs, etc) */
+                const instance = client.getInstance(rustplus.guildId);
+                EventStateManager.restoreEventState(instance, rustplus.mapMarkers);
             }
 
             await module.exports.handlers(rustplus, client, info, mapMarkers, teamInfo, time);

@@ -370,22 +370,27 @@ class DiscordBot extends Discord.Client {
             if (!instance) return;
 
             if (instance.activeServer !== null && instance.serverList.hasOwnProperty(instance.activeServer)) {
+                const credentials = InstanceUtils.readCredentialsFile(guildId);
+                const activeServer = instance.activeServer;
+                const activeServerLite = instance.serverListLite[activeServer] || {};
+                const primaryLite = credentials.hoster && activeServerLite[credentials.hoster]
+                    ? activeServerLite[credentials.hoster]
+                    : null;
+
                 this.createRustplusInstance(
                     guildId,
-                    instance.serverList[instance.activeServer].serverIp,
-                    instance.serverList[instance.activeServer].appPort,
-                    instance.serverList[instance.activeServer].steamId,
-                    instance.serverList[instance.activeServer].playerToken,
+                    primaryLite ? primaryLite.serverIp : instance.serverList[activeServer].serverIp,
+                    primaryLite ? primaryLite.appPort : instance.serverList[activeServer].appPort,
+                    primaryLite ? primaryLite.steamId : instance.serverList[activeServer].steamId,
+                    primaryLite ? primaryLite.playerToken : instance.serverList[activeServer].playerToken,
                     'primary');
 
-                const credentials = InstanceUtils.readCredentialsFile(guildId);
-                if (credentials.hoster2 && instance.serverListLite[instance.activeServer] &&
-                    instance.serverListLite[instance.activeServer][credentials.hoster2]) {
-                    const lite = instance.serverListLite[instance.activeServer][credentials.hoster2];
+                if (credentials.hoster2 && activeServerLite[credentials.hoster2]) {
+                    const lite = activeServerLite[credentials.hoster2];
                     this.createRustplusInstance(
                         guildId,
-                        instance.serverList[instance.activeServer].serverIp,
-                        instance.serverList[instance.activeServer].appPort,
+                        lite.serverIp,
+                        lite.appPort,
                         lite.steamId,
                         lite.playerToken,
                         'secondary');

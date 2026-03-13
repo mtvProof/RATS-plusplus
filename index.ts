@@ -24,6 +24,9 @@ const Path = require('path');
 
 const DiscordBot = require('./src/structures/DiscordBot');
 
+const lockPath = Path.join('/tmp', 'ratspp-bot.lock');
+ensureSingleInstance();
+
 createMissingDirectories();
 
 const client = new DiscordBot({
@@ -39,6 +42,42 @@ const client = new DiscordBot({
 });
 
 client.build();
+
+function ensureSingleInstance() {
+    try {
+        if (Fs.existsSync(lockPath)) {
+            const existingPid = Number(Fs.readFileSync(lockPath, 'utf8').trim());
+            if (!Number.isNaN(existingPid) && existingPid > 0) {
+                try {
+                    process.kill(existingPid, 0);
+                    console.error(`Another RATS++ process is already running (pid: ${existingPid}). Exiting.`);
+                    process.exit(1);
+                }
+                catch (_) {
+                    // Stale lock, continue and overwrite.
+                }
+            }
+        }
+
+        Fs.writeFileSync(lockPath, `${process.pid}`, 'utf8');
+    }
+    catch (e) {
+        console.error('Failed to initialize single-instance lock:', e);
+    }
+}
+
+function removeSingleInstanceLock() {
+    try {
+        if (!Fs.existsSync(lockPath)) return;
+        const pidInLock = Number(Fs.readFileSync(lockPath, 'utf8').trim());
+        if (pidInLock === process.pid) {
+            Fs.unlinkSync(lockPath);
+        }
+    }
+    catch (_) {
+        // Ignore cleanup errors.
+    }
+}
 
 function createMissingDirectories() {
     if (!Fs.existsSync(Path.join(__dirname, 'logs'))) {
@@ -75,6 +114,16 @@ process.on('unhandledRejection', error => {
 process.on('uncaughtException', error => {
     const err = (error instanceof Error) ? error : new Error(String(error));
     console.error(err.stack || err);
+});
+
+process.on('exit', removeSingleInstanceLock);
+process.on('SIGINT', () => {
+    removeSingleInstanceLock();
+    process.exit(0);
+});
+process.on('SIGTERM', () => {
+    removeSingleInstanceLock();
+    process.exit(0);
 });
 
 exports.client = client;

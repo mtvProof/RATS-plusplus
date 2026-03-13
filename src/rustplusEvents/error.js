@@ -27,6 +27,18 @@ module.exports = {
 
         rustplus.log(client.intlGet(null, 'errorCap'), err, 'error');
 
+        // Track connection-level failures for adaptive reconnect backoff.
+        const errMsg = err ? err.toString() : '';
+        const isConnectFailure = err && (
+            err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' ||
+            errMsg.includes('socket hang up') || errMsg.includes('WebSocket was closed before the connection was established')
+        );
+
+        if (isConnectFailure) {
+            rustplus.connectFailureStreak = (rustplus.connectFailureStreak || 0) + 1;
+            rustplus.lastConnectErrorCode = err.code || 'UNKNOWN';
+        }
+
         switch (err.code) {
             case 'ETIMEDOUT': {
                 errorTimedOut(rustplus, client, err);

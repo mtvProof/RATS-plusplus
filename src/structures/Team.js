@@ -171,12 +171,15 @@ class Team {
     }
 
     getLeftPlayers(team) {
-        let leftPlayers = this.players.map(function (e) { return e.steamId; });
+        let leftPlayers = [];
 
-        for (let player of team.members) {
-            let steamId = player.steamId.toString();
-            if (this.players.some(e => e.steamId === steamId)) {
-                leftPlayers = leftPlayers.filter(e => e !== steamId);
+        for (let player of this.players) {
+            // Only return players who were in the team and are no longer there
+            if (player.inTeam === true) {
+                let stillInTeam = team.members.some(e => e.steamId.toString() === player.steamId);
+                if (!stillInTeam) {
+                    leftPlayers.push(player.steamId);
+                }
             }
         }
 

@@ -22,6 +22,11 @@ const Constants = require('../util/constants.js');
 const Map = require('../util/map.js');
 const Timer = require('../util/timer');
 
+const DEEP_SEA_ACTIVE_MS = 3 * 60 * 60 * 1000;
+const DEEP_SEA_RESPAWN_MIN_MS = 90 * 60 * 1000;
+const DEEP_SEA_RESPAWN_MAX_MS = 150 * 60 * 1000;
+const DEEP_SEA_PREPARE_LEAD_MS = 30 * 60 * 1000;
+
 class MapMarkers {
     constructor(mapMarkers, rustplus, client) {
         this._markers = mapMarkers.markers;
@@ -70,6 +75,7 @@ class MapMarkers {
         /* Event location */
         this.patrolHelicopterDestroyedLocation = null;
         this.deepSeaLastLocation = null;
+        this.deepSeaLastSide = null;
         this.deepSeaSpawnedAt = null;
         this.deepSeaRespawnAt = null;
         this.deepSeaLastSpawnAt = null;
@@ -265,8 +271,45 @@ class MapMarkers {
         return remainingMarkersOfType;
     }
 
+    getDeepSeaSide(x, y, mapSize) {
+        // Determine which side of the map the deep sea is closest to
+        // In RustPlus coordinates: X is horizontal (west-east), Y is vertical (south-north)
+        const northDistance = Math.max(0, y - mapSize);
+        const southDistance = Math.max(0, -y);
+        const eastDistance = Math.max(0, x - mapSize);
+        const westDistance = Math.max(0, -x);
 
+        // Prioritize cardinal directions (north/south) over diagonal edges
+        const verticalMax = Math.max(northDistance, southDistance);
+        const horizontalMax = Math.max(eastDistance, westDistance);
 
+        let result;
+        if (verticalMax > horizontalMax) {
+            result = northDistance > southDistance ? 'north' : 'south';
+        } else if (horizontalMax > verticalMax) {
+            result = eastDistance > westDistance ? 'west' : 'east';
+        } else if (verticalMax > 0) {
+            result = northDistance > southDistance ? 'north' : 'south';
+        } else if (horizontalMax > 0) {
+            result = eastDistance > westDistance ? 'west' : 'east';
+        } else {
+            result = null;
+        }
+
+        return result;
+    }
+
+    getDeepSeaSideLabel(side) {
+        if (!side) return null;
+
+        switch (side) {
+            case 'north': return this.client.intlGet(this.rustplus.guildId, 'deepSeaSideNorth');
+            case 'south': return this.client.intlGet(this.rustplus.guildId, 'deepSeaSideSouth');
+            case 'east': return this.client.intlGet(this.rustplus.guildId, 'deepSeaSideEast');
+            case 'west': return this.client.intlGet(this.rustplus.guildId, 'deepSeaSideWest');
+            default: return null;
+        }
+    }
 
     /* Update event map markers */
 
@@ -332,36 +375,28 @@ class MapMarkers {
 
             if (isDeepSea) {
                 const now = new Date();
-                const previousSpawn = this.deepSeaSpawnedAt || this.deepSeaLastSpawnAt;
+                const side = this.getDeepSeaSide(marker.x, marker.y, mapSize);
+                const sideLabel = this.getDeepSeaSideLabel(side);
 
                 if (!deepSeaSpawnHandled) {
-                    if (isPrimary && previousSpawn) {
-                        const intervalMs = now - previousSpawn;
-                        if (intervalMs > 0 && intervalMs < 12 * 60 * 60 * 1000) {
-                            const instance = this.client.getInstance(this.rustplus.guildId);
-                            const server = instance.serverList[this.rustplus.serverId];
-                            if (server) {
-                                server.deepSeaCooldownMs = intervalMs;
-                                this.client.setInstance(this.rustplus.guildId, instance);
-                            }
-                        }
-                    }
-
                     if (isPrimary && !this.rustplus.isFirstPoll) {
                         this.rustplus.sendEvent(
                             this.rustplus.notificationSettings.deepSeaDetectedSetting,
-                            this.client.intlGet(this.rustplus.guildId, 'deepSeaDetected', { location: pos.string }),
+                            this.client.intlGet(this.rustplus.guildId, 'deepSeaDetected', { side: sideLabel }),
                             'deepsea',
                             Constants.COLOR_DEEP_SEA_DETECTED);
                     }
 
                     this.deepSeaLastLocation = pos.string;
+                    this.deepSeaLastSide = side || this.deepSeaLastSide;
+                    this.isDeepSeaActive = true;
+
                     // Preserve restored spawn state on first poll after reboot.
                     // If there is no prior state, use current time so Deep Sea is treated as active.
                     if (!this.deepSeaSpawnedAt) {
                         this.deepSeaSpawnedAt = now;
                     }
-                    this.deepSeaLastSpawnAt = this.deepSeaLastSpawnAt || this.deepSeaSpawnedAt || now;
+                    this.deepSeaLastSpawnAt = this.deepSeaSpawnedAt || now;
                     this.deepSeaRespawnAt = null;
                     this.timeSinceDeepSeaWasOnMap = null;
 
@@ -402,17 +437,23 @@ class MapMarkers {
             const isDeepSea = marker.isDeepSea || Map.isOutsideGridSystem(marker.x, marker.y, mapSize);
 
             if (isDeepSea) {
+                const side = this.getDeepSeaSide(marker.x, marker.y, mapSize) || this.deepSeaLastSide;
+                const sideLabel = this.getDeepSeaSideLabel(side);
+
                 if (isPrimary && !deepSeaLeftHandled) {
                     this.rustplus.sendEvent(
                         this.rustplus.notificationSettings.deepSeaLeftSetting,
-                        this.client.intlGet(this.rustplus.guildId, 'deepSeaLeftMap', { location: marker.location.string }),
+                        this.client.intlGet(this.rustplus.guildId, 'deepSeaLeftMap', { side: sideLabel }),
                         'deepsea',
                         Constants.COLOR_DEEP_SEA_LEFT);
                 }
 
                 if (!deepSeaLeftHandled) {
+                    this.deepSeaLastSide = side || this.deepSeaLastSide;
+                    this.isDeepSeaActive = false;
                     this.timeSinceDeepSeaWasOnMap = new Date();
                     this.deepSeaSpawnedAt = null;
+                    this.deepSeaRespawnAt = new Date(this.timeSinceDeepSeaWasOnMap.getTime() + DEEP_SEA_RESPAWN_MIN_MS);
                     this.persistEventTimes();
                 }
 
@@ -424,6 +465,10 @@ class MapMarkers {
         }
 
         if (isPrimary && deepSeaLeftHandled) {
+            this.scheduleDeepSeaPrepair();
+        }
+        else if (isPrimary && !this.deepSeaSpawnedAt && this.deepSea.length === 0 &&
+            this.timeSinceDeepSeaWasOnMap && !this.deepSeaPrepairTimer) {
             this.scheduleDeepSeaPrepair();
         }
 
@@ -448,6 +493,7 @@ class MapMarkers {
 
             if (isDeepSea) {
                 this.deepSeaLastLocation = pos.string;
+                this.deepSeaLastSide = this.getDeepSeaSide(marker.x, marker.y, mapSize) || this.deepSeaLastSide;
             }
         }
     }
@@ -966,57 +1012,48 @@ class MapMarkers {
 
         const setting = this.rustplus.notificationSettings.deepSeaDetectedSetting;
         if (!setting || !setting.prepair) return;
+        if (this.deepSeaSpawnedAt || !this.timeSinceDeepSeaWasOnMap) return;
 
-        const instance = this.client.getInstance(this.rustplus.guildId);
-        const server = instance.serverList[this.rustplus.serverId];
-        if (!server) return;
+        const despawnMs = this.timeSinceDeepSeaWasOnMap.getTime();
+        const earliestRespawnAtMs = despawnMs + DEEP_SEA_RESPAWN_MIN_MS;
+        const firstNoticeAtMs = earliestRespawnAtMs - DEEP_SEA_PREPARE_LEAD_MS;
+        const delayMs = firstNoticeAtMs - Date.now();
 
-        const cooldownMs = server.deepSeaCooldownMs;
-        const durationMs = server.deepSeaDurationMs || Constants.DEFAULT_DEEP_SEA_DURATION_MS;
-        const prepairMinutes = server.deepSeaPrepairMinutes;
-        if (!cooldownMs || prepairMinutes === null || prepairMinutes === undefined) return;
-        if (prepairMinutes < 0) return;
-
-        const downtimeMs = Math.max(0, cooldownMs - durationMs);
-        const lastSpawnMs = this.deepSeaLastSpawnAt ? this.deepSeaLastSpawnAt.getTime() : null;
-        const lastSeenMs = this.timeSinceDeepSeaWasOnMap ? this.timeSinceDeepSeaWasOnMap.getTime() : null;
-
-        // If Deep Sea was recently seen (despawned), use despawn time plus downtime.
-        // Otherwise, use spawn-to-spawn math if available.
-        const targetTime = lastSeenMs ? (lastSeenMs + downtimeMs) :
-            (lastSpawnMs ? (lastSpawnMs + cooldownMs) : (Date.now() + downtimeMs));
-
-        const prepairMs = prepairMinutes * 60 * 1000;
-        const delayMs = targetTime - prepairMs - Date.now();
-
-        this.deepSeaRespawnAt = new Date(targetTime);
+        this.deepSeaRespawnAt = new Date(earliestRespawnAtMs);
 
         if (delayMs <= 0) {
-            this.notifyDeepSeaPrepair([prepairMinutes]);
+            this.notifyDeepSeaPrepair([]);
             return;
         }
 
         this.deepSeaPrepairTimer = new Timer.timer(
             this.notifyDeepSeaPrepair.bind(this),
-            delayMs,
-            prepairMinutes);
+            delayMs);
         this.deepSeaPrepairTimer.start();
     }
 
-    notifyDeepSeaPrepair(args) {
-        const prepairMinutes = args[0];
+    notifyDeepSeaPrepair() {
         this.deepSeaPrepairTimer = null;
 
-        if (this.deepSeaSpawnedAt) return;
+        if (this.deepSeaSpawnedAt || !this.timeSinceDeepSeaWasOnMap) return;
 
-        const intervalMinutes = 5;
-        const etaMs = this.deepSeaRespawnAt ? (this.deepSeaRespawnAt - Date.now()) : prepairMinutes * 60 * 1000;
-        const etaSeconds = Math.max(0, Math.floor(etaMs / 1000));
-        const eta = Timer.secondsToFullScale(etaSeconds);
+        const despawnMs = this.timeSinceDeepSeaWasOnMap.getTime();
+        const earliestRespawnAtMs = despawnMs + DEEP_SEA_RESPAWN_MIN_MS;
+        const earliestEtaMs = earliestRespawnAtMs - Date.now();
 
-        const message = etaSeconds > 0 ?
-            this.client.intlGet(this.rustplus.guildId, 'deepSeaPrepairNotice', { time: eta }) :
-            this.client.intlGet(this.rustplus.guildId, 'deepSeaAnyMinute');
+        let message = null;
+        let nextDelayMs = 10 * 60 * 1000;
+
+        if (earliestEtaMs > 0) {
+            const etaSeconds = Math.max(0, Math.ceil(earliestEtaMs / 1000));
+            const eta = Timer.secondsToFullScale(etaSeconds, 's');
+            message = this.client.intlGet(this.rustplus.guildId, 'deepSeaPrepareEarliestRespawn', { time: eta });
+            nextDelayMs = Math.max(1000, Math.min(5 * 60 * 1000, earliestEtaMs));
+        }
+        else {
+            message = this.client.intlGet(this.rustplus.guildId, 'deepSeaExpectedAnyTimeNow');
+            nextDelayMs = 10 * 60 * 1000;
+        }
 
         this.rustplus.sendEvent(
             this.rustplus.notificationSettings.deepSeaDetectedSetting,
@@ -1026,8 +1063,7 @@ class MapMarkers {
 
         this.deepSeaPrepairTimer = new Timer.timer(
             this.notifyDeepSeaPrepair.bind(this),
-            intervalMinutes * 60 * 1000,
-            prepairMinutes);
+            nextDelayMs);
         this.deepSeaPrepairTimer.start();
     }
 
@@ -1069,6 +1105,10 @@ class MapMarkers {
             this.crateLargeOilRigTimer.stop();
         }
         this.crateLargeOilRigTimer = null;
+        if (this.deepSeaPrepairTimer) {
+            this.deepSeaPrepairTimer.stop();
+        }
+        this.deepSeaPrepairTimer = null;
 
         this.timeSinceCargoShipWasOut = null;
         this.timeSinceCH47WasOut = null;
@@ -1078,6 +1118,15 @@ class MapMarkers {
         this.timeSincePatrolHelicopterWasDestroyed = null;
         this.timeSinceTravelingVendorWasOnMap = null;
         this.timeSinceDeepSeaWasOnMap = null;
+
+        // Reset Deep Sea specific fields
+        this.deepSeaSpawnedAt = null;
+        this.deepSeaLastSpawnAt = null;
+        this.deepSeaRespawnAt = null;
+        this.deepSeaLastSide = null;
+        this.deepSeaLastLocation = null;
+        this.isDeepSeaActive = false;
+        this.deepSea = [];
 
         this.patrolHelicopterDestroyedLocation = null;
 
@@ -1093,40 +1142,19 @@ class MapMarkers {
 
     loadEventTimes() {
         const Client = require('../../index.ts');
-        const instance = Client.client.getInstance(this.rustplus.guildId);
-        const server = instance.serverList[this.rustplus.serverId];
-        
-        if (server && server.eventTimes) {
-            const et = server.eventTimes;
-            if (et.timeSinceCargoShipWasOut) this.timeSinceCargoShipWasOut = new Date(et.timeSinceCargoShipWasOut);
-            if (et.timeSinceCH47WasOut) this.timeSinceCH47WasOut = new Date(et.timeSinceCH47WasOut);
-            if (et.timeSinceSmallOilRigWasTriggered) this.timeSinceSmallOilRigWasTriggered = new Date(et.timeSinceSmallOilRigWasTriggered);
-            if (et.timeSinceLargeOilRigWasTriggered) this.timeSinceLargeOilRigWasTriggered = new Date(et.timeSinceLargeOilRigWasTriggered);
-            if (et.timeSincePatrolHelicopterWasOnMap) this.timeSincePatrolHelicopterWasOnMap = new Date(et.timeSincePatrolHelicopterWasOnMap);
-            if (et.timeSincePatrolHelicopterWasDestroyed) this.timeSincePatrolHelicopterWasDestroyed = new Date(et.timeSincePatrolHelicopterWasDestroyed);
-            if (et.timeSinceTravelingVendorWasOnMap) this.timeSinceTravelingVendorWasOnMap = new Date(et.timeSinceTravelingVendorWasOnMap);
-            if (et.timeSinceDeepSeaWasOnMap) this.timeSinceDeepSeaWasOnMap = new Date(et.timeSinceDeepSeaWasOnMap);
-        }
+        // Note: Event times are now loaded via EventStateManager.restoreEventState()
+        // This legacy method is kept for backwards compatibility only.
+        // All event time restoration happens through EventStateManager.
     }
 
     persistEventTimes() {
         const Client = require('../../index.ts');
+        const EventStateManager = require('../util/EventStateManager.js');
         const instance = Client.client.getInstance(this.rustplus.guildId);
-        const server = instance.serverList[this.rustplus.serverId];
         
-        if (server) {
-            server.eventTimes = {
-                timeSinceCargoShipWasOut: this.timeSinceCargoShipWasOut,
-                timeSinceCH47WasOut: this.timeSinceCH47WasOut,
-                timeSinceSmallOilRigWasTriggered: this.timeSinceSmallOilRigWasTriggered,
-                timeSinceLargeOilRigWasTriggered: this.timeSinceLargeOilRigWasTriggered,
-                timeSincePatrolHelicopterWasOnMap: this.timeSincePatrolHelicopterWasOnMap,
-                timeSincePatrolHelicopterWasDestroyed: this.timeSincePatrolHelicopterWasDestroyed,
-                timeSinceTravelingVendorWasOnMap: this.timeSinceTravelingVendorWasOnMap,
-                timeSinceDeepSeaWasOnMap: this.timeSinceDeepSeaWasOnMap
-            };
-            Client.client.setInstance(this.rustplus.guildId, instance);
-        }
+        /* Save event state using EventStateManager for persistence across reboots */
+        EventStateManager.saveEventState(instance, this);
+        Client.client.setInstance(this.rustplus.guildId, instance);
     }
 }
 

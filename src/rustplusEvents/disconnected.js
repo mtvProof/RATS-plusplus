@@ -19,8 +19,76 @@
 */
 
 const DiscordMessages = require('../discordTools/discordMessages.js');
+const InstanceUtils = require('../util/instanceUtils.js');
 
 const Config = require('../../config');
+
+function computeReconnectDelayMs(rustplus) {
+    const baseDelay = Number(Config.general.reconnectIntervalMs) || 15000;
+    const streak = Math.max(0, Number(rustplus.connectFailureStreak || 0));
+
+    // Exponential backoff capped to 5 minutes to avoid hammering and potential temporary server bans.
+    const maxDelay = 5 * 60 * 1000;
+    const factor = Math.min(Math.pow(2, Math.min(streak, 6)), 20);
+    return Math.min(baseDelay * factor, maxDelay);
+}
+
+function resolveReconnectTarget(client, rustplus, instance, isSecondary) {
+    const guildId = rustplus.guildId;
+    const serverId = rustplus.serverId;
+    const liteByServer = (instance && instance.serverListLite && instance.serverListLite[serverId])
+        ? instance.serverListLite[serverId]
+        : {};
+    const server = instance && instance.serverList ? instance.serverList[serverId] : null;
+
+    let credentials = null;
+    try {
+        credentials = InstanceUtils.readCredentialsFile(guildId);
+    }
+    catch (e) {
+        credentials = null;
+    }
+
+    const base = {
+        serverIp: rustplus.server,
+        appPort: rustplus.port,
+        steamId: rustplus.playerId,
+        playerToken: rustplus.playerToken,
+        source: 'runtime'
+    };
+
+    const applyLite = (steamId, source) => {
+        if (!steamId || !liteByServer[steamId]) return false;
+
+        base.serverIp = liteByServer[steamId].serverIp;
+        base.appPort = liteByServer[steamId].appPort;
+        base.steamId = liteByServer[steamId].steamId;
+        base.playerToken = liteByServer[steamId].playerToken;
+        base.source = source;
+        return true;
+    };
+
+    if (isSecondary) {
+        const hoster2 = credentials && credentials.hoster2 ? `${credentials.hoster2}` : null;
+        if (!applyLite(hoster2, 'serverListLite.hoster2')) {
+            applyLite(`${rustplus.hosterSteamId}`, 'serverListLite.runtimeHoster');
+        }
+    }
+    else {
+        const hoster = credentials && credentials.hoster ? `${credentials.hoster}` : null;
+        if (!applyLite(hoster, 'serverListLite.hoster')) {
+            if (!applyLite(`${rustplus.hosterSteamId}`, 'serverListLite.runtimeHoster') && server) {
+                base.serverIp = server.serverIp;
+                base.appPort = server.appPort;
+                base.steamId = server.steamId;
+                base.playerToken = server.playerToken;
+                base.source = 'serverList.primary';
+            }
+        }
+    }
+
+    return base;
+}
 
 module.exports = {
     name: 'disconnected',
@@ -71,6 +139,16 @@ module.exports = {
 
         /* Was the disconnection unexpected? */
         if (shouldReconnect) {
+            const reconnectTarget = resolveReconnectTarget(client, rustplus, instance, isSecondary);
+            const reconnectDelayMs = computeReconnectDelayMs(rustplus);
+
+            rustplus.log(client.intlGet(null, 'infoCap'),
+                `Reconnect target: source=${reconnectTarget.source}, steamId=${reconnectTarget.steamId}, ` +
+                `server=${reconnectTarget.serverIp}-${reconnectTarget.appPort}`);
+            rustplus.log(client.intlGet(null, 'infoCap'),
+                `Reconnect delay: ${reconnectDelayMs}ms (streak=${rustplus.connectFailureStreak || 0}, ` +
+                `lastError=${rustplus.lastConnectErrorCode || 'none'})`);
+
             if (isSecondary) {
                 client.rustplusSecondaryReconnecting[guildId] = true;
 
@@ -85,12 +163,12 @@ module.exports = {
 
                 client.rustplusSecondaryReconnectTimers[guildId] = setTimeout(
                     client.createRustplusInstance.bind(client),
-                    Config.general.reconnectIntervalMs,
+                    reconnectDelayMs,
                     guildId,
-                    rustplus.server,
-                    rustplus.port,
-                    rustplus.playerId,
-                    rustplus.playerToken,
+                    reconnectTarget.serverIp,
+                    reconnectTarget.appPort,
+                    reconnectTarget.steamId,
+                    reconnectTarget.playerToken,
                     'secondary'
                 );
             }
@@ -113,12 +191,12 @@ module.exports = {
 
                 client.rustplusReconnectTimers[guildId] = setTimeout(
                     client.createRustplusInstance.bind(client),
-                    Config.general.reconnectIntervalMs,
+                    reconnectDelayMs,
                     guildId,
-                    rustplus.server,
-                    rustplus.port,
-                    rustplus.playerId,
-                    rustplus.playerToken
+                    reconnectTarget.serverIp,
+                    reconnectTarget.appPort,
+                    reconnectTarget.steamId,
+                    reconnectTarget.playerToken
                 );
             }
         }
