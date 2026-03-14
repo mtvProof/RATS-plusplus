@@ -21,12 +21,119 @@
 const Discord = require('discord.js');
 
 const Config = require('../../config');
+const Battlemetrics = require('../structures/Battlemetrics');
+const Constants = require('../util/constants.js');
 const DiscordMessages = require('../discordTools/discordMessages.js');
 const DiscordTools = require('../discordTools/discordTools.js');
 const InstanceUtils = require('../util/instanceUtils.js');
+const Scrape = require('../util/scrape.js');
 const SmartSwitchGroupHandler = require('./smartSwitchGroupHandler.js');
 const DiscordButtons = require('../discordTools/discordButtons.js');
 const DiscordModals = require('../discordTools/discordModals.js');
+
+function getTrackerPlayerCandidateNames(tracker, player, steamProfileName = null) {
+    const candidates = new Set();
+    const addCandidate = (value) => {
+        if (!value || typeof value !== 'string') return;
+
+        const normalized = value.trim();
+        if (normalized !== '') candidates.add(normalized);
+    };
+
+    addCandidate(steamProfileName);
+    addCandidate(player.name);
+
+    if (tracker.clanTag) {
+        if (steamProfileName) addCandidate(`${tracker.clanTag} ${steamProfileName}`);
+        if (player.name) {
+            addCandidate(`${tracker.clanTag} ${player.name}`);
+
+            const clanTagPrefix = `${tracker.clanTag} `;
+            if (player.name.startsWith(clanTagPrefix)) {
+                addCandidate(player.name.slice(clanTagPrefix.length));
+            }
+        }
+    }
+
+    return Array.from(candidates);
+}
+
+function findBattlemetricsPlayerIdByNames(bmInstance, candidateNames) {
+    if (!bmInstance || !bmInstance.players || candidateNames.length === 0) return null;
+
+    const lowerCaseCandidates = candidateNames.map(name => name.toLowerCase());
+
+    for (const [playerId, player] of Object.entries(bmInstance.players)) {
+        if (candidateNames.includes(player.name)) return playerId;
+    }
+
+    for (const [playerId, player] of Object.entries(bmInstance.players)) {
+        if (lowerCaseCandidates.includes(player.name.toLowerCase())) return playerId;
+    }
+
+    return null;
+}
+
+async function refreshTrackerBattlemetricsState(client, guildId, tracker) {
+    if (!tracker || !tracker.battlemetricsId) return null;
+
+    let bmInstance = client.battlemetricsInstances[tracker.battlemetricsId];
+    if (bmInstance) {
+        await bmInstance.evaluation();
+    }
+    else {
+        bmInstance = new Battlemetrics(tracker.battlemetricsId);
+        await bmInstance.setup();
+        client.battlemetricsInstances[tracker.battlemetricsId] = bmInstance;
+    }
+
+    if (!bmInstance || !bmInstance.lastUpdateSuccessful) return null;
+
+    let trackerChanged = tracker.serverId !== `${bmInstance.server_ip}-${bmInstance.server_port}` ||
+        tracker.title !== bmInstance.server_name ||
+        tracker.img !== Constants.DEFAULT_SERVER_IMG;
+
+    tracker.serverId = `${bmInstance.server_ip}-${bmInstance.server_port}`;
+    tracker.title = bmInstance.server_name;
+    tracker.img = Constants.DEFAULT_SERVER_IMG;
+
+    for (const player of tracker.players) {
+        const hadPlayerId = !!player.playerId;
+        const cachedPlayer = player.playerId ? bmInstance.players[player.playerId] : null;
+        let steamProfileName = null;
+
+        if (player.steamId) {
+            steamProfileName = await Scrape.scrapeSteamProfileName(client, player.steamId);
+        }
+
+        const candidateNames = getTrackerPlayerCandidateNames(tracker, player, steamProfileName);
+        const resolvedPlayerId = cachedPlayer ? player.playerId :
+            findBattlemetricsPlayerIdByNames(bmInstance, candidateNames);
+
+        if ((!hadPlayerId || !cachedPlayer) && resolvedPlayerId && player.playerId !== resolvedPlayerId) {
+            player.playerId = resolvedPlayerId;
+            trackerChanged = true;
+        }
+
+        const refreshedPlayer = player.playerId ? bmInstance.players[player.playerId] : null;
+        let preferredName = player.name;
+        if (player.steamId && steamProfileName) {
+            preferredName = ((tracker.clanTag ? `${tracker.clanTag} ` : '') + steamProfileName).trim();
+        }
+        else if (!player.steamId && refreshedPlayer) {
+            preferredName = refreshedPlayer.name;
+        }
+
+        if (preferredName && player.name !== preferredName) {
+            player.name = preferredName;
+            trackerChanged = true;
+        }
+    }
+
+    if (trackerChanged) client.setInstance(guildId, client.getInstance(guildId));
+
+    return bmInstance;
+}
 
 module.exports = async (client, interaction) => {
     const instance = client.getInstance(interaction.guildId);
@@ -1317,9 +1424,11 @@ module.exports = async (client, interaction) => {
             return;
         }
 
-        // TODO! Remove name change icon from status
+        await interaction.deferUpdate();
 
-        await DiscordMessages.sendTrackerMessage(guildId, ids.trackerId, interaction);
+        await refreshTrackerBattlemetricsState(client, guildId, tracker);
+
+        await DiscordMessages.sendTrackerMessage(guildId, ids.trackerId);
     }
     else if (interaction.customId.startsWith('TrackerEdit')) {
         const ids = JSON.parse(interaction.customId.replace('TrackerEdit', ''));
