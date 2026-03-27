@@ -62,40 +62,60 @@ module.exports = {
         }
 
         if (rustplus.informationIntervalCounter === 0) {
+            const timeoutMs = 15000; // 15 second timeout per update function
+
             try {
-                await DiscordMessages.sendUpdateServerInformationMessage(rustplus);
+                await Promise.race([
+                    DiscordMessages.sendUpdateServerInformationMessage(rustplus),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
+                ]);
             } catch (e) {
-                rustplus.log('Error', `sendUpdateServerInformationMessage failed: ${e}`, 'error');
+                rustplus.log(Client.client.intlGet(null, 'errorCap'), `sendUpdateServerInformationMessage failed: ${e}`, 'error');
             }
 
             try {
-                await DiscordMessages.sendUpdateEventInformationMessage(rustplus);
+                await Promise.race([
+                    DiscordMessages.sendUpdateEventInformationMessage(rustplus),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
+                ]);
             } catch (e) {
-                rustplus.log('Error', `sendUpdateEventInformationMessage failed: ${e}`, 'error');
+                rustplus.log(Client.client.intlGet(null, 'errorCap'), `sendUpdateEventInformationMessage failed: ${e}`, 'error');
             }
 
             try {
-                await DiscordMessages.sendUpdateTeamInformationMessage(rustplus);
+                await Promise.race([
+                    DiscordMessages.sendUpdateTeamInformationMessage(rustplus),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
+                ]);
             } catch (e) {
-                rustplus.log('Error', `sendUpdateTeamInformationMessage failed: ${e}`, 'error');
+                rustplus.log(Client.client.intlGet(null, 'errorCap'), `sendUpdateTeamInformationMessage failed: ${e}`, 'error');
             }
 
             try {
-                await DiscordMessages.sendUpdateToolCupboardUpkeepInformationMessage(rustplus);
+                await Promise.race([
+                    DiscordMessages.sendUpdateToolCupboardUpkeepInformationMessage(rustplus),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
+                ]);
             } catch (e) {
-                rustplus.log('Error', `sendUpdateToolCupboardUpkeepInformationMessage failed: ${e}`, 'error');
+                rustplus.log(Client.client.intlGet(null, 'errorCap'), `sendUpdateToolCupboardUpkeepInformationMessage failed: ${e}`, 'error');
             }
 
             try {
-                await DiscordMessages.sendUpdateMarketWatchlistInformationMessage(rustplus);
+                await Promise.race([
+                    DiscordMessages.sendUpdateMarketWatchlistInformationMessage(rustplus),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
+                ]);
             } catch (e) {
-                rustplus.log('Error', `sendUpdateMarketWatchlistInformationMessage failed: ${e}`, 'error');
+                rustplus.log(Client.client.intlGet(null, 'errorCap'), `sendUpdateMarketWatchlistInformationMessage failed: ${e}`, 'error');
             }
 
             try {
-                await DiscordMessages.sendUpdateLootInformationMessage(rustplus);
+                await Promise.race([
+                    DiscordMessages.sendUpdateLootInformationMessage(rustplus),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
+                ]);
             } catch (e) {
-                rustplus.log('Error', `sendUpdateLootInformationMessage failed: ${e}`, 'error');
+                rustplus.log(Client.client.intlGet(null, 'errorCap'), `sendUpdateLootInformationMessage failed: ${e}`, 'error');
             }
         }
 

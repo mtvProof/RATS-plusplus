@@ -50,7 +50,7 @@ module.exports = {
             const gridSize = 150;
             const warningDistance = 400; // Distance in meters to trigger warning
             const cooldownMs = 30000; // 30 seconds cooldown per grid
-            const heliSpeedThreshold = 10; // m/s
+            const heliSpeedThreshold = 14; // m/s
 
             // Clean up expired cooldowns
             for (const grid in rustplus.samWarningCooldowns) {

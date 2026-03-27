@@ -25,6 +25,7 @@ const InGameChatHandler = require('../handlers/inGameChatHandler.js');
 const SmartSwitchGroupHandler = require('../handlers/smartSwitchGroupHandler.js');
 const TeamChatHandler = require("../handlers/teamChatHandler.js");
 const TeamHandler = require('../handlers/teamHandler.js');
+const Team = require('../structures/Team.js');
 
 module.exports = {
     name: 'message',
@@ -62,11 +63,17 @@ async function messageBroadcast(rustplus, client, message) {
 }
 
 async function messageBroadcastTeamChanged(rustplus, client, message) {
+    // Ensure a Team object exists so handlers that expect it can run.
     if (!rustplus.team) {
-        rustplus.log(client.intlGet(null, 'errorCap'), 'Team data missing; skipping teamChanged broadcast');
-        return;
+        try {
+            rustplus.team = new Team(message.broadcast.teamChanged.teamInfo, rustplus);
+        } catch (e) {
+            rustplus.log(client.intlGet(null, 'errorCap'), 'Failed to initialize team data');
+            return;
+        }
     }
-    TeamHandler.handler(rustplus, client, message.broadcast.teamChanged.teamInfo);
+
+    await TeamHandler.handler(rustplus, client, message.broadcast.teamChanged.teamInfo);
     const changed = rustplus.team.isLeaderSteamIdChanged(message.broadcast.teamChanged.teamInfo);
     rustplus.team.updateTeam(message.broadcast.teamChanged.teamInfo);
     if (changed) rustplus.updateLeaderRustPlusLiteInstance();
@@ -333,14 +340,24 @@ async function updateToolCupboard(candidates, client, message) {
     if (!suppressDecayCheck) {
         if (info.entityInfo.payload.protectionExpiry === 0 &&
             monitor.decaying === false) {
-            monitor.decaying = true;
+            const confirm = await getEntityInfoFromCandidates(candidates, entityId);
+            const confirmInfo = confirm.info;
 
-            await DiscordMessages.sendDecayingNotificationMessage(guildId, serverId, entityId);
+            if (confirmInfo &&
+                confirmInfo.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_TOOL_CUPBOARD_CAPACITY &&
+                confirmInfo.entityInfo.payload.protectionExpiry === 0) {
+                monitor.decaying = true;
 
-            if (monitor.inGame) {
-                infoSource.sendInGameMessage(client.intlGet(guildId, 'isDecaying', {
-                    device: monitor.name
-                }));
+                await DiscordMessages.sendDecayingNotificationMessage(guildId, serverId, entityId);
+
+                if (monitor.inGame) {
+                    infoSource.sendInGameMessage(client.intlGet(guildId, 'isDecaying', {
+                        device: monitor.name
+                    }));
+                }
+            }
+            else {
+                monitor.decaying = false;
             }
         }
         else if (info.entityInfo.payload.protectionExpiry !== 0) {

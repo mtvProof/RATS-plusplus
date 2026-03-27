@@ -38,10 +38,20 @@ module.exports = {
                 const messageFromQueue = rustplus.inGameChatQueue[0];
                 rustplus.inGameChatQueue = rustplus.inGameChatQueue.slice(1);
 
+                // Mark as bot-originated before sending so message echo can be filtered from teamchat relay.
                 rustplus.updateBotMessages(messageFromQueue);
 
-                rustplus.sendTeamMessageAsync(messageFromQueue);
-                rustplus.log(client.intlGet(guildId, 'messageCap'), messageFromQueue);
+                const result = await rustplus.sendTeamMessageAsync(messageFromQueue);
+                if (result && !result.error) {
+                    rustplus.log(client.intlGet(guildId, 'messageCap'), messageFromQueue);
+                }
+                else {
+                    rustplus.log(
+                        client.intlGet(guildId, 'errorCap'),
+                        `Failed to send in-game chat message: ${messageFromQueue}`,
+                        'error'
+                    );
+                }
             }
             else {
                 clearTimeout(rustplus.inGameChatTimeout);

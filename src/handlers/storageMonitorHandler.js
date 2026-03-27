@@ -36,26 +36,32 @@ module.exports = {
         // Use the primary when available, otherwise the first operational candidate.
         const poller = candidates.find(rp => rp.instanceLabel === 'primary') || candidates[0];
 
-        let instance = client.getInstance(guildId);
-        const serverId = poller.serverId;
-        const isReconnecting = client.rustplusReconnecting[guildId] || 
-            client.rustplusSecondaryReconnecting[guildId];
-        const suppressNotFound = isReconnecting || (poller.uptimeServer &&
-            (Date.now() - poller.uptimeServer.getTime()) < 5 * 60 * 1000);
+        // Do not allow overlapping storage scans.
+        if (poller.isStorageMonitorHandlerRunning) return;
+        poller.isStorageMonitorHandlerRunning = true;
 
-        if (!instance.serverList.hasOwnProperty(serverId)) return;
+        try {
 
-        if (poller.storageMonitorIntervalCounter === 29) {
-            poller.storageMonitorIntervalCounter = 0;
-        }
-        else {
-            poller.storageMonitorIntervalCounter += 1;
-        }
-
-        if (poller.storageMonitorIntervalCounter === 0) {
             let instance = client.getInstance(guildId);
-            for (const entityId in instance.serverList[serverId].storageMonitors) {
-                instance = client.getInstance(guildId);
+            const serverId = poller.serverId;
+            const isReconnecting = client.rustplusReconnecting[guildId] || 
+                client.rustplusSecondaryReconnecting[guildId];
+            const suppressNotFound = isReconnecting || (poller.uptimeServer &&
+                (Date.now() - poller.uptimeServer.getTime()) < 5 * 60 * 1000);
+
+            if (!instance.serverList.hasOwnProperty(serverId)) return;
+
+            if (poller.storageMonitorIntervalCounter === 29) {
+                poller.storageMonitorIntervalCounter = 0;
+            }
+            else {
+                poller.storageMonitorIntervalCounter += 1;
+            }
+
+            if (poller.storageMonitorIntervalCounter === 0) {
+                let instance = client.getInstance(guildId);
+                for (const entityId in instance.serverList[serverId].storageMonitors) {
+                    instance = client.getInstance(guildId);
 
                 // Try each operational instance until we get a valid response (handles TC auth being on hoster2).
                 let info = null;
@@ -117,15 +123,25 @@ module.exports = {
                             if (!suppressNotFound) {
                                 if (info.entityInfo.payload.protectionExpiry === 0 &&
                                     monitor.decaying === false) {
-                                    monitor.decaying = true;
+                                    const confirmInfo = await infoSource.getEntityInfoAsync(entityId);
+                                    const isConfirmValid = await infoSource.isResponseValid(confirmInfo);
 
-                                    await DiscordMessages.sendDecayingNotificationMessage(
-                                        guildId, serverId, entityId);
+                                    if (isConfirmValid &&
+                                        confirmInfo.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_TOOL_CUPBOARD_CAPACITY &&
+                                        confirmInfo.entityInfo.payload.protectionExpiry === 0) {
+                                        monitor.decaying = true;
 
-                                    if (monitor.inGame) {
-                                        rustplus.sendInGameMessage(client.intlGet(rustplus.guildId, 'isDecaying', {
-                                            device: monitor.name
-                                        }));
+                                        await DiscordMessages.sendDecayingNotificationMessage(
+                                            guildId, serverId, entityId);
+
+                                        if (monitor.inGame) {
+                                            rustplus.sendInGameMessage(client.intlGet(rustplus.guildId, 'isDecaying', {
+                                                device: monitor.name
+                                            }));
+                                        }
+                                    }
+                                    else {
+                                        monitor.decaying = false;
                                     }
                                 }
                                 else if (info.entityInfo.payload.protectionExpiry !== 0) {
@@ -149,8 +165,12 @@ module.exports = {
                     }
                 }
 
-                await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
+                    await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
+                }
             }
+        }
+        finally {
+            poller.isStorageMonitorHandlerRunning = false;
         }
     },
 }

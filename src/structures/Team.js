@@ -154,8 +154,10 @@ class Team {
     async changeLeadership(steamId) {
         let player = this.getPlayer(steamId);
         if (player !== null) {
-            await player.assignLeader();
+            return await player.assignLeader();
         }
+
+        return null;
     }
 
     getNewPlayers(team) {

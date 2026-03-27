@@ -274,7 +274,8 @@ class RustPlus extends RustPlusLib {
 
     updateEvents(event, message) {
         const eventAliases = {
-            vendor: 'travelingVendor'
+            vendor: 'travelingVendor',
+            deepsea: 'deepSea'
         };
         const eventKey = eventAliases[event] || event;
         const supportedEvents = ['cargo', 'heli', 'small', 'large', 'chinook', 'travelingVendor', 'deepSea'];
@@ -341,18 +342,19 @@ class RustPlus extends RustPlusLib {
     }
 
     async sendEvent(setting, text, event, embed_color, firstPoll = false, image = null) {
-        const img = (image !== null) ? image : setting.image;
+        const eventSetting = setting || {};
+        const img = (image !== null) ? image : (eventSetting.image || null);
 
         this.updateEvents(event, text);
 
-        if (!firstPoll && setting.discord) {
+        if (!firstPoll && eventSetting.discord) {
             await DiscordMessages.sendDiscordEventMessage(this.guildId, this.serverId, text, img, embed_color);
         }
         // Only broadcast in-game from the primary instance to avoid duplicate sends across both teams.
-        if (!firstPoll && setting.inGame && this.instanceLabel === 'primary') {
+        if (!firstPoll && eventSetting.inGame && this.instanceLabel === 'primary') {
             await this.sendInGameMessage(`${text}`);
         }
-        if (!firstPoll && setting.voice) {
+        if (!firstPoll && eventSetting.voice) {
             await DiscordVoice.sendDiscordVoiceMessage(this.guildId, text);
         }
 
@@ -360,18 +362,19 @@ class RustPlus extends RustPlusLib {
         if (Client.client.webServer) {
             // Try to find the setting key (e.g. "cargoShipDetectedSetting") to allow granular filtering in WebUI
             const settingKey = Object.keys(this.notificationSettings).find(key => this.notificationSettings[key] === setting);
+            const settingImage = typeof eventSetting.image === 'string' ? eventSetting.image : '';
 
             let type = settingKey || 'info';
 
             // If we didn't find a key (e.g. custom setting), fallback to image-based type for icons/basic filtering
             if (!settingKey) {
-                if (setting.image.includes('cargo')) type = 'cargo';
-                else if (setting.image.includes('heli')) type = 'heli';
-                else if (setting.image.includes('locked_crate')) type = 'crate';
-                else if (setting.image.includes('oil_rig')) type = 'oil_rig';
-                else if (setting.image.includes('vendor')) type = 'vendor';
-                else if (setting.image.includes('vending')) type = 'vending';
-                else if (setting.image.includes('chinook')) type = 'chinook';
+                if (settingImage.includes('cargo')) type = 'cargo';
+                else if (settingImage.includes('heli')) type = 'heli';
+                else if (settingImage.includes('locked_crate')) type = 'crate';
+                else if (settingImage.includes('oil_rig')) type = 'oil_rig';
+                else if (settingImage.includes('vendor')) type = 'vendor';
+                else if (settingImage.includes('vending')) type = 'vending';
+                else if (settingImage.includes('chinook')) type = 'chinook';
             }
 
             Client.client.webServer.broadcastNotification(this.guildId, type, text);
@@ -770,6 +773,70 @@ class RustPlus extends RustPlusLib {
         }
         this.consecutiveTimeouts = 0;
         return true;
+    }
+
+    async transferLeadershipAndConfirm(targetSteamId) {
+        if (!this.team) return false;
+
+        const steamId = targetSteamId.toString();
+        const timeoutError = 'Error: Timeout reached while waiting for response';
+        const isAmbiguousLeaderTransferError = (response) => {
+            if (response === undefined) return true;
+
+            const text = (response && response.toString) ? response.toString() : `${response}`;
+            return text === timeoutError ||
+                /socket hang up|ECONNRESET|EPIPE|ETIMEDOUT|network/i.test(text);
+        };
+
+        if (this.team.leaderSteamId === this.playerId) {
+            await this.team.changeLeadership(steamId);
+        }
+        else {
+            if (!this.leaderRustPlusInstance) {
+                this.updateLeaderRustPlusLiteInstance();
+                await new Promise(resolve => setTimeout(resolve, 1000));
+            }
+
+            if (!this.leaderRustPlusInstance) {
+                return false;
+            }
+
+            let response = await this.leaderRustPlusInstance.promoteToLeaderAsync(steamId);
+            if (!this.leaderRustPlusInstance.isResponseValid(response) &&
+                !isAmbiguousLeaderTransferError(response)) {
+                // Refresh stale/disconnected leader-lite session and retry once.
+                this.updateLeaderRustPlusLiteInstance();
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                if (!this.leaderRustPlusInstance) {
+                    return false;
+                }
+
+                response = await this.leaderRustPlusInstance.promoteToLeaderAsync(steamId);
+                if (!this.leaderRustPlusInstance.isResponseValid(response) &&
+                    !isAmbiguousLeaderTransferError(response)) {
+                    return false;
+                }
+            }
+        }
+
+        /*
+            Confirm for a bit longer to absorb delayed team updates after promote requests.
+            This reduces false negatives where command says failed but transfer happens moments later.
+        */
+        for (let i = 0; i < 12; i++) {
+            const teamInfo = await this.getTeamInfoAsync(5000);
+            if (await this.isResponseValid(teamInfo) && teamInfo.teamInfo) {
+                if (teamInfo.teamInfo.leaderSteamId.toString() === steamId) {
+                    this.team.updateTeam(teamInfo.teamInfo);
+                    return true;
+                }
+            }
+
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
+        return this.team.leaderSteamId === steamId;
     }
 
     /* Commands */
@@ -1614,15 +1681,22 @@ class RustPlus extends RustPlusLib {
         const commandLeader = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxLeader')}`;
         const commandLeaderEn = `${prefix}${Client.client.intlGet('en', 'commandSyntaxLeader')}`;
 
+        if (!this.team || !Array.isArray(this.team.players) || !this.team.leaderSteamId) {
+            return Client.client.intlGet(this.guildId, 'notConnectedToRustServer');
+        }
+
         if (!this.generalSettings.leaderCommandEnabled) {
             return Client.client.intlGet(this.guildId, 'leaderCommandIsDisabled');
         }
 
         const instance = Client.client.getInstance(this.guildId);
-        if (!Object.keys(instance.serverListLite[this.serverId]).includes(this.team.leaderSteamId)) {
+        const serverListLite = (instance && instance.serverListLite && instance.serverListLite[this.serverId]) ?
+            instance.serverListLite[this.serverId] : {};
+
+        if (!Object.keys(serverListLite).includes(this.team.leaderSteamId)) {
             let names = '';
             for (const player of this.team.players) {
-                if (Object.keys(instance.serverListLite[this.serverId]).includes(player.steamId)) {
+                if (Object.keys(serverListLite).includes(player.steamId)) {
                     names += `${player.name}, `
                 }
             }
@@ -1638,16 +1712,14 @@ class RustPlus extends RustPlusLib {
 
             if (this.team.leaderSteamId !== callerSteamId) {
                 if (this.generalSettings.leaderCommandOnlyForPaired) {
-                    if (!Object.keys(instance.serverListLite[this.serverId]).includes(callerSteamId)) {
+                    if (!Object.keys(serverListLite).includes(callerSteamId)) {
                         return Client.client.intlGet(this.guildId, 'youAreNotPairedWithServer');
                     }
                 }
 
-                if (this.team.leaderSteamId === this.playerId) {
-                    await this.team.changeLeadership(callerSteamId);
-                }
-                else {
-                    this.leaderRustPlusInstance.promoteToLeaderAsync(callerSteamId);
+                const transferred = await this.transferLeadershipAndConfirm(callerSteamId);
+                if (!transferred) {
+                    return Client.client.intlGet(this.guildId, 'somethingWrongWithConnection');
                 }
 
                 const player = this.team.getPlayer(callerSteamId);
@@ -1669,8 +1741,9 @@ class RustPlus extends RustPlusLib {
                 name = command.slice(`${commandLeaderEn} `.length).trim();
             }
 
+            const nameLower = name.toLowerCase();
             for (const player of this.team.players) {
-                if (player.name.includes(name)) {
+                if (player.name.toLowerCase().includes(nameLower)) {
                     if (this.team.leaderSteamId === player.steamId) {
                         return Client.client.intlGet(this.guildId, 'leaderAlreadyLeader', {
                             name: player.name
@@ -1678,18 +1751,16 @@ class RustPlus extends RustPlusLib {
                     }
                     else {
                         if (this.generalSettings.leaderCommandOnlyForPaired) {
-                            if (!Object.keys(instance.serverListLite[this.serverId]).includes(player.steamId)) {
+                            if (!Object.keys(serverListLite).includes(player.steamId)) {
                                 return Client.client.intlGet(this.guildId, 'playerNotPairedWithServer', {
                                     name: player.name
                                 });
                             }
                         }
 
-                        if (this.team.leaderSteamId === this.playerId) {
-                            await this.team.changeLeadership(player.steamId);
-                        }
-                        else {
-                            this.leaderRustPlusInstance.promoteToLeaderAsync(player.steamId);
+                        const transferred = await this.transferLeadershipAndConfirm(player.steamId);
+                        if (!transferred) {
+                            return Client.client.intlGet(this.guildId, 'somethingWrongWithConnection');
                         }
 
                         return Client.client.intlGet(this.guildId, 'leaderTransferred', {

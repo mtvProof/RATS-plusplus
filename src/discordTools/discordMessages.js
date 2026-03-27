@@ -468,7 +468,7 @@ module.exports = {
             content: entity.everyone ? '@everyone' : ''
         }
 
-        await module.exports.sendMessage(guildId, content, null, instance.channelId.importantAlerts);
+        await module.exports.sendMessage(guildId, content, null, instance.channelId.activity);
     },
 
     sendSmartAlarmTriggerMessage: async function (guildId, serverId, entityId) {

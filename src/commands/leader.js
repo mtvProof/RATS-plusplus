@@ -89,8 +89,9 @@ module.exports = {
 			return;
 		}
 
+		const memberLower = member.toLowerCase();
 		for (const player of rustplus.team.players) {
-			if (player.name.includes(member)) {
+			if (player.name.toLowerCase().includes(memberLower)) {
 				if (rustplus.team.leaderSteamId === player.steamId) {
 					const str = client.intlGet(interaction.guildId, 'leaderAlreadyLeader', {
 						name: player.name
@@ -112,11 +113,13 @@ module.exports = {
 						}
 					}
 
-					if (rustplus.team.leaderSteamId === rustplus.playerId) {
-						await rustplus.team.changeLeadership(player.steamId);
-					}
-					else {
-						rustplus.leaderRustPlusInstance.promoteToLeaderAsync(player.steamId);
+					const transferred = await rustplus.transferLeadershipAndConfirm(player.steamId);
+					if (!transferred) {
+						const str = client.intlGet(interaction.guildId, 'somethingWrongWithConnection');
+						await client.interactionEditReply(interaction, DiscordEmbeds.getActionInfoEmbed(1, str,
+							instance.serverList[rustplus.serverId].title));
+						rustplus.log(client.intlGet(interaction.guildId, 'warningCap'), str);
+						return;
 					}
 
 					const str = client.intlGet(interaction.guildId, 'leaderTransferred', {

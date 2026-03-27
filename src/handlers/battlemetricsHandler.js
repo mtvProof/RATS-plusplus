@@ -63,6 +63,38 @@ module.exports = {
                 const battlemetricsId = content.battlemetricsId;
                 const bmInstance = client.battlemetricsInstances[battlemetricsId];
 
+                const originalPlayerCount = content.players.length;
+                const deduplicatedPlayers = deduplicateTrackerPlayers(content.players);
+                if (deduplicatedPlayers.length !== originalPlayerCount) {
+                    content.players = deduplicatedPlayers;
+                    client.setInstance(guildId, instance);
+                    client.log(client.intlGet(null, 'warningCap'),
+                        `Deduplicated tracker ${trackerId} (${content.name}) player list: ` +
+                    `${originalPlayerCount} -> ${deduplicatedPlayers.length}`);
+                }
+
+                const rustplusCandidates = client.getRustplusInstancesAll(guildId)
+                    .filter(rp => rp && rp.isOperational);
+
+                const serverIdMatchedCandidates = rustplusCandidates
+                    .filter(rp => rp.serverId === content.serverId);
+                const battlemetricsMatchedCandidates = rustplusCandidates
+                    .filter(rp => {
+                        const server = instance.serverList[rp.serverId];
+                        return server && `${server.battlemetricsId || ''}` === `${content.battlemetricsId || ''}`;
+                    });
+
+                const preferredCandidates = serverIdMatchedCandidates.length !== 0 ?
+                    serverIdMatchedCandidates : battlemetricsMatchedCandidates;
+                const trackerRustplus = preferredCandidates.find(rp => rp.instanceLabel === 'primary') ||
+                    preferredCandidates[0] || null;
+
+                // Self-heal mismatched tracker serverId (e.g. BattleMetrics query/game port vs Rust+ app port).
+                if (trackerRustplus && content.serverId !== trackerRustplus.serverId) {
+                    content.serverId = trackerRustplus.serverId;
+                    client.setInstance(guildId, instance);
+                }
+
                 if (!bmInstance || !bmInstance.lastUpdateSuccessful) continue;
 
                 if (firstTime || searchSteamProfiles) {
@@ -83,8 +115,7 @@ module.exports = {
                             await module.exports.trackerNewNameDetected(client, guildId, trackerId, battlemetricsId,
                                 player.name, name);
 
-                            const newPlayerId = Object.keys(bmInstance.players)
-                                .find(e => bmInstance.players[e]['name'] === name);
+                            const newPlayerId = getUniqueBattlemetricsPlayerIdByName(bmInstance, name);
                             player.playerId = newPlayerId ? newPlayerId : null;
                             player.name = name;
                         }
@@ -98,70 +129,83 @@ module.exports = {
                     }
                 }
 
-                const trackerPlayerIds = content.players.map(e => e.playerId);
+                const trackerPlayersByPlayerId = new Map(
+                    content.players
+                        .filter(player => player.playerId !== null)
+                        .map(player => [player.playerId, player])
+                );
+                const trackerPlayerIds = Array.from(trackerPlayersByPlayerId.keys());
+                const trackerActivityIds = trackerPlayerIds.filter(e =>
+                    bmInstance.newPlayers.includes(e) ||
+                    bmInstance.loginPlayers.includes(e) ||
+                    bmInstance.logoutPlayers.includes(e));
+
+                if (content.inGame && trackerActivityIds.length !== 0 && !trackerRustplus) {
+                    const connectedServers = rustplusCandidates.map(rp => rp.serverId).join(', ');
+                    const trackerMsg = `Tracker ${trackerId} skipped in-game activity (${trackerActivityIds.length}) ` +
+                        `because no Rust+ instance matched tracker serverId=${content.serverId} ` +
+                        `or battlemetricsId=${content.battlemetricsId}. Connected Rust+ servers: ` +
+                        `${connectedServers || 'none'}.`;
+                    client.log(client.intlGet(null, 'warningCap'), trackerMsg);
+                }
 
                 /* Check if Player just changed name */
                 for (const player of bmInstance.nameChangedPlayers.filter(e => trackerPlayerIds.includes(e.id))) {
-                    for (const playerT of content.players) {
-                        if (playerT.playerId !== player.id) continue;
+                    if (!trackerPlayersByPlayerId.has(player.id)) continue;
 
-                        await module.exports.trackerNewNameDetected(client, guildId, trackerId, battlemetricsId,
-                            player.from, player.to);
-                    }
+                    await module.exports.trackerNewNameDetected(client, guildId, trackerId, battlemetricsId,
+                        player.from, player.to);
                 }
 
                 /* Check if Player just came online */
                 for (const playerId of trackerPlayerIds.filter(e => bmInstance.newPlayers.includes(e))) {
-                    for (const player of content.players) {
-                        if (player.playerId !== playerId) continue;
+                    const player = trackerPlayersByPlayerId.get(playerId);
+                    if (!player) continue;
 
-                        const str = client.intlGet(guildId, 'playerJustConnectedTracker', {
-                            name: player.name,
-                            tracker: content.name
-                        });
-                        await DiscordMessages.sendActivityNotificationMessage(
-                            guildId, content.serverId, Constants.COLOR_ACTIVE, str, null, content.title,
-                            content.everyone);
-                        if (rustplus && (rustplus.serverId === content.serverId) && content.inGame) {
-                            rustplus.sendInGameMessage(str);
-                        }
+                    const str = client.intlGet(guildId, 'playerJustConnectedTracker', {
+                        name: player.name,
+                        tracker: content.name
+                    });
+                    await DiscordMessages.sendActivityNotificationMessage(
+                        guildId, content.serverId, Constants.COLOR_ACTIVE, str, null, content.title,
+                        content.everyone);
+                    if (trackerRustplus && content.inGame) {
+                        trackerRustplus.sendInGameMessage(str);
                     }
                 }
 
                 /* Check if Player just came online */
                 for (const playerId of trackerPlayerIds.filter(e => bmInstance.loginPlayers.includes(e))) {
-                    for (const player of content.players) {
-                        if (player.playerId !== playerId) continue;
+                    const player = trackerPlayersByPlayerId.get(playerId);
+                    if (!player) continue;
 
-                        const str = client.intlGet(guildId, 'playerJustConnectedTracker', {
-                            name: player.name,
-                            tracker: content.name
-                        });
-                        await DiscordMessages.sendActivityNotificationMessage(
-                            guildId, content.serverId, Constants.COLOR_ACTIVE, str, null, content.title,
-                            content.everyone);
-                        if (rustplus && (rustplus.serverId === content.serverId) && content.inGame) {
-                            rustplus.sendInGameMessage(str);
-                        }
+                    const str = client.intlGet(guildId, 'playerJustConnectedTracker', {
+                        name: player.name,
+                        tracker: content.name
+                    });
+                    await DiscordMessages.sendActivityNotificationMessage(
+                        guildId, content.serverId, Constants.COLOR_ACTIVE, str, null, content.title,
+                        content.everyone);
+                    if (trackerRustplus && content.inGame) {
+                        trackerRustplus.sendInGameMessage(str);
                     }
                 }
 
                 /* Check if Player just went offline */
                 for (const playerId of trackerPlayerIds.filter(e => bmInstance.logoutPlayers.includes(e))) {
-                    for (const player of content.players) {
-                        if (player.playerId !== playerId) continue;
+                    const player = trackerPlayersByPlayerId.get(playerId);
+                    if (!player) continue;
 
-                        const str = client.intlGet(guildId, 'playerJustDisconnectedTracker', {
-                            name: player.name,
-                            tracker: content.name
-                        });
+                    const str = client.intlGet(guildId, 'playerJustDisconnectedTracker', {
+                        name: player.name,
+                        tracker: content.name
+                    });
 
-                        await DiscordMessages.sendActivityNotificationMessage(
-                            guildId, content.serverId, Constants.COLOR_INACTIVE, str, null, content.title,
-                            content.everyone);
-                        if (rustplus && (rustplus.serverId === content.serverId) && content.inGame) {
-                            rustplus.sendInGameMessage(str);
-                        }
+                    await DiscordMessages.sendActivityNotificationMessage(
+                        guildId, content.serverId, Constants.COLOR_INACTIVE, str, null, content.title,
+                        content.everyone);
+                    if (trackerRustplus && content.inGame) {
+                        trackerRustplus.sendInGameMessage(str);
                     }
                 }
 
@@ -438,4 +482,58 @@ module.exports = {
         await DiscordMessages.sendBattlemetricsEventMessage(guildId, battlemetricsId, title, description, null,
             instance.trackers[trackerId].everyone);
     },
+}
+
+function deduplicateTrackerPlayers(players = []) {
+    const deduplicated = [];
+
+    for (const player of players) {
+        const existingIndex = findCompatibleTrackerPlayerIndex(deduplicated, player);
+        if (existingIndex === -1) {
+            deduplicated.push(player);
+            continue;
+        }
+
+        deduplicated[existingIndex] = choosePreferredTrackerPlayer(deduplicated[existingIndex], player);
+    }
+
+    return deduplicated;
+}
+
+function findCompatibleTrackerPlayerIndex(players, candidatePlayer) {
+    return players.findIndex(existingPlayer => {
+        const sameSteamId = existingPlayer.steamId !== null && candidatePlayer.steamId !== null &&
+            existingPlayer.steamId === candidatePlayer.steamId;
+        if (sameSteamId) return true;
+
+        const samePlayerId = existingPlayer.playerId !== null && candidatePlayer.playerId !== null &&
+            existingPlayer.playerId === candidatePlayer.playerId;
+        if (!samePlayerId) return false;
+
+        const hasConflictingSteamIds = existingPlayer.steamId !== null && candidatePlayer.steamId !== null &&
+            existingPlayer.steamId !== candidatePlayer.steamId;
+        return !hasConflictingSteamIds;
+    });
+}
+
+function choosePreferredTrackerPlayer(existingPlayer, candidatePlayer) {
+    const existingScore = scoreTrackerPlayer(existingPlayer);
+    const candidateScore = scoreTrackerPlayer(candidatePlayer);
+    return candidateScore > existingScore ? candidatePlayer : existingPlayer;
+}
+
+function scoreTrackerPlayer(player) {
+    let score = 0;
+    if (player.playerId !== null) score += 2;
+    if (player.steamId !== null) score += 1;
+    return score;
+}
+
+function getUniqueBattlemetricsPlayerIdByName(bmInstance, name) {
+    if (!bmInstance || !bmInstance.players || !name) return null;
+
+    const matchingPlayerIds = Object.keys(bmInstance.players)
+        .filter(playerId => bmInstance.players[playerId]['name'] === name);
+
+    return matchingPlayerIds.length === 1 ? matchingPlayerIds[0] : null;
 }

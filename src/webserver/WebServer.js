@@ -755,9 +755,7 @@ class WebServer {
             steamId = id;
             name = await Scrape.scrapeSteamProfileName(this.client, id);
             if (name && bmInstance) {
-              playerId = Object.keys(bmInstance.players).find(
-                (e) => bmInstance.players[e]["name"] === name
-              );
+              playerId = this.getUniqueBattlemetricsPlayerIdByName(bmInstance, name);
             }
           } else {
             playerId = id;
@@ -1329,6 +1327,16 @@ class WebServer {
       this.statisticsTracker.shutdown();
     }
     this.server.close();
+  }
+
+  getUniqueBattlemetricsPlayerIdByName(bmInstance, name) {
+    if (!bmInstance || !bmInstance.players || !name) return null;
+
+    const matchingPlayerIds = Object.keys(bmInstance.players).filter(
+      (playerId) => bmInstance.players[playerId]["name"] === name
+    );
+
+    return matchingPlayerIds.length === 1 ? matchingPlayerIds[0] : null;
   }
 }
 

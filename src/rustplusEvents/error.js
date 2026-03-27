@@ -27,7 +27,6 @@ module.exports = {
 
         rustplus.log(client.intlGet(null, 'errorCap'), err, 'error');
 
-        // Track connection-level failures for adaptive reconnect backoff.
         const errMsg = err ? err.toString() : '';
         const isConnectFailure = err && (
             err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' ||
@@ -35,8 +34,12 @@ module.exports = {
         );
 
         if (isConnectFailure) {
-            rustplus.connectFailureStreak = (rustplus.connectFailureStreak || 0) + 1;
-            rustplus.lastConnectErrorCode = err.code || 'UNKNOWN';
+            if (!client.rustplusConnectFailures) client.rustplusConnectFailures = {};
+            if (!client.rustplusLastConnectError) client.rustplusLastConnectError = {};
+
+            const failureKey = `${rustplus.guildId}:${rustplus.instanceLabel}`;
+            client.rustplusConnectFailures[failureKey] = (client.rustplusConnectFailures[failureKey] || 0) + 1;
+            client.rustplusLastConnectError[failureKey] = err.code || errMsg || 'UNKNOWN';
         }
 
         switch (err.code) {

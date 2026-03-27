@@ -714,9 +714,23 @@ module.exports = {
                     if (!steamId) return 'None set';
                     if (!serverLite[steamId]) return 'Not paired';
 
+                    /* Prefer in-memory team data to avoid external HTTP dependency each refresh cycle. */
                     let displayName = steamId;
-                    const scraped = await Scrape.scrapeSteamProfileName(Client.client, steamId);
-                    if (scraped !== null) displayName = scraped;
+                    if (rustplus.team && typeof rustplus.team.getPlayer === 'function') {
+                        const teamPlayer = rustplus.team.getPlayer(steamId);
+                        if (teamPlayer && teamPlayer.name) {
+                            displayName = teamPlayer.name;
+                        }
+                    }
+
+                    /* Fallback scrape with strict timeout so info updates never stall. */
+                    if (displayName === steamId) {
+                        const scraped = await Promise.race([
+                            Scrape.scrapeSteamProfileName(Client.client, steamId),
+                            new Promise(resolve => setTimeout(() => resolve(null), 2000))
+                        ]);
+                        if (scraped !== null) displayName = scraped;
+                    }
 
                     return displayName;
                 }
@@ -1247,7 +1261,7 @@ module.exports = {
         const instance = Client.client.getInstance(guildId);
         const serverId = rustplus.serverId;
 
-        const title = 'Loot';
+        const title = 'Monitored Loot';
 
         let totalCharacters = title.length;
         const categories = {
@@ -1256,7 +1270,8 @@ module.exports = {
             'Resources': { name: 'Resources', items: {}, hasMonitors: false },
             'Boom': { name: 'Boom', items: {}, hasMonitors: false },
             'Teas': { name: 'Teas', items: {}, hasMonitors: false },
-            'Heli Garage': { name: 'Heli Garage', items: {}, hasMonitors: false }
+            'Heli Garage': { name: 'Heli Garage', items: {}, hasMonitors: false },
+            'Factory': { name: 'Factory', items: {}, hasMonitors: false }
         };
 
         // Collect all storage monitors and categorize them

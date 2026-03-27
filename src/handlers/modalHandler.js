@@ -436,8 +436,12 @@ module.exports = async (client, interaction) => {
         if (trackerBattlemetricsId !== tracker.battlemetricsId) {
             if (client.battlemetricsInstances.hasOwnProperty(trackerBattlemetricsId)) {
                 const bmInstance = client.battlemetricsInstances[trackerBattlemetricsId];
+                const matchedServerId = Object.keys(instance.serverList).find(serverKey => {
+                    const server = instance.serverList[serverKey];
+                    return `${server.battlemetricsId || ''}` === `${trackerBattlemetricsId}`;
+                });
                 tracker.battlemetricsId = trackerBattlemetricsId;
-                tracker.serverId = `${bmInstance.server_ip}-${bmInstance.server_port}`;
+                tracker.serverId = matchedServerId || `${bmInstance.server_ip}-${bmInstance.server_port}`;
                 tracker.img = Constants.DEFAULT_SERVER_IMG;
                 tracker.title = bmInstance.server_name;
             }
@@ -445,9 +449,13 @@ module.exports = async (client, interaction) => {
                 const bmInstance = new Battlemetrics(trackerBattlemetricsId);
                 await bmInstance.setup();
                 if (bmInstance.lastUpdateSuccessful) {
+                    const matchedServerId = Object.keys(instance.serverList).find(serverKey => {
+                        const server = instance.serverList[serverKey];
+                        return `${server.battlemetricsId || ''}` === `${trackerBattlemetricsId}`;
+                    });
                     client.battlemetricsInstances[trackerBattlemetricsId] = bmInstance;
                     tracker.battlemetricsId = trackerBattlemetricsId;
-                    tracker.serverId = `${bmInstance.server_ip}-${bmInstance.server_port}`;
+                    tracker.serverId = matchedServerId || `${bmInstance.server_ip}-${bmInstance.server_port}`;
                     tracker.img = Constants.DEFAULT_SERVER_IMG;
                     tracker.title = bmInstance.server_name;
                 }
@@ -493,7 +501,7 @@ module.exports = async (client, interaction) => {
                 name = await Scrape.scrapeSteamProfileName(client, input);
 
                 if (name && bmInstance) {
-                    playerId = Object.keys(bmInstance.players).find(e => bmInstance.players[e]['name'] === name);
+                    playerId = getUniqueBattlemetricsPlayerIdByName(bmInstance, name);
                     if (!playerId) playerId = null;
                 }
             }
@@ -505,6 +513,11 @@ module.exports = async (client, interaction) => {
                 else {
                     name = '-';
                 }
+            }
+
+            if ((steamId !== null && tracker.players.some(e => e.steamId === steamId)) ||
+                (playerId !== null && tracker.players.some(e => e.playerId === playerId))) {
+                return;
             }
 
             tracker.players.push({
@@ -548,6 +561,10 @@ module.exports = async (client, interaction) => {
             if (foundPlayerIds.length === 1) {
                 const playerId = foundPlayerIds[0];
                 const name = bmInstance.players[playerId]['name'];
+
+                if (tracker.players.some(e => e.playerId === playerId)) {
+                    return;
+                }
 
                 tracker.players.push({
                     name: name,
@@ -694,4 +711,13 @@ module.exports = async (client, interaction) => {
     if (!interaction.replied && !interaction.deferred) {
         interaction.deferUpdate();
     }
+}
+
+function getUniqueBattlemetricsPlayerIdByName(bmInstance, name) {
+    if (!bmInstance || !bmInstance.players || !name) return null;
+
+    const matchingPlayerIds = Object.keys(bmInstance.players)
+        .filter(playerId => bmInstance.players[playerId]['name'] === name);
+
+    return matchingPlayerIds.length === 1 ? matchingPlayerIds[0] : null;
 }

@@ -3,7 +3,7 @@
 # Setup script for auto-starting RATS++ and RCON bots on Raspberry Pi boot
 # This script will:
 # 1. Install systemd services for both bots
-# 2. Set up daily midnight reboot via cron
+# 2. Set up daily 8:30 AM reboot via cron
 
 set -e
 
@@ -101,11 +101,11 @@ sudo systemctl enable ratspp-bot.service
 
 echo ""
 echo "==================================="
-echo "Setting up daily midnight reboot..."
+echo "Setting up daily 8:30 AM reboot..."
 echo "==================================="
 
-# Add cron job for daily reboot at midnight
-(crontab -l 2>/dev/null | grep -v "# RATS++ daily reboot"; echo "0 0 * * * /sbin/shutdown -r now # RATS++ daily reboot") | crontab -
+# Add cron job for daily reboot at 8:30 AM
+(crontab -l 2>/dev/null | grep -v "# RATS++ daily reboot"; echo "30 8 * * * /sbin/shutdown -r now # RATS++ daily reboot") | crontab -
 
 echo ""
 echo "✓ Setup complete!"
@@ -166,4 +166,4 @@ fi
 
 echo ""
 echo "Setup complete! Both bots will start automatically on boot."
-echo "Your Raspberry Pi will reboot daily at midnight."
+echo "Your Raspberry Pi will reboot daily at 8:30 AM."

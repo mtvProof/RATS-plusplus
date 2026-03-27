@@ -26,7 +26,12 @@ const Utils = require('../util/utils.js');
 module.exports = {
     scrape: async function (url) {
         try {
-            return await Axios.get(url);
+            return await Axios.get(url, {
+                timeout: 5000,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (compatible; RATSPlusPlus/1.0)'
+                }
+            });
         }
         catch (e) {
             return {};

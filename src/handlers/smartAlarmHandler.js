@@ -21,6 +21,20 @@
 const DiscordMessages = require('../discordTools/discordMessages.js');
 const Timer = require('../util/timer.js');
 
+function isNotFoundResponse(response) {
+    if (response === 'not_found') return true;
+    if (response && typeof response === 'object' && response.error === 'not_found') return true;
+    return false;
+}
+
+function isTransientFailureResponse(response) {
+    if (response === undefined || response === null) return true;
+
+    const text = (response && response.toString) ? response.toString() : `${response}`;
+    return text === 'Error: Timeout reached while waiting for response' ||
+        /socket hang up|ECONNRESET|EPIPE|ETIMEDOUT|network/i.test(text);
+}
+
 module.exports = {
     handler: async function (rustplus, client) {
         if (rustplus.instanceLabel === 'secondary') return;
@@ -55,12 +69,18 @@ module.exports = {
 
                 const info = await primaryRustplus.getEntityInfoAsync(entityId);
                 if (!(await primaryRustplus.isResponseValid(info))) {
+                    // Avoid false "device not found" alerts on transient RPC/network failures.
+                    if (isTransientFailureResponse(info)) {
+                        continue;
+                    }
+
                     if (suppressNotFound) {
                         // Skip sending alert during grace period after server connect/reboot
                         continue;
                     }
-                    // Only send "not found" message if device was previously reachable
-                    if (instance.serverList[serverId].alarms[entityId].reachable) {
+
+                    // Only mark as missing on explicit not_found from Rust+.
+                    if (isNotFoundResponse(info) && instance.serverList[serverId].alarms[entityId].reachable) {
                         await DiscordMessages.sendSmartAlarmNotFoundMessage(guildId, serverId, entityId);
 
                         instance.serverList[serverId].alarms[entityId].reachable = false;
