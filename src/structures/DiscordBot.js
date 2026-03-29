@@ -373,24 +373,21 @@ class DiscordBot extends Discord.Client {
                 const credentials = InstanceUtils.readCredentialsFile(guildId);
                 const activeServer = instance.activeServer;
                 const activeServerLite = instance.serverListLite[activeServer] || {};
-                const primaryLite = credentials.hoster && activeServerLite[credentials.hoster]
-                    ? activeServerLite[credentials.hoster]
-                    : null;
 
                 this.createRustplusInstance(
                     guildId,
-                    primaryLite ? primaryLite.serverIp : instance.serverList[activeServer].serverIp,
-                    primaryLite ? primaryLite.appPort : instance.serverList[activeServer].appPort,
-                    primaryLite ? primaryLite.steamId : instance.serverList[activeServer].steamId,
-                    primaryLite ? primaryLite.playerToken : instance.serverList[activeServer].playerToken,
+                    instance.serverList[activeServer].serverIp,
+                    instance.serverList[activeServer].appPort,
+                    instance.serverList[activeServer].steamId,
+                    instance.serverList[activeServer].playerToken,
                     'primary');
 
                 if (credentials.hoster2 && activeServerLite[credentials.hoster2]) {
                     const lite = activeServerLite[credentials.hoster2];
                     this.createRustplusInstance(
                         guildId,
-                        lite.serverIp,
-                        lite.appPort,
+                        instance.serverList[activeServer].serverIp,
+                        instance.serverList[activeServer].appPort,
                         lite.steamId,
                         lite.playerToken,
                         'secondary');
