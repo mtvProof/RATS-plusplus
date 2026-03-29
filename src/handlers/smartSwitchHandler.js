@@ -25,38 +25,11 @@ const Timer = require('../util/timer');
 
 module.exports = {
     handler: async function (rustplus, client, time) {
-        if (rustplus.instanceLabel === 'secondary') return;
-        if (!rustplus.team) return;
-
         const instance = client.getInstance(rustplus.guildId);
         const guildId = rustplus.guildId;
-
-        const resolveServerId = () => {
-            const candidates = [
-                rustplus.serverId,
-                client.rustplusInstances[guildId]?.serverId,
-                client.rustplusSecondaryInstances[guildId]?.serverId
-            ].filter(Boolean);
-
-            for (const id of candidates) {
-                const server = instance.serverList[id];
-                if (server && server.switches && Object.keys(server.switches).length > 0) {
-                    return id;
-                }
-            }
-
-            return rustplus.serverId;
-        };
-
-        const serverId = resolveServerId();
+        const serverId = rustplus.serverId;
 
         if (!instance.serverList.hasOwnProperty(serverId)) return;
-
-        // Suppress "not found" alerts during grace period after server reboot (5 minutes)
-        const isReconnecting = client.rustplusReconnecting[guildId] || 
-            client.rustplusSecondaryReconnecting[guildId];
-        const suppressNotFound = isReconnecting || (rustplus.uptimeServer &&
-            (Date.now() - rustplus.uptimeServer.getTime()) < 5 * 60 * 1000);
 
         if (rustplus.smartSwitchIntervalCounter === 29) {
             rustplus.smartSwitchIntervalCounter = 0;
@@ -71,11 +44,6 @@ module.exports = {
             for (const entityId in instance.serverList[serverId].switches) {
                 const info = await rustplus.getEntityInfoAsync(entityId);
                 if (!(await rustplus.isResponseValid(info))) {
-                    if (suppressNotFound) {
-                        // Skip sending alert during grace period after server connect/reboot
-                        continue;
-                    }
-                    // Only send "not found" message if device was previously reachable
                     if (instance.serverList[serverId].switches[entityId].reachable) {
                         await DiscordMessages.sendSmartSwitchNotFoundMessage(guildId, serverId, entityId);
                         instance.serverList[serverId].switches[entityId].reachable = false;
@@ -386,29 +354,9 @@ module.exports = {
 
     smartSwitchCommandHandler: async function (rustplus, client, command) {
         const guildId = rustplus.guildId;
+        const serverId = rustplus.serverId;
         const instance = client.getInstance(guildId);
-
-        const resolveServerId = () => {
-            const candidates = [
-                rustplus.serverId,
-                client.rustplusInstances[guildId]?.serverId,
-                client.rustplusSecondaryInstances[guildId]?.serverId
-            ].filter(Boolean);
-
-            for (const id of candidates) {
-                const server = instance.serverList[id];
-                if (server && server.switches && Object.keys(server.switches).length > 0) {
-                    return id;
-                }
-            }
-
-            return rustplus.serverId;
-        };
-
-        const serverId = resolveServerId();
-        const switches = instance.serverList[serverId]?.switches || {};
-
-        if (Object.keys(switches).length === 0) return false;
+        const switches = instance.serverList[serverId].switches;
         const prefix = rustplus.generalSettings.prefix;
 
         const onCap = client.intlGet(guildId, 'onCap');
@@ -521,8 +469,7 @@ module.exports = {
 
         rustplus.currentSwitchTimeouts[entityId] = setTimeout(async function () {
             const instance = client.getInstance(guildId);
-            if (!instance.serverList[serverId] ||
-                !instance.serverList[serverId].switches.hasOwnProperty(entityId)) return;
+            if (!instance.serverList[serverId].switches.hasOwnProperty(entityId)) return;
 
             await module.exports.smartSwitchCommandTurnOnOff(rustplus, client, entityId, !active);
 
@@ -540,52 +487,18 @@ module.exports = {
 
     smartSwitchCommandTurnOnOff: async function (rustplus, client, entityId, active) {
         const guildId = rustplus.guildId;
+        const serverId = rustplus.serverId;
         const instance = client.getInstance(guildId);
-
-        const resolveServerId = () => {
-            const candidates = [
-                rustplus.serverId,
-                client.rustplusInstances[guildId]?.serverId,
-                client.rustplusSecondaryInstances[guildId]?.serverId
-            ].filter(Boolean);
-
-            for (const id of candidates) {
-                const server = instance.serverList[id];
-                if (server && server.switches && Object.keys(server.switches).includes(`${entityId}`)) {
-                    return id;
-                }
-            }
-
-            return rustplus.serverId;
-        };
-
-        const serverId = resolveServerId();
-        const switches = instance.serverList[serverId]?.switches || {};
-        const primaryRustplus = client.rustplusInstances[guildId];
-        const secondaryRustplus = client.rustplusSecondaryInstances[guildId];
+        const switches = instance.serverList[serverId].switches;
 
         const prevActive = switches[entityId].active;
         switches[entityId].active = active;
         client.setInstance(guildId, instance);
 
-        // Always try primary (hoster1) first, fall back to secondary only if primary fails/unavailable.
-        const controllers = [primaryRustplus, secondaryRustplus].filter(rp => rp && rp.isOperational);
-        let succeeded = false;
+        rustplus.interactionSwitches.push(entityId);
 
-        for (const controller of controllers) {
-            controller.interactionSwitches.push(entityId);
-            const response = await controller.turnSmartSwitchAsync(entityId, active);
-            const valid = await controller.isResponseValid(response);
-            controller.interactionSwitches = controller.interactionSwitches.filter(e => e !== entityId);
-
-            if (valid) {
-                succeeded = true;
-                switches[entityId].reachable = true;
-                break;
-            }
-        }
-
-        if (!succeeded) {
+        const response = await rustplus.turnSmartSwitchAsync(entityId, active);
+        if (!(await rustplus.isResponseValid(response))) {
             rustplus.sendInGameMessage(client.intlGet(guildId, 'noCommunicationSmartSwitch', {
                 name: switches[entityId].name
             }));
@@ -594,8 +507,12 @@ module.exports = {
             }
             switches[entityId].reachable = false;
             switches[entityId].active = prevActive;
-        }
 
+            rustplus.interactionSwitches = rustplus.interactionSwitches.filter(e => e !== entityId);
+        }
+        else {
+            switches[entityId].reachable = true;
+        }
         client.setInstance(guildId, instance);
 
         DiscordMessages.sendSmartSwitchMessage(guildId, serverId, entityId);

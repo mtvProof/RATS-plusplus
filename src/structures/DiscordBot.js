@@ -34,7 +34,7 @@ const Logger = require('./Logger.js');
 const PermissionHandler = require('../handlers/permissionHandler.js');
 const RustLabs = require('../structures/RustLabs');
 const RustPlus = require('../structures/RustPlus');
-const WebServer = require('../webserver/WebServer.js');
+const WebServer = require('../webserver/WebServer');
 
 class DiscordBot extends Discord.Client {
     constructor(props) {
@@ -44,7 +44,6 @@ class DiscordBot extends Discord.Client {
 
         this.commands = new Discord.Collection();
         this.fcmListeners = new Object();
-        this.fcmListenersSecondary = new Object();
         this.fcmListenersLite = new Object();
         this.instances = {};
         this.guildIntl = {};
@@ -53,14 +52,10 @@ class DiscordBot extends Discord.Client {
         this.enMessages = JSON.parse(Fs.readFileSync(Path.join(__dirname, '..', 'languages', 'en.json')), 'utf8');
 
         this.rustplusInstances = new Object();
-        this.rustplusSecondaryInstances = new Object();
         this.activeRustplusInstances = new Object();
-        this.activeRustplusSecondaryInstances = new Object();
         this.rustplusReconnectTimers = new Object();
-        this.rustplusSecondaryReconnectTimers = new Object();
         this.rustplusLiteReconnectTimers = new Object();
         this.rustplusReconnecting = new Object();
-        this.rustplusSecondaryReconnecting = new Object();
         this.rustplusMaps = new Object();
 
         this.uptimeBot = null;
@@ -77,10 +72,6 @@ class DiscordBot extends Discord.Client {
         this.battlemetricsIntervalCounter = 0;
 
         this.voiceLeaveTimeouts = new Object();
-
-        /* Web UI Server */
-        this.webServer = null;
-        this.statisticsTracker = null;
 
         this.loadDiscordCommands();
         this.loadDiscordEvents();
@@ -196,12 +187,6 @@ class DiscordBot extends Discord.Client {
                 } break;
             }
         });
-
-        /* Start the Web UI server if enabled */
-        if (Config.webui.enabled) {
-            this.webServer = new WebServer(this, Config.webui.port);
-            this.webServer.start();
-        }
     }
 
     startWebUi() {
@@ -250,18 +235,15 @@ class DiscordBot extends Discord.Client {
             await PermissionHandler.resetPermissionsAllChannels(this, guild);
         }
 
-        require('../util/FcmListener')(this, guild, null, 'primary');
+        require('../util/FcmListener')(this, guild);
         const credentials = InstanceUtils.readCredentialsFile(guild.id);
-        if (credentials.hoster2) {
-            require('../util/FcmListener')(this, guild, credentials.hoster2, 'secondary');
-        }
         for (const steamId of Object.keys(credentials)) {
-            if (['hoster', 'hoster2', credentials.hoster, credentials.hoster2].includes(steamId)) continue;
-            require('../util/FcmListenerLite')(this, guild, steamId);
+            if (steamId !== credentials.hoster && steamId !== 'hoster') {
+                require('../util/FcmListenerLite')(this, guild, steamId);
+            }
         }
 
         await require('../discordTools/SetupSettingsMenu')(this, guild);
-        await require('../discordTools/SetupTrackers')(this, guild);
 
         if (firstTime) await PermissionHandler.resetPermissionsAllChannels(this, guild);
 
@@ -279,7 +261,7 @@ class DiscordBot extends Discord.Client {
 
         const steamIdRemoveCredentials = [];
         for (const [steamId, content] of Object.entries(credentials)) {
-            if (steamId === 'hoster' || steamId === 'hoster2') continue;
+            if (steamId === 'hoster') continue;
 
             if (!(memberIds.includes(content.discord_user_id))) {
                 steamIdRemoveCredentials.push(steamId);
@@ -293,13 +275,6 @@ class DiscordBot extends Discord.Client {
                 }
                 delete this.fcmListeners[guild.id];
                 credentials.hoster = null;
-            }
-            else if (steamId === credentials.hoster2) {
-                if (this.fcmListenersSecondary[guild.id]) {
-                    this.fcmListenersSecondary[guild.id].destroy();
-                }
-                delete this.fcmListenersSecondary[guild.id];
-                credentials.hoster2 = null;
             }
             else {
                 if (this.fcmListenersLite[guild.id][steamId]) {
@@ -321,10 +296,11 @@ class DiscordBot extends Discord.Client {
     setInstance(guildId, instance) {
         this.instances[guildId] = instance;
         InstanceUtils.writeInstanceFile(guildId, instance);
-        // Invalidate WebUI cache when instance data is updated
-        if (this.webServer) {
-            this.webServer.invalidateCache(guildId);
-        }
+    }
+
+    getRustplusInstancesAll(guildId) {
+        const primary = this.rustplusInstances[guildId];
+        return primary ? [primary] : [];
     }
 
     readNotificationSettingsTemplate() {
@@ -337,22 +313,12 @@ class DiscordBot extends Discord.Client {
             Path.join(__dirname, '..', 'templates/generalSettingsTemplate.json'), 'utf8'));
     }
 
-    createRustplusInstance(guildId, serverIp, appPort, steamId, playerToken, label = 'primary') {
+    createRustplusInstance(guildId, serverIp, appPort, steamId, playerToken) {
         let rustplus = new RustPlus(guildId, serverIp, appPort, steamId, playerToken);
 
-        rustplus.instanceLabel = label;
-        rustplus.hosterSteamId = steamId;
-
-        const isSecondary = label === 'secondary';
-
-        if (isSecondary) {
-            this.rustplusSecondaryInstances[guildId] = rustplus;
-            this.activeRustplusSecondaryInstances[guildId] = true;
-        }
-        else {
-            this.rustplusInstances[guildId] = rustplus;
-            this.activeRustplusInstances[guildId] = true;
-        }
+        /* Add rustplus instance to Object */
+        this.rustplusInstances[guildId] = rustplus;
+        this.activeRustplusInstances[guildId] = true;
 
         rustplus.build();
 
@@ -370,67 +336,29 @@ class DiscordBot extends Discord.Client {
             if (!instance) return;
 
             if (instance.activeServer !== null && instance.serverList.hasOwnProperty(instance.activeServer)) {
-                const credentials = InstanceUtils.readCredentialsFile(guildId);
-                const activeServer = instance.activeServer;
-                const activeServerLite = instance.serverListLite[activeServer] || {};
-
                 this.createRustplusInstance(
                     guildId,
-                    instance.serverList[activeServer].serverIp,
-                    instance.serverList[activeServer].appPort,
-                    instance.serverList[activeServer].steamId,
-                    instance.serverList[activeServer].playerToken,
-                    'primary');
-
-                if (credentials.hoster2 && activeServerLite[credentials.hoster2]) {
-                    const lite = activeServerLite[credentials.hoster2];
-                    this.createRustplusInstance(
-                        guildId,
-                        instance.serverList[activeServer].serverIp,
-                        instance.serverList[activeServer].appPort,
-                        lite.steamId,
-                        lite.playerToken,
-                        'secondary');
-                }
+                    instance.serverList[instance.activeServer].serverIp,
+                    instance.serverList[instance.activeServer].appPort,
+                    instance.serverList[instance.activeServer].steamId,
+                    instance.serverList[instance.activeServer].playerToken);
             }
         });
     }
 
-    resetRustplusVariables(guildId, label = 'primary') {
-        const isSecondary = label === 'secondary';
-        if (isSecondary) {
-            this.activeRustplusSecondaryInstances[guildId] = false;
-            this.rustplusSecondaryReconnecting[guildId] = false;
-            if (this.rustplusSecondaryReconnectTimers[guildId]) {
-                clearTimeout(this.rustplusSecondaryReconnectTimers[guildId]);
-                this.rustplusSecondaryReconnectTimers[guildId] = null;
-            }
-        }
-        else {
-            this.activeRustplusInstances[guildId] = false;
-            this.rustplusReconnecting[guildId] = false;
-            delete this.rustplusMaps[guildId];
+    resetRustplusVariables(guildId) {
+        this.activeRustplusInstances[guildId] = false;
+        this.rustplusReconnecting[guildId] = false;
+        delete this.rustplusMaps[guildId];
 
-            if (this.rustplusReconnectTimers[guildId]) {
-                clearTimeout(this.rustplusReconnectTimers[guildId]);
-                this.rustplusReconnectTimers[guildId] = null;
-            }
-            if (this.rustplusLiteReconnectTimers[guildId]) {
-                clearTimeout(this.rustplusLiteReconnectTimers[guildId]);
-                this.rustplusLiteReconnectTimers[guildId] = null;
-            }
+        if (this.rustplusReconnectTimers[guildId]) {
+            clearTimeout(this.rustplusReconnectTimers[guildId]);
+            this.rustplusReconnectTimers[guildId] = null;
         }
-    }
-
-    getRustplusInstancesAll(guildId) {
-        const rustplusList = [];
-        if (this.rustplusInstances[guildId]) {
-            rustplusList.push(this.rustplusInstances[guildId]);
+        if (this.rustplusLiteReconnectTimers[guildId]) {
+            clearTimeout(this.rustplusLiteReconnectTimers[guildId]);
+            this.rustplusLiteReconnectTimers[guildId] = null;
         }
-        if (this.rustplusSecondaryInstances[guildId]) {
-            rustplusList.push(this.rustplusSecondaryInstances[guildId]);
-        }
-        return rustplusList;
     }
 
     isJpgImageChanged(guildId, map) {
@@ -439,13 +367,12 @@ class DiscordBot extends Discord.Client {
 
     findAvailableTrackerId(guildId) {
         const instance = this.getInstance(guildId);
-        let id = 1;
 
         while (true) {
-            if (!instance.trackers.hasOwnProperty(id)) {
-                return id;
+            const randomNumber = Math.floor(Math.random() * 1000);
+            if (!instance.trackers.hasOwnProperty(randomNumber)) {
+                return randomNumber;
             }
-            id++;
         }
     }
 

@@ -88,15 +88,14 @@ class RustPlusLite extends RustPlusLib {
             return false;
         }
         else if (response.hasOwnProperty('error')) {
-            if (response.error === 'not_found') return false;
-
             this.log(Client.client.intlGet(null, 'errorCap'), Client.client.intlGet(null, 'responseContainError', {
                 error: response.error
             }), 'error');
             return false;
         }
         else if (Object.keys(response).length === 0) {
-            /* Suppress log for empty response */
+            this.log(Client.client.intlGet(null, 'errorCap'),
+                Client.client.intlGet(null, 'responseIsEmpty'), 'error');
             return false;
         }
         return true;
@@ -117,9 +116,9 @@ async function rustPlusLiteConnectedEvent(rustplusLite) {
     rustplusLite.log(Client.client.intlGet(null, 'connectedCap'),
         Client.client.intlGet(null, 'rustplusOperational'));
 
-    if (Client.client.rustplusLiteReconnectTimers[rustplusLite.guildId]) {
-        clearTimeout(Client.client.rustplusLiteReconnectTimers[rustplusLite.guildId]);
-        Client.client.rustplusLiteReconnectTimers[rustplusLite.guildId] = null;
+    if (Client.client.rustplusReconnectTimers[rustplusLite.guildId]) {
+        clearTimeout(Client.client.rustplusReconnectTimers[rustplusLite.guildId]);
+        Client.client.rustplusReconnectTimers[rustplusLite.guildId] = null;
     }
 }
 
@@ -133,10 +132,7 @@ async function rustPlusLiteDisconnectedEvent(rustplusLite) {
         Client.client.intlGet(null, 'disconnectedFromServer'));
 
     /* Was the disconnection unexpected? */
-    const anyActiveRustplus = Client.client.activeRustplusInstances[rustplusLite.guildId] ||
-        Client.client.activeRustplusSecondaryInstances[rustplusLite.guildId];
-
-    if (rustplusLite.isActive && anyActiveRustplus) {
+    if (rustplusLite.isActive && Client.client.activeRustplusInstances[rustplusLite.guildId]) {
         rustplusLite.log(Client.client.intlGet(null, 'reconnectingCap'),
             Client.client.intlGet(null, 'reconnectingToServer'));
 

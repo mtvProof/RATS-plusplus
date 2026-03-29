@@ -24,7 +24,6 @@ const Client = require('../../index.ts');
 const Constants = require('../util/constants.js');
 const DiscordTools = require('./discordTools.js');
 const InstanceUtils = require('../util/instanceUtils.js');
-const Scrape = require('../util/scrape.js');
 const Timer = require('../util/timer');
 
 function isValidUrl(url) {
@@ -121,17 +120,19 @@ module.exports = {
         const bmInstance = Client.client.battlemetricsInstances[battlemetricsId];
 
         const successful = bmInstance && bmInstance.lastUpdateSuccessful ? true : false;
+
         const battlemetricsLink = `[${battlemetricsId}](${Constants.BATTLEMETRICS_SERVER_URL}${battlemetricsId})`;
         const serverStatus = !successful ? Constants.NOT_FOUND_EMOJI :
             (bmInstance.server_status ? Constants.ONLINE_EMOJI : Constants.OFFLINE_EMOJI);
+
         let description = `__**Battlemetrics ID:**__ ${battlemetricsLink}\n`;
         description += `__**${Client.client.intlGet(guildId, 'serverId')}:**__ ${tracker.serverId}\n`;
         description += `__**${Client.client.intlGet(guildId, 'serverStatus')}:**__ ${serverStatus}\n`;
         description += `__**${Client.client.intlGet(guildId, 'streamerMode')}:**__ `;
         description += (!bmInstance ? Constants.NOT_FOUND_EMOJI : (bmInstance.streamerMode ?
             Client.client.intlGet(guildId, 'onCap') : Client.client.intlGet(guildId, 'offCap'))) + '\n';
-        const bmPlayers = (bmInstance && bmInstance.players) ? bmInstance.players : null;
-        const hasPlayerData = !!(bmPlayers && successful);
+        description += `__**${Client.client.intlGet(guildId, 'clanTag')}:**__ `;
+        description += tracker.clanTag !== '' ? `\`${tracker.clanTag}\`` : '';
 
         let totalCharacters = description.length;
         let fieldIndex = 0
@@ -149,6 +150,7 @@ module.exports = {
 
             const steamIdLink = Constants.GET_STEAM_PROFILE_LINK(player.steamId);
             const bmIdLink = Constants.GET_BATTLEMETRICS_PROFILE_LINK(player.playerId);
+
             const isNewLine = (player.steamId !== null && player.playerId !== null) ? true : false;
             id += `${player.steamId !== null ? steamIdLink : ''}`;
             id += `${player.steamId !== null && player.playerId !== null ? ' /\n' : ''}`;
@@ -157,12 +159,12 @@ module.exports = {
                 Client.client.intlGet(guildId, 'empty') : ''}`;
             id += '\n';
 
-            if (!hasPlayerData || !bmPlayers || !bmPlayers.hasOwnProperty(player.playerId)) {
+            if (!bmInstance.players.hasOwnProperty(player.playerId) || !successful) {
                 status += `${Constants.NOT_FOUND_EMOJI}\n`;
             }
             else {
                 let time = null;
-                if (bmPlayers[player.playerId]['status']) {
+                if (bmInstance.players[player.playerId]['status']) {
                     time = bmInstance.getOnlineTime(player.playerId);
                     status += `${Constants.ONLINE_EMOJI}`;
                 }
@@ -178,8 +180,7 @@ module.exports = {
                 status += '\n';
             }
 
-            if (totalCharacters + (name.length + id.length + status.length) >=
-                Constants.EMBED_MAX_TOTAL_CHARACTERS) {
+            if (totalCharacters + (name.length + id.length + status.length) >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
                 break;
             }
 
@@ -229,7 +230,7 @@ module.exports = {
         }
 
         return module.exports.getEmbed({
-            title: `${tracker.name}${tracker.clanTag !== '' ? ` (${tracker.clanTag})` : ''}`,
+            title: `${tracker.name}`,
             color: Constants.COLOR_DEFAULT,
             description: description,
             thumbnail: `${tracker.img}`,
@@ -699,144 +700,59 @@ module.exports = {
         });
     },
 
-    getUpdateServerInformationEmbed: async function (rustplus) {
-        try {
-            const guildId = rustplus.guildId;
-            const instance = Client.client.getInstance(guildId);
-            const credentials = InstanceUtils.readCredentialsFile(guildId);
-            const serverId = rustplus.serverId;
-            const serverLiteRoot = instance && instance.serverListLite ? instance.serverListLite : {};
-            const serverLite = serverLiteRoot[serverId] || {};
+    getUpdateServerInformationEmbed: function (rustplus) {
+        const guildId = rustplus.guildId;
+        const instance = Client.client.getInstance(guildId);
 
-            const formatHoster = async (key) => {
-                try {
-                    const steamId = credentials[key] || null;
-                    if (!steamId) return 'None set';
-                    if (!serverLite[steamId]) return 'Not paired';
+        const time = rustplus.getCommandTime(true);
+        const timeLeftTitle = Client.client.intlGet(rustplus.guildId, 'timeTill', {
+            event: rustplus.time.isDay() ? Constants.NIGHT_EMOJI : Constants.DAY_EMOJI
+        });
+        const playersFieldName = Client.client.intlGet(guildId, 'players');
+        const timeFieldName = Client.client.intlGet(guildId, 'time');
+        const wipeFieldName = Client.client.intlGet(guildId, 'wipe');
+        const mapSizeFieldName = Client.client.intlGet(guildId, 'mapSize');
+        const mapSeedFieldName = Client.client.intlGet(guildId, 'mapSeed');
+        const mapSaltFieldName = Client.client.intlGet(guildId, 'mapSalt');
+        const mapFieldName = Client.client.intlGet(guildId, 'map');
 
-                    /* Prefer in-memory team data to avoid external HTTP dependency each refresh cycle. */
-                    let displayName = steamId;
-                    if (rustplus.team && typeof rustplus.team.getPlayer === 'function') {
-                        const teamPlayer = rustplus.team.getPlayer(steamId);
-                        if (teamPlayer && teamPlayer.name) {
-                            displayName = teamPlayer.name;
-                        }
-                    }
+        const embed = module.exports.getEmbed({
+            title: Client.client.intlGet(guildId, 'serverInfo'),
+            color: Constants.COLOR_DEFAULT,
+            thumbnail: 'attachment://server_info_logo.png',
+            footer: { text: instance.serverList[rustplus.serverId].title },
+            fields: [
+                { name: playersFieldName, value: `\`${rustplus.getCommandPop(true)}\``, inline: true },
+                { name: timeFieldName, value: `\`${time[0]}\``, inline: true },
+                { name: wipeFieldName, value: `\`${rustplus.getCommandWipe(true)}\``, inline: true }],
+            timestamp: true
+        });
 
-                    /* Fallback scrape with strict timeout so info updates never stall. */
-                    if (displayName === steamId) {
-                        const scraped = await Promise.race([
-                            Scrape.scrapeSteamProfileName(Client.client, steamId),
-                            new Promise(resolve => setTimeout(() => resolve(null), 2000))
-                        ]);
-                        if (scraped !== null) displayName = scraped;
-                    }
-
-                    return displayName;
-                }
-                catch (e) {
-                    Client.client.log(Client.client.intlGet(null, 'warningCap'), `Hoster label error: ${e}`);
-                    return 'Unknown';
-                }
-            };
-
-            const hoster1Value = await formatHoster('hoster');
-            const hoster2Value = await formatHoster('hoster2');
-
-            // If data not ready yet (early startup), return a minimal embed to avoid crashes.
-            if (!rustplus.info || !rustplus.time || !instance || !instance.serverList || !instance.serverList[serverId]) {
-                return module.exports.getEmbed({
-                    title: Client.client.intlGet(guildId, 'serverInfo'),
-                    color: Constants.COLOR_DEFAULT,
-                    description: Client.client.intlGet(guildId, 'unavailable'),
-                    timestamp: true
-                });
-            }
-
-            const time = rustplus.getCommandTime(true);
-            const timeLeftTitle = Client.client.intlGet(rustplus.guildId, 'timeTill', {
-                event: rustplus.time.isDay() ? Constants.NIGHT_EMOJI : Constants.DAY_EMOJI
-            });
-            const playersFieldName = Client.client.intlGet(guildId, 'players');
-            const timeFieldName = Client.client.intlGet(guildId, 'time');
-            const wipeFieldName = Client.client.intlGet(guildId, 'wipe');
-            const mapSizeFieldName = Client.client.intlGet(guildId, 'mapSize');
-            const baseCodesFieldName = Client.client.intlGet(guildId, 'baseCodes');
-
-            // Get bot uptime
-            let botUptimeValue = Client.client.intlGet(guildId, 'offline');
-            if (Client.client.uptimeBot !== null) {
-                const seconds = (new Date() - Client.client.uptimeBot) / 1000;
-                botUptimeValue = Timer.secondsToFullScale(seconds);
-            }
-
-            const embed = module.exports.getEmbed({
-                title: Client.client.intlGet(guildId, 'serverInfo'),
-                color: Constants.COLOR_DEFAULT,
-                thumbnail: 'attachment://server_info_logo.png',
-                footer: { text: instance.serverList[rustplus.serverId].title },
-                fields: [
-                    { name: playersFieldName, value: `\`${rustplus.getCommandPop(true)}\``, inline: true },
-                    { name: timeFieldName, value: `\`${time[0]}\``, inline: true },
-                    { name: wipeFieldName, value: `\`${rustplus.getCommandWipe(true)}\``, inline: true }],
-                timestamp: true
-            });
-
-            if (time[1] !== null) {
-                embed.addFields(
-                    { name: timeLeftTitle, value: `\`${time[1]}\``, inline: true },
-                    { name: '\u200B', value: '\u200B', inline: true },
-                    { name: '\u200B', value: '\u200B', inline: true });
-            }
-            else {
-                embed.addFields({ name: '\u200B', value: '\u200B', inline: false });
-            }
-
+        if (time[1] !== null) {
             embed.addFields(
-                { name: mapSizeFieldName, value: `\`${rustplus.info.mapSize}\``, inline: true });
-
-            // Add base codes if they exist
-            if (!instance.baseCodes) {
-                instance.baseCodes = { main: null, secondary: null };
-            }
-            
-            if (instance.baseCodes.main || instance.baseCodes.secondary) {
-                const codes = [];
-                if (instance.baseCodes.main) codes.push(instance.baseCodes.main);
-                if (instance.baseCodes.secondary) codes.push(instance.baseCodes.secondary);
-                embed.addFields({ name: baseCodesFieldName, value: `\`${codes.join(', ')}\``, inline: true });
-                embed.addFields({ name: '\u200B', value: '\u200B', inline: true });
-            }
-            else {
-                embed.addFields(
-                    { name: '\u200B', value: '\u200B', inline: true },
-                    { name: '\u200B', value: '\u200B', inline: true });
-            }
-
-            embed.addFields(
-                { name: 'Hoster 1', value: `\`${hoster1Value}\``, inline: true },
-                { name: 'Hoster 2', value: `\`${hoster2Value}\``, inline: true },
-                { name: Client.client.intlGet(guildId, 'bot') + ' ' + Client.client.intlGet(guildId, 'uptime'), value: `\`${botUptimeValue}\``, inline: true });
-
-            if (instance.serverList[rustplus.serverId].connect !== null) {
-                embed.addFields({
-                    name: Client.client.intlGet(guildId, 'connect'),
-                    value: `\`${instance.serverList[rustplus.serverId].connect}\``,
-                    inline: false
-                });
-            }
-
-            return embed;
+                { name: timeLeftTitle, value: `\`${time[1]}\``, inline: true },
+                { name: '\u200B', value: '\u200B', inline: true },
+                { name: '\u200B', value: '\u200B', inline: true });
         }
-        catch (e) {
-            Client.client.log(Client.client.intlGet(null, 'errorCap'), `getUpdateServerInformationEmbed failed: ${e}`, 'error');
-            return module.exports.getEmbed({
-                title: 'Server Info',
-                color: Constants.COLOR_DEFAULT,
-                description: 'Information unavailable',
-                timestamp: true
+        else {
+            embed.addFields({ name: '\u200B', value: '\u200B', inline: false });
+        }
+
+        embed.addFields(
+            { name: mapSizeFieldName, value: `\`${rustplus.info.mapSize}\``, inline: true },
+            { name: mapSeedFieldName, value: `\`${rustplus.info.seed}\``, inline: true },
+            { name: mapSaltFieldName, value: `\`${rustplus.info.salt}\``, inline: true },
+            { name: mapFieldName, value: `\`${rustplus.info.map}\``, inline: true });
+
+        if (instance.serverList[rustplus.serverId].connect !== null) {
+            embed.addFields({
+                name: Client.client.intlGet(guildId, 'connect'),
+                value: `\`${instance.serverList[rustplus.serverId].connect}\``,
+                inline: false
             });
         }
+
+        return embed;
     },
 
     getUpdateEventInformationEmbed: function (rustplus) {
@@ -887,13 +803,11 @@ module.exports = {
         const statusFieldName = Client.client.intlGet(guildId, 'status');
         const locationFieldName = Client.client.intlGet(guildId, 'location');
         const footer = instance.serverList[rustplus.serverId].title;
-        const serverLite = instance.serverListLite[rustplus.serverId] || {};
 
         let totalCharacters = title.length + teamMemberFieldName.length + statusFieldName.length + locationFieldName.length + footer.length;
         let fieldIndex = 0;
         let teammateName = [''], teammateStatus = [''], teammateLocation = [''];
         let teammateNameCharacters = 0, teammateStatusCharacters = 0, teammateLocationCharacters = 0;
-
         for (const player of rustplus.team.players) {
             let name = player.name === '' ? '-' : `[${player.name}](${Constants.STEAM_PROFILES_URL}${player.steamId})`;
             name += (player.teamLeader) ? `${Constants.LEADER_EMOJI}\n` : '\n';
@@ -907,7 +821,7 @@ module.exports = {
                 status += (isAfk) ? Constants.AFK_EMOJI : Constants.ONLINE_EMOJI;
                 status += (player.isAlive) ? ((isAfk) ? Constants.SLEEPING_EMOJI : Constants.ALIVE_EMOJI) :
                     Constants.DEAD_EMOJI;
-                status += (Object.keys(serverLite).includes(player.steamId)) ?
+                status += (Object.keys(instance.serverListLite[rustplus.serverId]).includes(player.steamId)) ?
                     Constants.PAIRED_EMOJI : '';
                 status += (isAfk) ? ` ${afkTime}\n` : '\n';
             }
@@ -915,9 +829,10 @@ module.exports = {
                 const offlineTime = player.getOfflineTime('s');
                 status += Constants.OFFLINE_EMOJI;
                 status += (player.isAlive) ? Constants.SLEEPING_EMOJI : Constants.DEAD_EMOJI;
-                status += (Object.keys(serverLite).includes(player.steamId)) ?
+                status += (Object.keys(instance.serverListLite[rustplus.serverId]).includes(player.steamId)) ?
                     Constants.PAIRED_EMOJI : '';
-                status += (offlineTime !== null) ? ` ${offlineTime}\n` : '\n';
+                status += (offlineTime !== null) ? offlineTime : '';
+                status += '\n';
             }
 
             if (totalCharacters + (name.length + status.length + location.length) >=
@@ -1055,289 +970,6 @@ module.exports = {
             });
             fieldCounter += 1;
         }
-
-        return embed;
-    },
-
-    getUpdateToolCupboardUpkeepInformationEmbed: function (rustplus) {
-        const guildId = rustplus.guildId;
-        const instance = Client.client.getInstance(guildId);
-        const serverId = rustplus.serverId;
-
-        const title = Client.client.intlGet(guildId, 'toolCupboardUpkeeps');
-
-        let totalCharacters = title.length + instance.serverList[serverId].title.length;
-        let fieldCharacters = 0;
-        let fieldIndex = 0;
-        let toolCupboardStr = [''];
-
-        // Get all storage monitors that are tool cupboards
-        const toolCupboards = [];
-        if (instance.serverList[serverId].storageMonitors) {
-            for (const entityId in instance.serverList[serverId].storageMonitors) {
-                const monitor = instance.serverList[serverId].storageMonitors[entityId];
-                
-                // Only include reachable tool cupboards
-                if (monitor.type === 'toolCupboard' && monitor.reachable) {
-                    toolCupboards.push({
-                        entityId: entityId,
-                        name: monitor.name,
-                        monitor: monitor,
-                        expiry: rustplus.storageMonitors[entityId]?.expiry || 0
-                    });
-                }
-            }
-        }
-
-        // Sort by expiry time (ascending - lowest first)
-        toolCupboards.sort((a, b) => a.expiry - b.expiry);
-
-        // Build the list
-        for (const cupboard of toolCupboards) {
-            const expiry = cupboard.expiry;
-            const currentTime = Math.floor(Date.now() / 1000);
-            const secondsUntilDecay = expiry - currentTime;
-            
-            // Calculate days, hours and minutes
-            const days = Math.floor(secondsUntilDecay / 86400);
-            const hours = Math.floor((secondsUntilDecay % 86400) / 3600);
-            const minutes = Math.floor((secondsUntilDecay % 3600) / 60);
-            
-            // Determine the status dot: green if > 24 hours, red if < 24 hours
-            const statusDot = secondsUntilDecay > 86400 ? Constants.ONLINE_EMOJI : Constants.OFFLINE_EMOJI;
-            
-            // Format the time display
-            let timeStr = '';
-            if (secondsUntilDecay <= 0) {
-                timeStr = 'DECAYED';
-            } else if (days > 0) {
-                timeStr = `${days}d ${hours}h ${minutes}m`;
-            } else if (hours > 0) {
-                timeStr = `${hours}h ${minutes}m`;
-            } else {
-                timeStr = `${minutes}m`;
-            }
-            
-            // Create the entry with proper formatting for lists
-            let entry = `${statusDot} ${cupboard.name}: \`${timeStr}\`\n`;
-            
-            if (totalCharacters + entry.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
-                break;
-            }
-            
-            if (fieldCharacters + entry.length >= Constants.EMBED_MAX_FIELD_VALUE_CHARACTERS) {
-                fieldCharacters = 0;
-                fieldIndex += 1;
-                toolCupboardStr.push('');
-            }
-            
-            toolCupboardStr[fieldIndex] += entry;
-            totalCharacters += entry.length;
-            fieldCharacters += entry.length;
-        }
-
-        const embed = module.exports.getEmbed({
-            title: title,
-            color: Constants.COLOR_DEFAULT,
-            thumbnail: 'attachment://tool_cupboard.png',
-            footer: { text: instance.serverList[serverId].title },
-            timestamp: true
-        });
-
-        if (toolCupboards.length === 0) {
-            embed.setDescription(Client.client.intlGet(guildId, 'noToolCupboards'));
-        } else {
-            let fieldCounter = 0;
-            for (const field of toolCupboardStr) {
-                embed.addFields({
-                    name: fieldCounter === 0 ? Client.client.intlGet(guildId, 'upkeepStatus') : '\u200B',
-                    value: field === '' ? '\u200B' : field,
-                    inline: false
-                });
-                fieldCounter += 1;
-            }
-        }
-
-        return embed;
-    },
-
-    getUpdateMarketWatchlistInformationEmbed: function (rustplus) {
-        const guildId = rustplus.guildId;
-        const instance = Client.client.getInstance(guildId);
-        const serverId = rustplus.serverId;
-
-        const title = Client.client.intlGet(guildId, 'marketWatchlist');
-
-        let totalCharacters = title.length;
-        let fieldIndex = 0;
-        let watchlistItems = {};
-
-        // Collect all watchlist items (sell orders)
-        for (const itemId of instance.marketSubscriptionList.sell) {
-            const itemName = Client.client.items.getName(itemId);
-            watchlistItems[itemId] = {
-                name: itemName,
-                locations: []
-            };
-        }
-
-        // Find vending machines selling watchlist items
-        if (rustplus.mapMarkers.vendingMachines) {
-            for (const vendingMachine of rustplus.mapMarkers.vendingMachines) {
-                if (!vendingMachine.hasOwnProperty('sellOrders')) continue;
-
-                for (const order of vendingMachine.sellOrders) {
-                    if (watchlistItems.hasOwnProperty(order.itemId)) {
-                        // Skip items with 0 quantity in stock
-                        if (order.amountInStock <= 0) continue;
-                        
-                        // Check if this location is already in the list
-                        const existingLoc = watchlistItems[order.itemId].locations.find(loc =>
-                            loc.location === vendingMachine.location.location && loc.currencyId === order.currencyId
-                        );
-                        
-                        if (!existingLoc) {
-                            watchlistItems[order.itemId].locations.push({
-                                location: vendingMachine.location.location,
-                                itemId: order.itemId,
-                                currencyId: order.currencyId,
-                                price: order.costPerItem,
-                                quantity: order.amountInStock
-                            });
-                        }
-                    }
-                }
-            }
-        }
-
-        // Build description with all items and their locations
-        let description = '';
-        let hasItems = false;
-
-        for (const [itemId, itemData] of Object.entries(watchlistItems)) {
-            hasItems = true;
-            const itemNameLine = `**${itemData.name}**\n`;
-            description += itemNameLine;
-
-            // If no in-stock locations, show "No Matching Offers"
-            if (itemData.locations.length === 0) {
-                description += `*No Matching Offers*\n\n`;
-            } else {
-                // Sort locations by price (ascending)
-                itemData.locations.sort((a, b) => a.price - b.price);
-
-                for (const location of itemData.locations) {
-                    const currencyName = Client.client.items.getName(location.currencyId);
-                    const locationLine = `  • ${location.location}: ${location.quantity} at \`${location.price}\` ${currencyName} each\n`;
-                    
-                    if (totalCharacters + description.length + locationLine.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
-                        break;
-                    }
-                    description += locationLine;
-                }
-                description += '\n';
-            }
-
-            if (totalCharacters + description.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
-                break;
-            }
-        }
-
-        const commandSyntax = `/market subscribe order:sell name:Item Name`;
-
-        const embed = module.exports.getEmbed({
-            title: title,
-            color: Constants.COLOR_DEFAULT,
-            description: hasItems && description.trim().length > 0 ? description.trim() : Client.client.intlGet(guildId, 'noWatchlistItems'),
-            footer: { text: `${Client.client.intlGet(guildId, 'marketWatchlist')} | /market subscribe order:sell name:Item Name` },
-            timestamp: true
-        });
-
-        return embed;
-    },
-
-    getUpdateLootInformationEmbed: function (rustplus) {
-        const guildId = rustplus.guildId;
-        const instance = Client.client.getInstance(guildId);
-        const serverId = rustplus.serverId;
-
-        const title = 'Monitored Loot';
-
-        let totalCharacters = title.length;
-        const categories = {
-            'Bunker': { name: 'Bunker', items: {}, hasMonitors: false },
-            'Components': { name: 'Components', items: {}, hasMonitors: false },
-            'Resources': { name: 'Resources', items: {}, hasMonitors: false },
-            'Boom': { name: 'Boom', items: {}, hasMonitors: false },
-            'Teas': { name: 'Teas', items: {}, hasMonitors: false },
-            'Heli Garage': { name: 'Heli Garage', items: {}, hasMonitors: false },
-            'Factory': { name: 'Factory', items: {}, hasMonitors: false }
-        };
-
-        // Collect all storage monitors and categorize them
-        for (const entityId in instance.serverList[serverId].storageMonitors) {
-            const monitor = instance.serverList[serverId].storageMonitors[entityId];
-            const monitorName = monitor.name.toLowerCase();
-
-            // Determine which category this monitor belongs to
-            let category = null;
-            for (const [key, categoryData] of Object.entries(categories)) {
-                if (monitorName.startsWith(key.toLowerCase())) {
-                    category = key;
-                    break;
-                }
-            }
-
-            // If a match was found, mark that this category has monitors
-            if (category) {
-                categories[category].hasMonitors = true;
-
-                // Get the storage contents and add to category if available
-                if (rustplus.storageMonitors.hasOwnProperty(entityId)) {
-                    const storage = rustplus.storageMonitors[entityId];
-                    if (storage.items && storage.items.length > 0) {
-                        for (const item of storage.items) {
-                            const itemName = Client.client.items.getName(item.itemId);
-                            if (!categories[category].items.hasOwnProperty(itemName)) {
-                                categories[category].items[itemName] = 0;
-                            }
-                            categories[category].items[itemName] += item.quantity;
-                        }
-                    }
-                }
-            }
-        }
-
-        // Build the description with all categories
-        let description = '';
-
-        for (const [categoryKey, categoryData] of Object.entries(categories)) {
-            const itemCount = Object.keys(categoryData.items).length;
-            
-            if (!categoryData.hasMonitors) {
-                description += `**${categoryData.name}**\n*No Monitors Connected*\n\n`;
-            } else if (itemCount === 0) {
-                description += `**${categoryData.name}**\n*Empty*\n\n`;
-            } else {
-                description += `**${categoryData.name}**\n`;
-                
-                // Sort items by name
-                const sortedItems = Object.entries(categoryData.items).sort((a, b) => a[0].localeCompare(b[0]));
-                
-                for (const [itemName, quantity] of sortedItems) {
-                    description += `  • ${itemName}: \`${quantity}\`\n`;
-                }
-                description += '\n';
-            }
-        }
-
-        const embed = module.exports.getEmbed({
-            title: title,
-            color: Constants.COLOR_DEFAULT,
-            description: description.trim(),
-            footer: { text: instance.serverList[serverId].title },
-            timestamp: true
-        });
 
         return embed;
     },

@@ -31,35 +31,22 @@ module.exports = async (client, rustplus) => {
         await DiscordTools.clearTextChannel(guildId, instance.channelId.storageMonitors, 100);
     }
 
-    const isReconnecting = client.rustplusReconnecting[guildId] || 
-        client.rustplusSecondaryReconnecting[guildId];
-    const suppressNotFound = isReconnecting || (rustplus.uptimeServer &&
-        (Date.now() - rustplus.uptimeServer.getTime()) < 5 * 60 * 1000);
-
     for (const entityId in instance.serverList[serverId].storageMonitors) {
         const entity = instance.serverList[serverId].storageMonitors[entityId];
         const info = await rustplus.getEntityInfoAsync(entityId);
-        const infoValid = await rustplus.isResponseValid(info);
-        let skipMessage = false;
 
-        if (!infoValid) {
-            if (suppressNotFound) {
-                // Avoid false alerts during reconnect grace period.
-                skipMessage = true;
+        if (!(await rustplus.isResponseValid(info))) {
+            if (entity.reachable === true) {
+                await DiscordMessages.sendStorageMonitorNotFoundMessage(guildId, serverId, entityId);
             }
-            else {
-                if (entity.reachable === true) {
-                    await DiscordMessages.sendStorageMonitorNotFoundMessage(guildId, serverId, entityId);
-                }
-                entity.reachable = false;
-            }
+            entity.reachable = false;
         }
         else {
             entity.reachable = true;
         }
         client.setInstance(guildId, instance);
 
-        if (entity.reachable && infoValid) {
+        if (entity.reachable) {
             rustplus.storageMonitors[entityId] = {
                 items: info.entityInfo.payload.items,
                 expiry: info.entityInfo.payload.protectionExpiry,
@@ -87,8 +74,6 @@ module.exports = async (client, rustplus) => {
             }
         }
 
-        if (!skipMessage) {
-            await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
-        }
+        await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
     }
 };

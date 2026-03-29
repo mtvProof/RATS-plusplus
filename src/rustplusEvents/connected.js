@@ -28,8 +28,6 @@ module.exports = {
     async execute(rustplus, client) {
         if (!rustplus.isServerAvailable()) return rustplus.deleteThisRustplusInstance();
 
-        const isSecondary = rustplus.instanceLabel === 'secondary';
-
         rustplus.log(client.intlGet(null, 'connectedCap'), client.intlGet(null, 'connectedToServer'));
 
         const instance = client.getInstance(rustplus.guildId);
@@ -41,110 +39,75 @@ module.exports = {
         /* Start the token replenish task */
         rustplus.tokensReplenishTaskId = setInterval(rustplus.replenishTokens.bind(rustplus), 1000);
 
-        /* Get basic server info first for validation */
-        const info = await rustplus.getInfoAsync();
-        if (!(await rustplus.isResponseValid(info))) {
+        /* Request the map. Act as a check to see if connection is truly operational. */
+        const map = await rustplus.getMapAsync(3 * 60 * 1000); /* 3 min timeout */
+        if (!(await rustplus.isResponseValid(map))) {
             rustplus.log(client.intlGet(null, 'errorCap'),
                 client.intlGet(null, 'somethingWrongWithConnection'), 'error');
 
-            if (!isSecondary) {
-                instance.activeServer = null;
-                client.setInstance(guildId, instance);
+            instance.activeServer = null;
+            client.setInstance(guildId, instance);
 
-                await DiscordMessages.sendServerConnectionInvalidMessage(guildId, serverId);
-                await DiscordMessages.sendServerMessage(guildId, serverId, null);
-            }
+            await DiscordMessages.sendServerConnectionInvalidMessage(guildId, serverId);
+            await DiscordMessages.sendServerMessage(guildId, serverId, null);
 
-            client.resetRustplusVariables(guildId, rustplus.instanceLabel);
+            client.resetRustplusVariables(guildId);
 
             rustplus.disconnect();
-            if (isSecondary) {
-                delete client.rustplusSecondaryInstances[guildId];
-            }
-            else {
-                delete client.rustplusInstances[guildId];
-            }
+            delete client.rustplusInstances[guildId];
             return;
         }
-        rustplus.info = new Info(info.info);
         rustplus.log(client.intlGet(null, 'connectedCap'), client.intlGet(null, 'rustplusOperational'));
 
-        const failureKey = `${guildId}:${rustplus.instanceLabel}`;
-        if (client.rustplusConnectFailures) client.rustplusConnectFailures[failureKey] = 0;
-        if (client.rustplusLastConnectError) client.rustplusLastConnectError[failureKey] = null;
+        const info = await rustplus.getInfoAsync();
+        if (await rustplus.isResponseValid(info)) rustplus.info = new Info(info.info)
 
-        /* Set operational early to allow basic commands while map loads */
-        rustplus.isOperational = true;
-
-        /* Request the map with reduced timeout for faster startup */
-        const map = await rustplus.getMapAsync(60 * 1000); /* 60 sec timeout */
-        if (!(await rustplus.isResponseValid(map))) {
-            rustplus.log(client.intlGet(null, 'warningCap'),
-                client.intlGet(null, 'couldNotGetMap') || 'Could not retrieve map, continuing with limited functionality', 'warn');
-            /* Continue operation even without map - some features will be limited */
-        }
-
-        /* Process map if successfully retrieved */
-        if (map && map.map) {
-            if (!isSecondary) {
-                const mapChanged = client.rustplusMaps.hasOwnProperty(guildId) && 
-                    client.isJpgImageChanged(guildId, map.map);
-                
+        if (client.rustplusMaps.hasOwnProperty(guildId)) {
+            if (client.isJpgImageChanged(guildId, map.map)) {
                 rustplus.map = new Map(map.map, rustplus);
 
                 await rustplus.map.writeMap(false, true);
-                
-                if (mapChanged) {
-                    await DiscordMessages.sendServerWipeDetectedMessage(guildId, serverId);
-                }
-                
+                await DiscordMessages.sendServerWipeDetectedMessage(guildId, serverId);
                 await DiscordMessages.sendInformationMapMessage(guildId);
             }
             else {
-                // Secondary retains map data locally but does not post information updates.
                 rustplus.map = new Map(map.map, rustplus);
-            }
-        }
 
-        if (isSecondary) {
-            // Note: rustplusSecondaryReconnecting flag cleared in pollingHandler after first poll
-            if (client.rustplusSecondaryReconnecting[guildId]) {
-                if (client.rustplusSecondaryReconnectTimers[guildId]) {
-                    clearTimeout(client.rustplusSecondaryReconnectTimers[guildId]);
-                    client.rustplusSecondaryReconnectTimers[guildId] = null;
-                }
+                await rustplus.map.writeMap(false, true);
+                await DiscordMessages.sendInformationMapMessage(guildId);
             }
         }
         else {
-            // Note: rustplusReconnecting flag cleared in pollingHandler after first poll
-            if (client.rustplusReconnecting[guildId]) {
-                if (client.rustplusReconnectTimers[guildId]) {
-                    clearTimeout(client.rustplusReconnectTimers[guildId]);
-                    client.rustplusReconnectTimers[guildId] = null;
-                }
+            rustplus.map = new Map(map.map, rustplus);
 
-                await DiscordMessages.sendServerChangeStateMessage(guildId, serverId, 0);
+            await rustplus.map.writeMap(false, true);
+            await DiscordMessages.sendInformationMapMessage(guildId);
+        }
+
+        if (client.rustplusReconnecting[guildId]) {
+            client.rustplusReconnecting[guildId] = false;
+
+            if (client.rustplusReconnectTimers[guildId]) {
+                clearTimeout(client.rustplusReconnectTimers[guildId]);
+                client.rustplusReconnectTimers[guildId] = null;
             }
 
-            await DiscordMessages.sendServerMessage(guildId, serverId, null);
+            await DiscordMessages.sendServerChangeStateMessage(guildId, serverId, 0);
         }
 
-        /* Setup Smart Devices only for primary (hoster1) */
-        if (!isSecondary) {
-            await require('../discordTools/SetupSwitches')(client, rustplus);
-            await require('../discordTools/SetupSwitchGroups')(client, rustplus);
-            await require('../discordTools/SetupAlarms')(client, rustplus);
-            await require('../discordTools/SetupStorageMonitors')(client, rustplus);
-        }
+        await DiscordMessages.sendServerMessage(guildId, serverId, null);
+
+        /* Setup Smart Devices */
+        await require('../discordTools/SetupSwitches')(client, rustplus);
+        await require('../discordTools/SetupSwitchGroups')(client, rustplus);
+        await require('../discordTools/SetupAlarms')(client, rustplus);
+        await require('../discordTools/SetupStorageMonitors')(client, rustplus);
         rustplus.isNewConnection = false;
         rustplus.loadMarkers();
 
         await PollingHandler.pollingHandler(rustplus, client);
         rustplus.pollingTaskId = setInterval(PollingHandler.pollingHandler, client.pollingIntervalMs, rustplus, client);
-
-        if (client.webServer) {
-            client.webServer.broadcastGuildsUpdate();
-        }
+        rustplus.isOperational = true;
 
         rustplus.updateLeaderRustPlusLiteInstance();
     },

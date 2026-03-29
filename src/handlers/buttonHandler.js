@@ -21,119 +21,11 @@
 const Discord = require('discord.js');
 
 const Config = require('../../config');
-const Battlemetrics = require('../structures/Battlemetrics');
-const Constants = require('../util/constants.js');
 const DiscordMessages = require('../discordTools/discordMessages.js');
 const DiscordTools = require('../discordTools/discordTools.js');
-const InstanceUtils = require('../util/instanceUtils.js');
-const Scrape = require('../util/scrape.js');
 const SmartSwitchGroupHandler = require('./smartSwitchGroupHandler.js');
 const DiscordButtons = require('../discordTools/discordButtons.js');
 const DiscordModals = require('../discordTools/discordModals.js');
-
-function getTrackerPlayerCandidateNames(tracker, player, steamProfileName = null) {
-    const candidates = new Set();
-    const addCandidate = (value) => {
-        if (!value || typeof value !== 'string') return;
-
-        const normalized = value.trim();
-        if (normalized !== '') candidates.add(normalized);
-    };
-
-    addCandidate(steamProfileName);
-    addCandidate(player.name);
-
-    if (tracker.clanTag) {
-        if (steamProfileName) addCandidate(`${tracker.clanTag} ${steamProfileName}`);
-        if (player.name) {
-            addCandidate(`${tracker.clanTag} ${player.name}`);
-
-            const clanTagPrefix = `${tracker.clanTag} `;
-            if (player.name.startsWith(clanTagPrefix)) {
-                addCandidate(player.name.slice(clanTagPrefix.length));
-            }
-        }
-    }
-
-    return Array.from(candidates);
-}
-
-function findBattlemetricsPlayerIdByNames(bmInstance, candidateNames) {
-    if (!bmInstance || !bmInstance.players || candidateNames.length === 0) return null;
-
-    const lowerCaseCandidates = candidateNames.map(name => name.toLowerCase());
-
-    for (const [playerId, player] of Object.entries(bmInstance.players)) {
-        if (candidateNames.includes(player.name)) return playerId;
-    }
-
-    for (const [playerId, player] of Object.entries(bmInstance.players)) {
-        if (lowerCaseCandidates.includes(player.name.toLowerCase())) return playerId;
-    }
-
-    return null;
-}
-
-async function refreshTrackerBattlemetricsState(client, guildId, tracker) {
-    if (!tracker || !tracker.battlemetricsId) return null;
-
-    let bmInstance = client.battlemetricsInstances[tracker.battlemetricsId];
-    if (bmInstance) {
-        await bmInstance.evaluation();
-    }
-    else {
-        bmInstance = new Battlemetrics(tracker.battlemetricsId);
-        await bmInstance.setup();
-        client.battlemetricsInstances[tracker.battlemetricsId] = bmInstance;
-    }
-
-    if (!bmInstance || !bmInstance.lastUpdateSuccessful) return null;
-
-    let trackerChanged = tracker.serverId !== `${bmInstance.server_ip}-${bmInstance.server_port}` ||
-        tracker.title !== bmInstance.server_name ||
-        tracker.img !== Constants.DEFAULT_SERVER_IMG;
-
-    tracker.serverId = `${bmInstance.server_ip}-${bmInstance.server_port}`;
-    tracker.title = bmInstance.server_name;
-    tracker.img = Constants.DEFAULT_SERVER_IMG;
-
-    for (const player of tracker.players) {
-        const hadPlayerId = !!player.playerId;
-        const cachedPlayer = player.playerId ? bmInstance.players[player.playerId] : null;
-        let steamProfileName = null;
-
-        if (player.steamId) {
-            steamProfileName = await Scrape.scrapeSteamProfileName(client, player.steamId);
-        }
-
-        const candidateNames = getTrackerPlayerCandidateNames(tracker, player, steamProfileName);
-        const resolvedPlayerId = cachedPlayer ? player.playerId :
-            findBattlemetricsPlayerIdByNames(bmInstance, candidateNames);
-
-        if ((!hadPlayerId || !cachedPlayer) && resolvedPlayerId && player.playerId !== resolvedPlayerId) {
-            player.playerId = resolvedPlayerId;
-            trackerChanged = true;
-        }
-
-        const refreshedPlayer = player.playerId ? bmInstance.players[player.playerId] : null;
-        let preferredName = player.name;
-        if (player.steamId && steamProfileName) {
-            preferredName = ((tracker.clanTag ? `${tracker.clanTag} ` : '') + steamProfileName).trim();
-        }
-        else if (!player.steamId && refreshedPlayer) {
-            preferredName = refreshedPlayer.name;
-        }
-
-        if (preferredName && player.name !== preferredName) {
-            player.name = preferredName;
-            trackerChanged = true;
-        }
-    }
-
-    if (trackerChanged) client.setInstance(guildId, client.getInstance(guildId));
-
-    return bmInstance;
-}
 
 module.exports = async (client, interaction) => {
     const instance = client.getInstance(interaction.guildId);
@@ -168,11 +60,7 @@ module.exports = async (client, interaction) => {
 
         await client.interactionUpdate(interaction, {
             components: [DiscordButtons.getNotificationButtons(
-                guildId, ids.setting, setting.discord, setting.inGame, setting.voice,
-                setting.hasOwnProperty('prepair') ? setting.prepair : null,
-                setting.hasOwnProperty('prepairMinutes') ? setting.prepairMinutes : null),
-                ...(setting.hasOwnProperty('prepair') ? [DiscordButtons.getNotificationPrepairEditButton(
-                    guildId, ids.setting, setting.prepairMinutes)] : [])]
+                guildId, ids.setting, setting.discord, setting.inGame, setting.voice)]
         });
     }
     else if (interaction.customId.startsWith('InGameNotification')) {
@@ -191,11 +79,7 @@ module.exports = async (client, interaction) => {
 
         await client.interactionUpdate(interaction, {
             components: [DiscordButtons.getNotificationButtons(
-                guildId, ids.setting, setting.discord, setting.inGame, setting.voice,
-                setting.hasOwnProperty('prepair') ? setting.prepair : null,
-                setting.hasOwnProperty('prepairMinutes') ? setting.prepairMinutes : null),
-                ...(setting.hasOwnProperty('prepair') ? [DiscordButtons.getNotificationPrepairEditButton(
-                    guildId, ids.setting, setting.prepairMinutes)] : [])]
+                guildId, ids.setting, setting.discord, setting.inGame, setting.voice)]
         });
     }
     else if (interaction.customId.startsWith('VoiceNotification')) {
@@ -214,55 +98,8 @@ module.exports = async (client, interaction) => {
 
         await client.interactionUpdate(interaction, {
             components: [DiscordButtons.getNotificationButtons(
-                guildId, ids.setting, setting.discord, setting.inGame, setting.voice,
-                setting.hasOwnProperty('prepair') ? setting.prepair : null,
-                setting.hasOwnProperty('prepairMinutes') ? setting.prepairMinutes : null),
-                ...(setting.hasOwnProperty('prepair') ? [DiscordButtons.getNotificationPrepairEditButton(
-                    guildId, ids.setting, setting.prepairMinutes)] : [])]
+                guildId, ids.setting, setting.discord, setting.inGame, setting.voice)]
         });
-    }
-    else if (interaction.customId.startsWith('PrepairNotification')) {
-        const ids = JSON.parse(interaction.customId.replace('PrepairNotification', ''));
-        const setting = instance.notificationSettings[ids.setting];
-
-        if (!setting.hasOwnProperty('prepair')) {
-            interaction.deferUpdate();
-            return;
-        }
-
-        setting.prepair = !setting.prepair;
-        client.setInstance(guildId, instance);
-
-        if (rustplus && rustplus.notificationSettings[ids.setting]) {
-            rustplus.notificationSettings[ids.setting].prepair = setting.prepair;
-        }
-
-        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
-            id: `${verifyId}`,
-            value: `${setting.prepair}`
-        }));
-
-        await client.interactionUpdate(interaction, {
-            components: [DiscordButtons.getNotificationButtons(
-                guildId, ids.setting, setting.discord, setting.inGame, setting.voice,
-                setting.prepair, setting.prepairMinutes),
-                DiscordButtons.getNotificationPrepairEditButton(guildId, ids.setting, setting.prepairMinutes)]
-        });
-    }
-    else if (interaction.customId.startsWith('PrepairEdit')) {
-        const ids = JSON.parse(interaction.customId.replace('PrepairEdit', ''));
-        const setting = instance.notificationSettings[ids.setting];
-
-        if (!setting) {
-            interaction.deferUpdate();
-            return;
-        }
-
-        const messageId = interaction.message ? interaction.message.id : null;
-        const channelId = interaction.channelId ? interaction.channelId : null;
-
-        await interaction.showModal(DiscordModals.getNotificationPrepairModal(
-            guildId, ids.setting, setting.prepairMinutes, messageId, channelId));
     }
     else if (interaction.customId === 'AllowInGameCommands') {
         instance.generalSettings.inGameCommandsEnabled = !instance.generalSettings.inGameCommandsEnabled;
@@ -588,28 +425,6 @@ module.exports = async (client, interaction) => {
             components: DiscordButtons.getSubscribeToChangesBattlemetricsButtons(guildId)
         });
     }
-    else if (interaction.customId === 'CodeCommandEnabled') {
-        if (!instance.generalSettings.hasOwnProperty('codeCommandEnabled')) {
-            instance.generalSettings.codeCommandEnabled = true;
-        }
-
-        instance.generalSettings.codeCommandEnabled = !instance.generalSettings.codeCommandEnabled;
-        client.setInstance(guildId, instance);
-
-        if (rustplus) rustplus.generalSettings.codeCommandEnabled = instance.generalSettings.codeCommandEnabled;
-
-        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
-            id: `${verifyId}`,
-            value: `${instance.generalSettings.codeCommandEnabled}`
-        }));
-
-        await client.interactionUpdate(interaction, {
-            components: DiscordButtons.getBaseCodesButtons(guildId)
-        });
-    }
-    else if (interaction.customId === 'BaseCodesEdit') {
-        await interaction.showModal(DiscordModals.getBaseCodesEditModal(guildId));
-    }
     else if (interaction.customId.startsWith('ServerConnect')) {
         const ids = JSON.parse(interaction.customId.replace('ServerConnect', ''));
         const server = instance.serverList[ids.serverId];
@@ -620,50 +435,23 @@ module.exports = async (client, interaction) => {
         }
 
         client.resetRustplusVariables(guildId);
-        client.resetRustplusVariables(guildId, 'secondary');
 
         if (instance.activeServer !== null) {
             await DiscordMessages.sendServerMessage(guildId, instance.activeServer, null);
         }
 
-        const previousActiveServer = instance.activeServer;
         instance.activeServer = ids.serverId;
         client.setInstance(guildId, instance);
 
-        /* Disconnect previous instances if any */
+        /* Disconnect previous instance is any */
         if (rustplus) {
             rustplus.isDeleted = true;
             rustplus.disconnect();
         }
-        const rustplusSecondary = client.rustplusSecondaryInstances[guildId];
-        if (rustplusSecondary) {
-            rustplusSecondary.isDeleted = true;
-            rustplusSecondary.disconnect();
-            delete client.rustplusSecondaryInstances[guildId];
-        }
 
         /* Create the rustplus instance */
         const newRustplus = client.createRustplusInstance(
-            guildId,
-            server.serverIp,
-            server.appPort,
-            server.steamId,
-            server.playerToken);
-
-        /* Spin up secondary if hoster2 is paired on this server */
-        const credentials = InstanceUtils.readCredentialsFile(guildId);
-        if (credentials.hoster2 && instance.serverListLite[ids.serverId] &&
-            instance.serverListLite[ids.serverId][credentials.hoster2]) {
-            const lite = instance.serverListLite[ids.serverId][credentials.hoster2];
-            client.createRustplusInstance(
-                guildId,
-                server.serverIp,
-                server.appPort,
-                lite.steamId,
-                lite.playerToken,
-                'secondary'
-            );
-        }
+            guildId, server.serverIp, server.appPort, server.steamId, server.playerToken);
 
         await DiscordMessages.sendServerMessage(guildId, ids.serverId, null, interaction);
 
@@ -738,50 +526,6 @@ module.exports = async (client, interaction) => {
         const modal = DiscordModals.getCustomTimersEditModal(guildId, ids.serverId);
         await interaction.showModal(modal);
     }
-    else if (interaction.customId === 'CreateTrackerTrackers') {
-        if (!instance.activeServer) {
-            await client.interactionUpdate(interaction, {
-                content: client.intlGet(guildId, 'noActiveServer'),
-                components: []
-            });
-            return;
-        }
-
-        const server = instance.serverList[instance.activeServer];
-
-        if (!server) {
-            await client.interactionUpdate(interaction, {
-                content: client.intlGet(guildId, 'serverNotFound'),
-                components: []
-            });
-            return;
-        }
-
-        interaction.deferUpdate();
-
-        const trackerId = client.findAvailableTrackerId(guildId);
-
-        instance.trackers[trackerId] = {
-            name: 'Tracker',
-            serverId: instance.activeServer,
-            battlemetricsId: server.battlemetricsId,
-            title: server.title,
-            img: server.img,
-            clanTag: '',
-            everyone: false,
-            inGame: true,
-            players: [],
-            messageId: null
-        }
-        client.setInstance(guildId, instance);
-
-        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
-            id: `${verifyId}`,
-            value: `${trackerId}`
-        }));
-
-        await DiscordMessages.sendTrackerMessage(guildId, trackerId);
-    }
     else if (interaction.customId.startsWith('CreateTracker')) {
         const ids = JSON.parse(interaction.customId.replace('CreateTracker', ''));
         const server = instance.serverList[ids.serverId];
@@ -809,11 +553,6 @@ module.exports = async (client, interaction) => {
             messageId: null
         }
         client.setInstance(guildId, instance);
-
-        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
-            id: `${verifyId}`,
-            value: `${trackerId}`
-        }));
 
         await DiscordMessages.sendTrackerMessage(guildId, trackerId);
     }
@@ -845,45 +584,6 @@ module.exports = async (client, interaction) => {
         }));
 
         await DiscordMessages.sendSmartSwitchGroupMessage(guildId, ids.serverId, groupId);
-    }
-    else if (interaction.customId === 'CreateGroupSwitchGroups') {
-        if (!instance.activeServer) {
-            await client.interactionUpdate(interaction, {
-                content: client.intlGet(guildId, 'noActiveServer'),
-                components: []
-            });
-            return;
-        }
-
-        const server = instance.serverList[instance.activeServer];
-
-        if (!server) {
-            await client.interactionUpdate(interaction, {
-                content: client.intlGet(guildId, 'serverNotFound'),
-                components: []
-            });
-            return;
-        }
-
-        interaction.deferUpdate();
-
-        const groupId = client.findAvailableGroupId(guildId, instance.activeServer);
-
-        server.switchGroups[groupId] = {
-            name: 'Group',
-            command: `${groupId}`,
-            switches: [],
-            image: 'smart_switch.png',
-            messageId: null
-        }
-        client.setInstance(guildId, instance);
-
-        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
-            id: `${verifyId}`,
-            value: `${groupId}`
-        }));
-
-        await DiscordMessages.sendSmartSwitchGroupMessage(guildId, instance.activeServer, groupId);
     }
     else if (interaction.customId.startsWith('ServerDisconnect') ||
         interaction.customId.startsWith('ServerReconnecting')) {
@@ -1240,52 +940,6 @@ module.exports = async (client, interaction) => {
 
         await interaction.message.delete();
     }
-    else if (interaction.customId.startsWith('GroupToggleSwitch')) {
-        const ids = JSON.parse(interaction.customId.replace('GroupToggleSwitch', ''));
-        const server = instance.serverList[ids.serverId];
-
-        if (!server || (server && !server.switchGroups.hasOwnProperty(ids.groupId))) {
-            await interaction.message.delete();
-            return;
-        }
-
-        if (!server.switches.hasOwnProperty(ids.switchId)) {
-            await interaction.message.delete();
-            return;
-        }
-
-        interaction.deferUpdate();
-
-        if (rustplus && rustplus.serverId === ids.serverId) {
-            const sw = server.switches[ids.switchId];
-            const newState = !sw.active;
-
-            if (instance.generalSettings.smartSwitchNotifyInGameWhenChangedFromDiscord) {
-                const user = interaction.user.username;
-                const name = sw.name;
-                const status = newState ? client.intlGet(guildId, 'onCap') : client.intlGet(guildId, 'offCap');
-                const str = client.intlGet(guildId, 'userTurnedOnOffSmartSwitchFromDiscord', {
-                    user: user,
-                    name: name,
-                    status: status
-                });
-
-                await rustplus.sendInGameMessage(str);
-            }
-
-            client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
-                id: `${verifyId}`,
-                value: `${ids.switchId} -> ${newState}`
-            }));
-
-            await rustplus.turnSmartSwitchAsync(ids.switchId, newState);
-
-            // Update the switch group message after a short delay to allow state to update
-            setTimeout(async () => {
-                await DiscordMessages.sendSmartSwitchGroupMessage(guildId, ids.serverId, ids.groupId);
-            }, 500);
-        }
-    }
     else if (interaction.customId.startsWith('GroupTurnOn') ||
         interaction.customId.startsWith('GroupTurnOff')) {
         const ids = JSON.parse(interaction.customId.replace('GroupTurnOn', '').replace('GroupTurnOff', ''));
@@ -1419,11 +1073,9 @@ module.exports = async (client, interaction) => {
             return;
         }
 
-        await interaction.deferUpdate();
+        // TODO! Remove name change icon from status
 
-        await refreshTrackerBattlemetricsState(client, guildId, tracker);
-
-        await DiscordMessages.sendTrackerMessage(guildId, ids.trackerId);
+        await DiscordMessages.sendTrackerMessage(guildId, ids.trackerId, interaction);
     }
     else if (interaction.customId.startsWith('TrackerEdit')) {
         const ids = JSON.parse(interaction.customId.replace('TrackerEdit', ''));
@@ -1451,18 +1103,8 @@ module.exports = async (client, interaction) => {
             return;
         }
 
-        // Eliminar el canal del tracker si existe
-        if (tracker.channelId) {
-            try {
-                await DiscordTools.removeTextChannel(guildId, tracker.channelId);
-            } catch (e) {
-                client.log(client.intlGet(null, 'errorCap'), `Could not delete tracker channel: ${e}`, 'error');
-            }
-        } else {
-            // Si no tiene canal propio, borrar solo el mensaje en el canal global
-            await DiscordTools.deleteMessageById(guildId, instance.channelId.trackers,
-                tracker.messageId);
-        }
+        await DiscordTools.deleteMessageById(guildId, instance.channelId.trackers,
+            tracker.messageId);
 
         delete instance.trackers[ids.trackerId];
         client.setInstance(guildId, instance);
@@ -1490,71 +1132,6 @@ module.exports = async (client, interaction) => {
 
         const modal = DiscordModals.getTrackerRemovePlayerModal(guildId, ids.trackerId);
         await interaction.showModal(modal);
-    }
-    else if (interaction.customId.startsWith('TrackerSelectPlayer')) {
-        const ids = JSON.parse(interaction.customId.replace('TrackerSelectPlayer', ''));
-        const tracker = instance.trackers[ids.trackerId];
-        const playerId = ids.playerId;
-
-        if (!tracker) {
-            await interaction.message.delete();
-            return;
-        }
-
-        const bmInstance = client.battlemetricsInstances[tracker.battlemetricsId];
-        if (!bmInstance || !bmInstance.lastUpdateSuccessful) {
-            await interaction.deferUpdate();
-            await interaction.message.delete();
-            return;
-        }
-
-        // Check if player already in tracker
-        if (tracker.players.some(e => e.playerId === playerId)) {
-            await interaction.deferUpdate();
-            await interaction.message.delete();
-            return;
-        }
-
-        // Add player to tracker
-        const playerName = bmInstance.players[playerId]['name'];
-        tracker.players.push({
-            name: playerName,
-            steamId: null,
-            playerId: playerId
-        });
-        client.setInstance(guildId, instance);
-
-        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
-            id: `${verifyId}`,
-            value: `${playerName}`
-        }));
-
-        await interaction.deferUpdate();
-        await interaction.message.delete();
-        await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);
-    }
-    else if (interaction.customId.startsWith('TrackerRemoveSelectedPlayer')) {
-        const ids = JSON.parse(interaction.customId.replace('TrackerRemoveSelectedPlayer', ''));
-        const tracker = instance.trackers[ids.trackerId];
-
-        if (!tracker || ids.playerIndex >= tracker.players.length) {
-            await interaction.message.delete();
-            return;
-        }
-
-        // Remove player from tracker
-        const playerToRemove = tracker.players[ids.playerIndex];
-        tracker.players = tracker.players.filter((_, index) => index !== ids.playerIndex);
-        client.setInstance(guildId, instance);
-
-        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
-            id: `${verifyId}`,
-            value: `${playerToRemove.name}`
-        }));
-
-        await interaction.deferUpdate();
-        await interaction.message.delete();
-        await DiscordMessages.sendTrackerMessage(interaction.guildId, ids.trackerId);
     }
     else if (interaction.customId.startsWith('TrackerInGame')) {
         const ids = JSON.parse(interaction.customId.replace('TrackerInGame', ''));

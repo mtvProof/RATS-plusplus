@@ -21,66 +21,28 @@
 const DiscordMessages = require('../discordTools/discordMessages.js');
 const Timer = require('../util/timer.js');
 
-function isNotFoundResponse(response) {
-    if (response === 'not_found') return true;
-    if (response && typeof response === 'object' && response.error === 'not_found') return true;
-    return false;
-}
-
-function isTransientFailureResponse(response) {
-    if (response === undefined || response === null) return true;
-
-    const text = (response && response.toString) ? response.toString() : `${response}`;
-    return text === 'Error: Timeout reached while waiting for response' ||
-        /socket hang up|ECONNRESET|EPIPE|ETIMEDOUT|network/i.test(text);
-}
-
 module.exports = {
     handler: async function (rustplus, client) {
-        if (rustplus.instanceLabel === 'secondary') return;
-
+        let instance = client.getInstance(rustplus.guildId);
         const guildId = rustplus.guildId;
-        const primaryRustplus = client.rustplusInstances[guildId];
-
-        // Only evaluate reachability via the primary (hoster1). Secondary may never have TC access.
-        if (!primaryRustplus || !primaryRustplus.isOperational) return;
-
-        let instance = client.getInstance(guildId);
-        const serverId = primaryRustplus.serverId;
+        const serverId = rustplus.serverId;
 
         if (!instance.serverList.hasOwnProperty(serverId)) return;
 
-        // Suppress "not found" alerts during grace period after server reboot (5 minutes)
-        const isReconnecting = client.rustplusReconnecting[guildId] || 
-            client.rustplusSecondaryReconnecting[guildId];
-        const suppressNotFound = isReconnecting || (primaryRustplus.uptimeServer &&
-            (Date.now() - primaryRustplus.uptimeServer.getTime()) < 5 * 60 * 1000);
-
-        if (primaryRustplus.smartAlarmIntervalCounter === 29) {
-            primaryRustplus.smartAlarmIntervalCounter = 0;
+        if (rustplus.smartAlarmIntervalCounter === 29) {
+            rustplus.smartAlarmIntervalCounter = 0;
         }
         else {
-            primaryRustplus.smartAlarmIntervalCounter += 1;
+            rustplus.smartAlarmIntervalCounter += 1;
         }
 
-        if (primaryRustplus.smartAlarmIntervalCounter === 0) {
+        if (rustplus.smartAlarmIntervalCounter === 0) {
             for (const entityId in instance.serverList[serverId].alarms) {
                 instance = client.getInstance(guildId);
 
-                const info = await primaryRustplus.getEntityInfoAsync(entityId);
-                if (!(await primaryRustplus.isResponseValid(info))) {
-                    // Avoid false "device not found" alerts on transient RPC/network failures.
-                    if (isTransientFailureResponse(info)) {
-                        continue;
-                    }
-
-                    if (suppressNotFound) {
-                        // Skip sending alert during grace period after server connect/reboot
-                        continue;
-                    }
-
-                    // Only mark as missing on explicit not_found from Rust+.
-                    if (isNotFoundResponse(info) && instance.serverList[serverId].alarms[entityId].reachable) {
+                const info = await rustplus.getEntityInfoAsync(entityId);
+                if (!(await rustplus.isResponseValid(info))) {
+                    if (instance.serverList[serverId].alarms[entityId].reachable) {
                         await DiscordMessages.sendSmartAlarmNotFoundMessage(guildId, serverId, entityId);
 
                         instance.serverList[serverId].alarms[entityId].reachable = false;

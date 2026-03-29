@@ -41,7 +41,6 @@ const Timer = require('../util/timer.js');
 
 const TOKENS_LIMIT = 24;        /* Per player */
 const TOKENS_REPLENISH = 3;     /* Per second */
-const MAX_CONSECUTIVE_TIMEOUTS = 5; /* Force reconnect after this many RPC timeouts */
 
 class RustPlus extends RustPlusLib {
     constructor(guildId, serverIp, appPort, steamId, playerToken) {
@@ -49,8 +48,6 @@ class RustPlus extends RustPlusLib {
 
         this.serverId = `${this.server}-${this.port}`;
         this.guildId = guildId;
-        this.instanceLabel = 'primary';
-        this.hosterSteamId = steamId;
 
         this.leaderRustPlusInstance = null;
         this.uptimeServer = null;
@@ -60,9 +57,6 @@ class RustPlus extends RustPlusLib {
         this.isDeleted = false;             /* Is the rustplus instance deleted? */
         this.isNewConnection = false;       /* Is it an actively selected connection (pressed CONNECT button)? */
         this.isFirstPoll = true;            /* Is this the first poll since connection started? */
-        this.consecutiveTimeouts = 0;       /* Counter for consecutive RPC timeouts. */
-        this.connectFailureStreak = 0;      /* Counter for consecutive connection failures before full operational state. */
-        this.lastConnectErrorCode = null;   /* Last socket/connect error code observed on this instance. */
 
         /* Interval ids */
         this.pollingTaskId = 0;             /* The id of the main polling mechanism of the rustplus instance. */
@@ -73,7 +67,6 @@ class RustPlus extends RustPlusLib {
         this.timers = new Object();                 /* Stores all custom timers that are created. */
         this.markers = new Object();                /* Stores all custom markers that are created. */
         this.storageMonitors = new Object();        /* Contain content information of paired storage monitors. */
-        this.storageMonitorMessageTimestamps = new Object(); /* Throttle storage monitor message updates */
         this.currentSwitchTimeouts = new Object();  /* Stores timer ids for auto ON/OFF Smart Switch timeouts. */
         this.passedFirstSunriseOrSunset = false;    /* Becomes true when first sunrise/sunset. */
         this.startTimeObject = new Object();        /* Stores in-game time points before first sunrise/sunset. */
@@ -156,11 +149,6 @@ class RustPlus extends RustPlusLib {
     }
 
     updateLeaderRustPlusLiteInstance() {
-        // Guard against missing team info or server lite data.
-        const instance = Client.client.getInstance(this.guildId);
-        if (!this.team || !this.team.leaderSteamId) return;
-        if (!instance || !instance.serverListLite || !instance.serverListLite[this.serverId]) return;
-
         if (this.leaderRustPlusInstance !== null) {
             if (Client.client.rustplusLiteReconnectTimers[this.guildId]) {
                 clearTimeout(Client.client.rustplusLiteReconnectTimers[this.guildId]);
@@ -171,6 +159,7 @@ class RustPlus extends RustPlusLib {
             this.leaderRustPlusInstance = null;
         }
 
+        const instance = Client.client.getInstance(this.guildId);
         const leader = this.team.leaderSteamId;
         if (leader === this.playerId) return;
         if (!(leader in instance.serverListLite[this.serverId])) return;
@@ -212,47 +201,6 @@ class RustPlus extends RustPlusLib {
         this.playerConnections[steamId].unshift(savedString);
     }
 
-    checkForMapWipeAndClearPlaytimes() {
-        if (!this.info) return;
-
-        // Get the persisted last map seed from the server instance data
-        const instance = Client.client.getInstance(this.guildId);
-        const server = instance.serverList[this.serverId];
-        if (!server) return;
-
-        // Initialize lastMapSeed in the server object if it doesn't exist
-        if (server.lastMapSeed === undefined || server.lastMapSeed === null) {
-            server.lastMapSeed = this.info.seed;
-            Client.client.setInstance(this.guildId, instance);
-            return;
-        }
-
-        // Check if the map seed has changed (actual wipe)
-        if (this.info.isSeedChanged({ seed: server.lastMapSeed })) {
-            server.lastMapSeed = this.info.seed;
-            
-            // Clear all instance data for this server on wipe
-            server.playerPlaytimes = {};
-            server.cameraCodes = [];
-            server.switches = {};
-            server.alarms = {};
-            server.storageMonitors = {};
-            server.markers = {};
-            server.switchGroups = {};
-            Client.client.setInstance(this.guildId, instance);
-            this.log(Client.client.intlGet(null, 'infoCap'), 'Map seed changed - playtime stats cleared for wipe');
-
-            // A wipe invalidates all cached map state (deep sea location, vending machines, etc.).
-            if (this.mapMarkers) {
-                this.mapMarkers.reset();
-            }
-
-            // Reset persistent statistics for this server/wipe.
-            if (Client.client.statisticsTracker) {
-                Client.client.statisticsTracker.resetWipeStats(this.guildId, this.serverId);
-            }
-        }
-    }
     updateDeaths(steamId, data) {
         const time = Timer.getCurrentDateTime();
         data['time'] = time;
@@ -274,8 +222,7 @@ class RustPlus extends RustPlusLib {
 
     updateEvents(event, message) {
         const eventAliases = {
-            vendor: 'travelingVendor',
-            deepsea: 'deepSea'
+            vendor: 'travelingVendor'
         };
         const eventKey = eventAliases[event] || event;
         const supportedEvents = ['cargo', 'heli', 'small', 'large', 'chinook', 'travelingVendor', 'deepSea'];
@@ -305,12 +252,9 @@ class RustPlus extends RustPlusLib {
         this.isDeleted = true;
         this.disconnect();
 
-        const isSecondary = this.instanceLabel === 'secondary';
-        const targetMap = isSecondary ? Client.client.rustplusSecondaryInstances : Client.client.rustplusInstances;
-
-        if (targetMap.hasOwnProperty(this.guildId)) {
-            if (targetMap[this.guildId].serverId === this.serverId) {
-                delete targetMap[this.guildId];
+        if (Client.client.rustplusInstances.hasOwnProperty(this.guildId)) {
+            if (Client.client.rustplusInstances[this.guildId].serverId === this.serverId) {
+                delete Client.client.rustplusInstances[this.guildId];
                 return true;
             }
         }
@@ -333,53 +277,22 @@ class RustPlus extends RustPlusLib {
 
     sendInGameMessage(message) {
         InGameChatHandler.inGameChatHandler(this, Client.client, message);
-        const mirrors = Client.client.getRustplusInstancesAll(this.guildId)
-            .filter(rp => rp && rp !== this && rp.isOperational);
-
-        for (const rustplusInstance of mirrors) {
-            InGameChatHandler.inGameChatHandler(rustplusInstance, Client.client, message);
-        }
     }
 
     async sendEvent(setting, text, event, embed_color, firstPoll = false, image = null) {
-        const eventSetting = setting || {};
-        const img = (image !== null) ? image : (eventSetting.image || null);
+        const img = (image !== null) ? image : setting.image;
 
         this.updateEvents(event, text);
 
-        if (!firstPoll && eventSetting.discord) {
+        if (!firstPoll && setting.discord) {
             await DiscordMessages.sendDiscordEventMessage(this.guildId, this.serverId, text, img, embed_color);
         }
-        // Only broadcast in-game from the primary instance to avoid duplicate sends across both teams.
-        if (!firstPoll && eventSetting.inGame && this.instanceLabel === 'primary') {
+        if (!firstPoll && setting.inGame) {
             await this.sendInGameMessage(`${text}`);
         }
-        if (!firstPoll && eventSetting.voice) {
+        if (!firstPoll && setting.voice) {
             await DiscordVoice.sendDiscordVoiceMessage(this.guildId, text);
         }
-
-        // Broadcast to WebUI
-        if (Client.client.webServer) {
-            // Try to find the setting key (e.g. "cargoShipDetectedSetting") to allow granular filtering in WebUI
-            const settingKey = Object.keys(this.notificationSettings).find(key => this.notificationSettings[key] === setting);
-            const settingImage = typeof eventSetting.image === 'string' ? eventSetting.image : '';
-
-            let type = settingKey || 'info';
-
-            // If we didn't find a key (e.g. custom setting), fallback to image-based type for icons/basic filtering
-            if (!settingKey) {
-                if (settingImage.includes('cargo')) type = 'cargo';
-                else if (settingImage.includes('heli')) type = 'heli';
-                else if (settingImage.includes('locked_crate')) type = 'crate';
-                else if (settingImage.includes('oil_rig')) type = 'oil_rig';
-                else if (settingImage.includes('vendor')) type = 'vendor';
-                else if (settingImage.includes('vending')) type = 'vending';
-                else if (settingImage.includes('chinook')) type = 'chinook';
-            }
-
-            Client.client.webServer.broadcastNotification(this.guildId, type, text);
-        }
-
         this.log(Client.client.intlGet(null, 'eventCap'), text);
     }
 
@@ -723,120 +636,29 @@ class RustPlus extends RustPlusLib {
     }
 
     async isResponseValid(response) {
-        const isTimeout = response && response.toString &&
-            response.toString() === 'Error: Timeout reached while waiting for response';
-
         if (response === undefined) {
             this.log(Client.client.intlGet(null, 'errorCap'),
                 Client.client.intlGet(null, 'responseIsUndefined'), 'error');
             return false;
         }
-        else if (isTimeout) {
+        else if (response.toString() === 'Error: Timeout reached while waiting for response') {
             this.log(Client.client.intlGet(null, 'errorCap'),
                 Client.client.intlGet(null, 'responseTimeout'), 'error');
-
-            this.consecutiveTimeouts += 1;
-            if (this.consecutiveTimeouts >= MAX_CONSECUTIVE_TIMEOUTS) {
-                this.log(Client.client.intlGet(null, 'errorCap'),
-                    `Hit ${this.consecutiveTimeouts} consecutive timeouts; reconnecting to Rust+`, 'error');
-                this.consecutiveTimeouts = 0;
-                this.disconnect();
-            }
-            return false;
-        }
-        else if (response === 'not_found') {
-            /* not_found errors are expected when entities are deleted/deregistered - handle silently */
             return false;
         }
         else if (response.hasOwnProperty('error')) {
-            if (response.error === 'not_found') return false;
-            
             this.log(Client.client.intlGet(null, 'errorCap'), Client.client.intlGet(null, 'responseContainError', {
                 error: response.error
             }), 'error');
             return false;
         }
-        else if (typeof response === 'string') {
-            /* Handle other error strings from the OEM library */
-            this.log(Client.client.intlGet(null, 'errorCap'), Client.client.intlGet(null, 'responseContainError', {
-                error: response
-            }), 'error');
-            return false;
-        }
         else if (Object.keys(response).length === 0) {
-            /* 
-               Response is empty. 
-               We suppress the log as requested and do NOT stop the polling interval 
-               to allow the bot to recover from transient empty responses.
-            */
+            this.log(Client.client.intlGet(null, 'errorCap'),
+                Client.client.intlGet(null, 'responseIsEmpty'), 'error');
+            clearInterval(this.pollingTaskId);
             return false;
         }
-        this.consecutiveTimeouts = 0;
         return true;
-    }
-
-    async transferLeadershipAndConfirm(targetSteamId) {
-        if (!this.team) return false;
-
-        const steamId = targetSteamId.toString();
-        const timeoutError = 'Error: Timeout reached while waiting for response';
-        const isAmbiguousLeaderTransferError = (response) => {
-            if (response === undefined) return true;
-
-            const text = (response && response.toString) ? response.toString() : `${response}`;
-            return text === timeoutError ||
-                /socket hang up|ECONNRESET|EPIPE|ETIMEDOUT|network/i.test(text);
-        };
-
-        if (this.team.leaderSteamId === this.playerId) {
-            await this.team.changeLeadership(steamId);
-        }
-        else {
-            if (!this.leaderRustPlusInstance) {
-                this.updateLeaderRustPlusLiteInstance();
-                await new Promise(resolve => setTimeout(resolve, 1000));
-            }
-
-            if (!this.leaderRustPlusInstance) {
-                return false;
-            }
-
-            let response = await this.leaderRustPlusInstance.promoteToLeaderAsync(steamId);
-            if (!this.leaderRustPlusInstance.isResponseValid(response) &&
-                !isAmbiguousLeaderTransferError(response)) {
-                // Refresh stale/disconnected leader-lite session and retry once.
-                this.updateLeaderRustPlusLiteInstance();
-                await new Promise(resolve => setTimeout(resolve, 1500));
-
-                if (!this.leaderRustPlusInstance) {
-                    return false;
-                }
-
-                response = await this.leaderRustPlusInstance.promoteToLeaderAsync(steamId);
-                if (!this.leaderRustPlusInstance.isResponseValid(response) &&
-                    !isAmbiguousLeaderTransferError(response)) {
-                    return false;
-                }
-            }
-        }
-
-        /*
-            Confirm for a bit longer to absorb delayed team updates after promote requests.
-            This reduces false negatives where command says failed but transfer happens moments later.
-        */
-        for (let i = 0; i < 12; i++) {
-            const teamInfo = await this.getTeamInfoAsync(5000);
-            if (await this.isResponseValid(teamInfo) && teamInfo.teamInfo) {
-                if (teamInfo.teamInfo.leaderSteamId.toString() === steamId) {
-                    this.team.updateTeam(teamInfo.teamInfo);
-                    return true;
-                }
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-
-        return this.team.leaderSteamId === steamId;
     }
 
     /* Commands */
@@ -1681,22 +1503,15 @@ class RustPlus extends RustPlusLib {
         const commandLeader = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxLeader')}`;
         const commandLeaderEn = `${prefix}${Client.client.intlGet('en', 'commandSyntaxLeader')}`;
 
-        if (!this.team || !Array.isArray(this.team.players) || !this.team.leaderSteamId) {
-            return Client.client.intlGet(this.guildId, 'notConnectedToRustServer');
-        }
-
         if (!this.generalSettings.leaderCommandEnabled) {
             return Client.client.intlGet(this.guildId, 'leaderCommandIsDisabled');
         }
 
         const instance = Client.client.getInstance(this.guildId);
-        const serverListLite = (instance && instance.serverListLite && instance.serverListLite[this.serverId]) ?
-            instance.serverListLite[this.serverId] : {};
-
-        if (!Object.keys(serverListLite).includes(this.team.leaderSteamId)) {
+        if (!Object.keys(instance.serverListLite[this.serverId]).includes(this.team.leaderSteamId)) {
             let names = '';
             for (const player of this.team.players) {
-                if (Object.keys(serverListLite).includes(player.steamId)) {
+                if (Object.keys(instance.serverListLite[this.serverId]).includes(player.steamId)) {
                     names += `${player.name}, `
                 }
             }
@@ -1712,14 +1527,16 @@ class RustPlus extends RustPlusLib {
 
             if (this.team.leaderSteamId !== callerSteamId) {
                 if (this.generalSettings.leaderCommandOnlyForPaired) {
-                    if (!Object.keys(serverListLite).includes(callerSteamId)) {
+                    if (!Object.keys(instance.serverListLite[this.serverId]).includes(callerSteamId)) {
                         return Client.client.intlGet(this.guildId, 'youAreNotPairedWithServer');
                     }
                 }
 
-                const transferred = await this.transferLeadershipAndConfirm(callerSteamId);
-                if (!transferred) {
-                    return Client.client.intlGet(this.guildId, 'somethingWrongWithConnection');
+                if (this.team.leaderSteamId === this.playerId) {
+                    await this.team.changeLeadership(callerSteamId);
+                }
+                else {
+                    this.leaderRustPlusInstance.promoteToLeaderAsync(callerSteamId);
                 }
 
                 const player = this.team.getPlayer(callerSteamId);
@@ -1741,9 +1558,8 @@ class RustPlus extends RustPlusLib {
                 name = command.slice(`${commandLeaderEn} `.length).trim();
             }
 
-            const nameLower = name.toLowerCase();
             for (const player of this.team.players) {
-                if (player.name.toLowerCase().includes(nameLower)) {
+                if (player.name.includes(name)) {
                     if (this.team.leaderSteamId === player.steamId) {
                         return Client.client.intlGet(this.guildId, 'leaderAlreadyLeader', {
                             name: player.name
@@ -1751,16 +1567,18 @@ class RustPlus extends RustPlusLib {
                     }
                     else {
                         if (this.generalSettings.leaderCommandOnlyForPaired) {
-                            if (!Object.keys(serverListLite).includes(player.steamId)) {
+                            if (!Object.keys(instance.serverListLite[this.serverId]).includes(player.steamId)) {
                                 return Client.client.intlGet(this.guildId, 'playerNotPairedWithServer', {
                                     name: player.name
                                 });
                             }
                         }
 
-                        const transferred = await this.transferLeadershipAndConfirm(player.steamId);
-                        if (!transferred) {
-                            return Client.client.intlGet(this.guildId, 'somethingWrongWithConnection');
+                        if (this.team.leaderSteamId === this.playerId) {
+                            await this.team.changeLeadership(player.steamId);
+                        }
+                        else {
+                            this.leaderRustPlusInstance.promoteToLeaderAsync(player.steamId);
                         }
 
                         return Client.client.intlGet(this.guildId, 'leaderTransferred', {
@@ -2743,246 +2561,7 @@ class RustPlus extends RustPlusLib {
         return string !== '' ? `${string.slice(0, -2)}.` : null;
     }
 
-    getCommandCams(command) {
-        const prefix = this.generalSettings.prefix;
-        const commandCams = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxCams')}`;
-        const commandCamsEn = `${prefix}${Client.client.intlGet('en', 'commandSyntaxCams')}`;
-
-        const instance = Client.client.getInstance(this.guildId);
-        const server = instance.serverList[this.serverId];
-        if (!server) return null;
-        if (!Array.isArray(server.cameraCodes)) server.cameraCodes = [];
-
-        const lower = command.toLowerCase();
-        const matchesExact = (syntax) => lower === syntax.toLowerCase();
-        const startsWithSyntax = (syntax) => lower.startsWith(`${syntax.toLowerCase()} `);
-
-        const listResponse = () => {
-            if (server.cameraCodes.length === 0) {
-                return Client.client.intlGet(this.guildId, 'cameraCodesEmpty');
-            }
-
-            const codes = [...server.cameraCodes].sort();
-            return Client.client.intlGet(this.guildId, 'cameraCodesList', {
-                codes: codes.join(', ')
-            });
-        };
-
-        if (matchesExact(commandCams) || matchesExact(commandCamsEn)) {
-            return listResponse();
-        }
-
-        const activeSyntax = startsWithSyntax(commandCams) ? commandCams :
-            (startsWithSyntax(commandCamsEn) ? commandCamsEn : null);
-
-        if (!activeSyntax) return null;
-
-        const args = command.slice(activeSyntax.length).trim();
-        if (!args) return listResponse();
-
-        const [actionRaw, ...rest] = args.split(/\s+/);
-        const action = (actionRaw || '').toLowerCase();
-        const code = rest.join(' ').trim();
-
-        if (!code) {
-            return Client.client.intlGet(this.guildId, 'cameraCodeMissing');
-        }
-
-        const codeNormalized = code.toUpperCase();
-
-        if (action === 'add') {
-            if (server.cameraCodes.includes(codeNormalized)) {
-                return Client.client.intlGet(this.guildId, 'cameraCodeExists', { code: codeNormalized });
-            }
-
-            server.cameraCodes.push(codeNormalized);
-            Client.client.setInstance(this.guildId, instance);
-            return Client.client.intlGet(this.guildId, 'cameraCodeAdded', { code: codeNormalized });
-        }
-
-        if (['remove', 'rm', 'delete', 'del'].includes(action)) {
-            if (!server.cameraCodes.includes(codeNormalized)) {
-                return Client.client.intlGet(this.guildId, 'cameraCodeNotFound', { code: codeNormalized });
-            }
-
-            server.cameraCodes = server.cameraCodes.filter(c => c !== codeNormalized);
-            Client.client.setInstance(this.guildId, instance);
-            return Client.client.intlGet(this.guildId, 'cameraCodeRemoved', { code: codeNormalized });
-        }
-
-        return listResponse();
-    }
-
-    getCommandSamloc(command) {
-        const prefix = this.generalSettings.prefix;
-        const commandSamloc = `${prefix}samloc`;
-
-        const instance = Client.client.getInstance(this.guildId);
-        const server = instance.serverList[this.serverId];
-        if (!server) return null;
-        if (!Array.isArray(server.samLocations)) server.samLocations = [];
-
-        const lower = command.toLowerCase();
-        const matchesExact = (syntax) => lower === syntax.toLowerCase();
-        const startsWithSyntax = (syntax) => lower.startsWith(`${syntax.toLowerCase()} `);
-
-        const listResponse = () => {
-            if (server.samLocations.length === 0) {
-                return 'No saved SAM locations';
-            }
-
-            const locations = [...server.samLocations].sort();
-            return `Known SAM Locations: ${locations.join(', ')}`;
-        };
-
-        if (matchesExact(commandSamloc)) {
-            return listResponse();
-        }
-
-        if (!startsWithSyntax(commandSamloc)) {
-            return null;
-        }
-
-        const args = command.slice(commandSamloc.length).trim();
-        if (!args) return listResponse();
-
-        const [actionRaw, ...rest] = args.split(/\s+/);
-        const action = (actionRaw || '').toLowerCase();
-        const location = rest.join(' ').trim();
-
-        if (!location) {
-            return 'Location name required';
-        }
-
-        const locationNormalized = location.toUpperCase();
-
-        if (action === 'add') {
-            if (server.samLocations.includes(locationNormalized)) {
-                return `${locationNormalized} is already in the SAM locations list`;
-            }
-
-            server.samLocations.push(locationNormalized);
-            Client.client.setInstance(this.guildId, instance);
-            return `${locationNormalized} added to SAM locations`;
-        }
-
-        if (['remove', 'rm', 'delete', 'del'].includes(action)) {
-            if (!server.samLocations.includes(locationNormalized)) {
-                return `${locationNormalized} not found in SAM locations`;
-            }
-
-            server.samLocations = server.samLocations.filter(loc => loc !== locationNormalized);
-            Client.client.setInstance(this.guildId, instance);
-            return `${locationNormalized} removed from SAM locations`;
-        }
-
-        return listResponse();
-    }
-
-    getCommandCode(command) {
-        const prefix = this.generalSettings.prefix;
-        const commandCode = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxCode')}`;
-        const commandCodeEn = `${prefix}${Client.client.intlGet('en', 'commandSyntaxCode')}`;
-        const commandCodes = `${prefix}codes`;
-
-        const instance = Client.client.getInstance(this.guildId);
-        if (!instance.baseCodes) {
-            instance.baseCodes = { main: null, secondary: null };
-            Client.client.setInstance(this.guildId, instance);
-        }
-
-        if (!instance.generalSettings.codeCommandEnabled) {
-            return Client.client.intlGet(this.guildId, 'codeCommandDisabled');
-        }
-
-        const lower = command.toLowerCase();
-        const matchesExact = (syntax) => lower === syntax.toLowerCase();
-        const startsWithSyntax = (syntax) => lower.startsWith(`${syntax.toLowerCase()} `);
-
-        const showResponse = () => {
-            const mainCode = instance.baseCodes.main || Client.client.intlGet(this.guildId, 'notSet');
-            const secondaryCode = instance.baseCodes.secondary || Client.client.intlGet(this.guildId, 'notSet');
-            return `Main: ${mainCode}, Secondary: ${secondaryCode}`;
-        };
-
-        if (matchesExact(commandCode) || matchesExact(commandCodeEn) || matchesExact(commandCodes)) {
-            return showResponse();
-        }
-
-        const activeSyntax = startsWithSyntax(commandCode) ? commandCode :
-            (startsWithSyntax(commandCodeEn) ? commandCodeEn :
-                (startsWithSyntax(commandCodes) ? commandCodes : null));
-
-        if (!activeSyntax) return null;
-
-        const args = command.slice(activeSyntax.length).trim();
-        if (!args) return showResponse();
-
-        const [actionRaw, ...rest] = args.split(/\s+/);
-        const action = (actionRaw || '').toLowerCase();
-        const code = rest.join(' ').trim();
-
-        if (!code) {
-            return Client.client.intlGet(this.guildId, 'baseCodeMissing');
-        }
-
-        if (action === 'add') {
-            if (!instance.baseCodes.main) {
-                instance.baseCodes.main = code;
-                Client.client.setInstance(this.guildId, instance);
-
-                // Update information channel
-                DiscordMessages.sendUpdateServerInformationMessage(this);
-
-                return Client.client.intlGet(this.guildId, 'baseCodeMainAdded', { code: code });
-            }
-            else if (!instance.baseCodes.secondary) {
-                instance.baseCodes.secondary = code;
-                Client.client.setInstance(this.guildId, instance);
-
-                // Update information channel
-                DiscordMessages.sendUpdateServerInformationMessage(this);
-
-                return Client.client.intlGet(this.guildId, 'baseCodeSecondaryAdded', { code: code });
-            }
-            else {
-                return Client.client.intlGet(this.guildId, 'baseCodeBothExist');
-            }
-        }
-
-        if (['remove', 'rm', 'delete', 'del'].includes(action)) {
-            if (instance.baseCodes.main === code) {
-                instance.baseCodes.main = null;
-                Client.client.setInstance(this.guildId, instance);
-
-                // Update information channel
-                DiscordMessages.sendUpdateServerInformationMessage(this);
-
-                return Client.client.intlGet(this.guildId, 'baseCodeMainRemoved');
-            }
-            else if (instance.baseCodes.secondary === code) {
-                instance.baseCodes.secondary = null;
-                Client.client.setInstance(this.guildId, instance);
-
-                // Update information channel
-                DiscordMessages.sendUpdateServerInformationMessage(this);
-
-                return Client.client.intlGet(this.guildId, 'baseCodeSecondaryRemoved');
-            }
-            else {
-                return Client.client.intlGet(this.guildId, 'baseCodeNotFound', { code: code });
-            }
-        }
-
-        return showResponse();
-    }
-
-
     getCommandTime(isInfoChannel = false) {
-        if (!this.time) {
-            return Client.client.intlGet(this.guildId, 'timeNotAvailableYet');
-        }
-        
         const time = Timer.convertDecimalToHoursMinutes(this.time.time);
         if (isInfoChannel) {
             return [time, this.time.getTimeTillDayOrNight('s')];
@@ -3183,7 +2762,6 @@ class RustPlus extends RustPlusLib {
         const prefix = this.generalSettings.prefix;
         const commandTTS = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxTTS')}`;
         const commandTTSEn = `${prefix}${Client.client.intlGet('en', 'commandSyntaxTTS')}`;
-        const instance = Client.client.getInstance(this.guildId);
 
         let text = null;
         if (command.toLowerCase().startsWith(`${commandTTS}`)) {
@@ -3193,21 +2771,6 @@ class RustPlus extends RustPlusLib {
             text = command.slice(`${commandTTSEn} `.length).trim();
         }
 
-        // Check for on/off toggle
-        if (text.toLowerCase() === 'on') {
-            instance.generalSettings.autoTtsEnabled = true;
-            this.generalSettings.autoTtsEnabled = true;
-            Client.client.setInstance(this.guildId, instance);
-            return Client.client.intlGet(this.guildId, 'autoTtsEnabled');
-        }
-        else if (text.toLowerCase() === 'off') {
-            instance.generalSettings.autoTtsEnabled = false;
-            this.generalSettings.autoTtsEnabled = false;
-            Client.client.setInstance(this.guildId, instance);
-            return Client.client.intlGet(this.guildId, 'autoTtsDisabled');
-        }
-
-        // Regular TTS message
         await DiscordMessages.sendTTSMessage(this.guildId, callerName, text);
         return Client.client.intlGet(this.guildId, 'sentTextToSpeech');
     }
@@ -3322,65 +2885,56 @@ class RustPlus extends RustPlusLib {
     }
 
     getCommandDeepSea(isInfoChannel = false) {
-        const isActive = this.mapMarkers.isDeepSeaActive;
+        const instance = Client.client.getInstance(this.guildId);
+        const deepSeaSettings = instance.serverList[this.serverId];
+        const deepSeaMinWipeCooldown = deepSeaSettings.deepSeaMinWipeCooldownMs;
+        const deepSeaMaxWipeCooldown = deepSeaSettings.deepSeaMaxWipeCooldownMs;
+        const deepSeaWipeDuration = deepSeaSettings.deepSeaWipeDurationMs;
         const wasOnMap = this.mapMarkers.timeSinceDeepSeaWasOnMap;
-        const lastSide = this.mapMarkers.deepSeaLastSide;
-        const despawnMs = wasOnMap ? wasOnMap.getTime() : null;
-        const respawnEarliestMs = despawnMs ? despawnMs + (90 * 60 * 1000) : null;
-        const respawnLatestMs = despawnMs ? despawnMs + (150 * 60 * 1000) : null;
+        const isOnMap = this.mapMarkers.timeSinceDeepSeaSpawned;
+        const deepSeaMarkers = Array.isArray(this.mapMarkers.deepSea) ?
+            this.mapMarkers.deepSea : (Array.isArray(this.mapMarkers.deepSeas) ? this.mapMarkers.deepSeas : []);
+        const deepSea = deepSeaMarkers[0];
         const now = new Date();
 
-        const getSideLabel = (side) => {
-            if (!side) return null;
-            const sideMap = {
-                'north': Client.client.intlGet(this.guildId, 'deepSeaSideNorth'),
-                'south': Client.client.intlGet(this.guildId, 'deepSeaSideSouth'),
-                'east': Client.client.intlGet(this.guildId, 'deepSeaSideEast'),
-                'west': Client.client.intlGet(this.guildId, 'deepSeaSideWest')
-            };
-            return sideMap[side] || side;
-        };
-
-        // Currently active
-        if (isActive) {
-            const sideLabel = getSideLabel(this.mapMarkers.deepSeaLastSide);
+        if (deepSea && isOnMap !== null) {
+            const secondsLeft = Math.max(0, (deepSeaWipeDuration - (now - isOnMap)) / 1000);
             if (isInfoChannel) {
-                return Client.client.intlGet(this.guildId, 'deepSeaActiveShort', {
-                    side: sideLabel
+                return Client.client.intlGet(this.guildId, 'activeFor', {
+                    time: Timer.secondsToFullScale(secondsLeft, 's')
                 });
             }
-            return Client.client.intlGet(this.guildId, 'deepSeaActiveOnSide', {
-                side: sideLabel
+
+            return Client.client.intlGet(this.guildId, 'timeDeepSeaIsActiveFor', {
+                time: Timer.secondsToFullScale(secondsLeft)
             });
         }
 
-        // Not seen yet or reset
-        if (!wasOnMap || !despawnMs) {
-            return Client.client.intlGet(this.guildId, 'deepSeaNotCurrentlyOnMap');
+        if (wasOnMap === null) {
+            return isInfoChannel ? Client.client.intlGet(this.guildId, 'notActive') :
+                Client.client.intlGet(this.guildId, 'deepSeaNotCurrentlyOnMap');
         }
 
-        // Despawned, showing respawn window
-        const sideLabel = getSideLabel(lastSide);
-        const timeSince = now - wasOnMap;
-        const timeSinceSeconds = Math.floor(timeSince / 1000);
-        const timeSinceStr = Timer.secondsToFullScale(timeSinceSeconds);
-
-        const earliestEta = Math.max(0, respawnEarliestMs - now);
-        const latestEta = Math.max(0, respawnLatestMs - now);
-        const earliestStr = Timer.secondsToFullScale(Math.ceil(earliestEta / 1000), 's');
-        const latestStr = Timer.secondsToFullScale(Math.ceil(latestEta / 1000), 's');
-
+        const secondsSince = (now - wasOnMap) / 1000;
         if (isInfoChannel) {
-            return Client.client.intlGet(this.guildId, 'deepSeaLastSeenShort', {
-                side: sideLabel || 'Unknown',
-                time: timeSinceStr
+            return Client.client.intlGet(this.guildId, 'timeSinceLast', {
+                time: Timer.secondsToFullScale(secondsSince, 's')
             });
         }
 
-        return Client.client.intlGet(this.guildId, 'deepSeaRespawnWindow', {
-            side: sideLabel || 'Unknown',
-            earliest: earliestStr,
-            latest: latestStr
+        const respawnMinSeconds = Math.max(0, (deepSeaMinWipeCooldown - (now - wasOnMap)) / 1000);
+        const respawnMaxSeconds = Math.max(0, (deepSeaMaxWipeCooldown - (now - wasOnMap)) / 1000);
+        if (respawnMinSeconds === 0) {
+            return Client.client.intlGet(this.guildId, 'deepSeaCanRespawnNow', {
+                time: Timer.secondsToFullScale(secondsSince),
+                respawnMax: Timer.secondsToFullScale(respawnMaxSeconds, 's')
+            });
+        }
+
+        return Client.client.intlGet(this.guildId, 'timeSinceDeepSeaWasOnMap', {
+            time: Timer.secondsToFullScale(secondsSince),
+            respawnMin: Timer.secondsToFullScale(respawnMinSeconds, 's'),
+            respawnMax: Timer.secondsToFullScale(respawnMaxSeconds, 's')
         });
     }
 }

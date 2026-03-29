@@ -32,10 +32,9 @@ const InstanceUtils = require('../util/instanceUtils.js');
 const Map = require('../util/map.js');
 const Scrape = require('../util/scrape.js');
 
-module.exports = async (client, guild, hosterSteamId = null, label = 'primary') => {
+module.exports = async (client, guild) => {
     const credentials = InstanceUtils.readCredentialsFile(guild.id);
-    const hoster = hosterSteamId !== null ? hosterSteamId : credentials.hoster;
-    const isSecondary = label === 'secondary';
+    const hoster = credentials.hoster;
 
     if (Object.keys(credentials).length === 1) {
         client.log(client.intlGet(null, 'warningCap'),
@@ -49,10 +48,8 @@ module.exports = async (client, guild, hosterSteamId = null, label = 'primary') 
         return;
     }
 
-    const targetListeners = isSecondary ? client.fcmListenersSecondary : client.fcmListeners;
-
     /* Destroy previous instance of fcm listener */
-    if (targetListeners[guild.id]) targetListeners[guild.id].destroy();
+    if (client.fcmListeners[guild.id]) client.fcmListeners[guild.id].destroy();
     if (client.fcmListenersLite[guild.id][hoster]) {
         client.fcmListenersLite[guild.id][hoster].destroy();
         delete client.fcmListenersLite[guild.id][hoster];
@@ -67,8 +64,8 @@ module.exports = async (client, guild, hosterSteamId = null, label = 'primary') 
 
     const androidId = credentials[hoster].gcm.android_id;
     const securityToken = credentials[hoster].gcm.security_token;
-    targetListeners[guild.id] = new PushReceiverClient(androidId, securityToken, [])
-    targetListeners[guild.id].on('ON_DATA_RECEIVED', (data) => {
+    client.fcmListeners[guild.id] = new PushReceiverClient(androidId, securityToken, [])
+    client.fcmListeners[guild.id].on('ON_DATA_RECEIVED', (data) => {
         const appData = data.appData;
 
         if (!appData) {
@@ -84,9 +81,6 @@ module.exports = async (client, guild, hosterSteamId = null, label = 'primary') 
             client.log('FCM Host', `GuildID: ${guild.id}, SteamID: ${hoster}, channelId could not be found.`)
             return;
         }
-
-        // Host2 (secondary) should not drive automation except team presence and device pairing.
-        if (isSecondary && !['team', 'pairing'].includes(channelId)) return;
 
         const bodyCheck = appData.find(item => item.key === 'body');
 
@@ -214,7 +208,7 @@ module.exports = async (client, guild, hosterSteamId = null, label = 'primary') 
         }
     });
 
-    targetListeners[guild.id].connect();
+    client.fcmListeners[guild.id].connect();
 };
 
 function isValidUrl(url) {
@@ -226,12 +220,6 @@ async function pairingServer(client, guild, title, message, body) {
     const instance = client.getInstance(guild.id);
     const serverId = `${body.ip}-${body.port}`;
     const server = instance.serverList[serverId];
-
-    const credentials = InstanceUtils.readCredentialsFile(guild.id);
-    const primaryHoster = credentials.hoster;
-    const secondaryHoster = credentials.hoster2;
-    const isPrimaryHoster = `${body.playerId}` === `${primaryHoster}`;
-    const isSecondaryHoster = `${body.playerId}` === `${secondaryHoster}`;
 
     let messageObj = undefined;
     if (server) messageObj = await DiscordTools.getMessageById(guild.id, instance.channelId.servers, server.messageId);
@@ -246,18 +234,12 @@ async function pairingServer(client, guild, title, message, body) {
         }
     }
 
-    // Never let non-primary host pairing overwrite the primary connection credentials.
-    const nextSteamId = isPrimaryHoster ? body.playerId : (server ? server.steamId : body.playerId);
-    const nextPlayerToken = isPrimaryHoster ? body.playerToken : (server ? server.playerToken : body.playerToken);
-
-
-
     instance.serverList[serverId] = {
         title: title,
         serverIp: body.ip,
         appPort: body.port,
-        steamId: nextSteamId,
-        playerToken: nextPlayerToken,
+        steamId: body.playerId,
+        playerToken: body.playerToken,
         description: body.desc.replace(/\\n/g, '\n').replace(/\\t/g, '\t'),
         img: isValidUrl(body.img) ? body.img.replace(/ /g, '%20') : Constants.DEFAULT_SERVER_IMG,
         url: isValidUrl(body.url) ? body.url.replace(/ /g, '%20') : Constants.DEFAULT_SERVER_URL,
@@ -274,12 +256,11 @@ async function pairingServer(client, guild, title, message, body) {
         cargoShipEgressTimeMs: server ? server.cargoShipEgressTimeMs : Constants.DEFAULT_CARGO_SHIP_EGRESS_TIME_MS,
         oilRigLockedCrateUnlockTimeMs: server ? server.oilRigLockedCrateUnlockTimeMs :
             Constants.DEFAULT_OIL_RIG_LOCKED_CRATE_UNLOCK_TIME_MS,
-        deepSeaWipeCooldownMs: server ? server.deepSeaWipeCooldownMs : Constants.DEFAULT_DEEP_SEA_WIPE_COOLDOWN_MS,
+        deepSeaMinWipeCooldownMs: server ? server.deepSeaMinWipeCooldownMs : Constants.DEFAULT_DEEP_SEA_MIN_WIPE_COOLDOWN_MS,
+        deepSeaMaxWipeCooldownMs: server ? server.deepSeaMaxWipeCooldownMs : Constants.DEFAULT_DEEP_SEA_MAX_WIPE_COOLDOWN_MS,
         deepSeaWipeDurationMs: server ? server.deepSeaWipeDurationMs : Constants.DEFAULT_DEEP_SEA_WIPE_DURATION_MS,
         timeTillDay: server ? server.timeTillDay : null,
-        timeTillNight: server ? server.timeTillNight : null,
-        lastMapSeed: server ? server.lastMapSeed : null,
-        playerTimestamps: server ? server.playerTimestamps : {}
+        timeTillNight: server ? server.timeTillNight : null
     };
 
     if (!instance.serverListLite.hasOwnProperty(serverId)) instance.serverListLite[serverId] = new Object();
@@ -293,47 +274,6 @@ async function pairingServer(client, guild, title, message, body) {
     client.setInstance(guild.id, instance);
 
     await DiscordMessages.sendServerMessage(guild.id, serverId, null);
-
-    const rustplusSecondary = client.rustplusSecondaryInstances[guild.id];
-    const rustplusPrimary = client.rustplusInstances[guild.id];
-    const liteEntry = instance.serverListLite[serverId][body.playerId];
-
-    if (!instance.activeServer) {
-        instance.activeServer = serverId;
-        client.setInstance(guild.id, instance);
-    }
-
-    if (isSecondaryHoster && !rustplusSecondary && instance.activeServer === serverId && liteEntry) {
-        if (client.rustplusSecondaryReconnectTimers[guild.id]) {
-            clearTimeout(client.rustplusSecondaryReconnectTimers[guild.id]);
-            client.rustplusSecondaryReconnectTimers[guild.id] = null;
-        }
-        client.rustplusSecondaryReconnecting[guild.id] = false;
-        client.createRustplusInstance(
-            guild.id,
-            liteEntry.serverIp,
-            liteEntry.appPort,
-            liteEntry.steamId,
-            liteEntry.playerToken,
-            'secondary'
-        );
-    }
-
-    if (isPrimaryHoster && !rustplusPrimary && instance.activeServer === serverId && liteEntry) {
-        if (client.rustplusReconnectTimers[guild.id]) {
-            clearTimeout(client.rustplusReconnectTimers[guild.id]);
-            client.rustplusReconnectTimers[guild.id] = null;
-        }
-        client.rustplusReconnecting[guild.id] = false;
-        client.createRustplusInstance(
-            guild.id,
-            liteEntry.serverIp,
-            liteEntry.appPort,
-            liteEntry.steamId,
-            liteEntry.playerToken,
-            'primary'
-        );
-    }
 }
 
 async function pairingEntitySwitch(client, guild, title, message, body) {
@@ -440,10 +380,6 @@ async function pairingEntityStorageMonitor(client, guild, title, message, body) 
     if (!instance.serverList.hasOwnProperty(serverId)) return;
     const storageMonitors = instance.serverList[serverId].storageMonitors;
 
-    // Only accept storage monitor pairing from primary hoster.
-    const credentials = InstanceUtils.readCredentialsFile(guild.id);
-    if (`${body.playerId}` !== `${credentials.hoster}`) return;
-
     const entityExist = instance.serverList[serverId].storageMonitors.hasOwnProperty(body.entityId);
     instance.serverList[serverId].storageMonitors[body.entityId] = {
         name: entityExist ? storageMonitors[body.entityId].name : client.intlGet(guild.id, 'storageMonitor'),
@@ -479,12 +415,10 @@ async function pairingEntityStorageMonitor(client, guild, title, message, body) 
 
         if (instance.serverList[serverId].storageMonitors[body.entityId].reachable) {
             if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_TOOL_CUPBOARD_CAPACITY) {
-                const monitor = instance.serverList[serverId].storageMonitors[body.entityId];
-                monitor.type = 'toolCupboard';
-                monitor.image = 'tool_cupboard.png';
-
+                instance.serverList[serverId].storageMonitors[body.entityId].type = 'toolCupboard';
+                instance.serverList[serverId].storageMonitors[body.entityId].image = 'tool_cupboard.png';
                 if (info.entityInfo.payload.protectionExpiry === 0) {
-                    monitor.decaying = true;
+                    instance.serverList[serverId].storageMonitors[body.entityId].decaying = true;
                 }
             }
             else if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_VENDING_MACHINE_CAPACITY) {
@@ -560,10 +494,6 @@ async function alarmRaidAlarm(client, guild, title, message, body) {
         rustplus.sendInGameMessage(`${title}: ${message}`);
     }
 
-    if (client.webServer) {
-        client.webServer.broadcastNotification(guild.id, 'raid', `${title}: ${message}`);
-    }
-
     client.log(client.intlGet(null, 'infoCap'), `${title} ${message}`);
 }
 
@@ -580,10 +510,6 @@ async function playerDeath(client, guild, title, message, body, discordUserId) {
 
     if (user) {
         await client.messageSend(user, content);
-    }
-
-    if (client.webServer) {
-        client.webServer.broadcastNotification(guild.id, 'death', `${title}: ${message}`);
     }
 }
 
