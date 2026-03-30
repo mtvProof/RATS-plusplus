@@ -84,7 +84,7 @@ class MapMarkers {
         this.knownVendingMachines = [];
 
         /* Deep Sea timers */
-        this.deepSeaPrepairTimer = null;
+        this.deepSeaPrepareTimer = null;
 
         // Load event times from instance file
         this.loadEventTimes();
@@ -287,11 +287,11 @@ class MapMarkers {
         if (verticalMax > horizontalMax) {
             result = northDistance > southDistance ? 'north' : 'south';
         } else if (horizontalMax > verticalMax) {
-            result = eastDistance > westDistance ? 'west' : 'east';
+            result = eastDistance > westDistance ? 'east' : 'west';
         } else if (verticalMax > 0) {
             result = northDistance > southDistance ? 'north' : 'south';
         } else if (horizontalMax > 0) {
-            result = eastDistance > westDistance ? 'west' : 'east';
+            result = eastDistance > westDistance ? 'east' : 'west';
         } else {
             result = null;
         }
@@ -382,7 +382,8 @@ class MapMarkers {
                     if (isPrimary && !this.rustplus.isFirstPoll) {
                         this.rustplus.sendEvent(
                             this.rustplus.notificationSettings.deepSeaDetectedSetting,
-                            this.client.intlGet(this.rustplus.guildId, 'deepSeaDetected', { side: sideLabel }),
+                            this.client.intlGet(this.rustplus.guildId, 'deepSeaDetected',
+                                { side: sideLabel }),
                             'deepsea',
                             Constants.COLOR_DEEP_SEA_DETECTED);
                     }
@@ -400,9 +401,9 @@ class MapMarkers {
                     this.deepSeaRespawnAt = null;
                     this.timeSinceDeepSeaWasOnMap = null;
 
-                    if (this.deepSeaPrepairTimer) {
-                        this.deepSeaPrepairTimer.stop();
-                        this.deepSeaPrepairTimer = null;
+                    if (this.deepSeaPrepareTimer) {
+                        this.deepSeaPrepareTimer.stop();
+                        this.deepSeaPrepareTimer = null;
                     }
 
                     deepSeaSpawnHandled = true;
@@ -469,11 +470,11 @@ class MapMarkers {
         }
 
         if (isPrimary && deepSeaLeftHandled) {
-            this.scheduleDeepSeaPrepair();
+            this.scheduleDeepSeaPrepare();
         }
         else if (isPrimary && !this.deepSeaSpawnedAt && this.deepSea.length === 0 &&
-            this.timeSinceDeepSeaWasOnMap && !this.deepSeaPrepairTimer) {
-            this.scheduleDeepSeaPrepair();
+            this.timeSinceDeepSeaWasOnMap && !this.deepSeaPrepareTimer) {
+            this.scheduleDeepSeaPrepare();
         }
 
         /* VendingMachine markers that still remains. */
@@ -1008,14 +1009,14 @@ class MapMarkers {
         this.crateLargeOilRigLocation = null;
     }
 
-    scheduleDeepSeaPrepair() {
-        if (this.deepSeaPrepairTimer) {
-            this.deepSeaPrepairTimer.stop();
-            this.deepSeaPrepairTimer = null;
+    scheduleDeepSeaPrepare() {
+        if (this.deepSeaPrepareTimer) {
+            this.deepSeaPrepareTimer.stop();
+            this.deepSeaPrepareTimer = null;
         }
 
         const setting = this.rustplus.notificationSettings.deepSeaDetectedSetting;
-        if (!setting || !setting.prepair) return;
+        if (!setting || !setting.prepare) return;
         if (this.deepSeaSpawnedAt || !this.timeSinceDeepSeaWasOnMap) return;
 
         const despawnMs = this.timeSinceDeepSeaWasOnMap.getTime();
@@ -1026,18 +1027,18 @@ class MapMarkers {
         this.deepSeaRespawnAt = new Date(earliestRespawnAtMs);
 
         if (delayMs <= 0) {
-            this.notifyDeepSeaPrepair([]);
+            this.notifyDeepSeaPrepare([]);
             return;
         }
 
-        this.deepSeaPrepairTimer = new Timer.timer(
-            this.notifyDeepSeaPrepair.bind(this),
+        this.deepSeaPrepareTimer = new Timer.timer(
+            this.notifyDeepSeaPrepare.bind(this),
             delayMs);
-        this.deepSeaPrepairTimer.start();
+        this.deepSeaPrepareTimer.start();
     }
 
-    notifyDeepSeaPrepair() {
-        this.deepSeaPrepairTimer = null;
+    notifyDeepSeaPrepare() {
+        this.deepSeaPrepareTimer = null;
 
         if (this.deepSeaSpawnedAt || !this.timeSinceDeepSeaWasOnMap) return;
 
@@ -1046,7 +1047,7 @@ class MapMarkers {
         const earliestEtaMs = earliestRespawnAtMs - Date.now();
 
         let message = null;
-        let nextDelayMs = 10 * 60 * 1000;
+        let nextDelayMs;
 
         if (earliestEtaMs > 0) {
             const etaSeconds = Math.max(0, Math.ceil(earliestEtaMs / 1000));
@@ -1056,19 +1057,19 @@ class MapMarkers {
         }
         else {
             message = this.client.intlGet(this.rustplus.guildId, 'deepSeaExpectedAnyTimeNow');
-            nextDelayMs = 10 * 60 * 1000;
+            nextDelayMs = 5 * 60 * 1000;
         }
 
         this.rustplus.sendEvent(
             this.rustplus.notificationSettings.deepSeaDetectedSetting,
             message,
             'deepsea',
-            Constants.COLOR_DEEP_SEA_PREPAIR);
+            Constants.COLOR_DEEP_SEA_PREPARE);
 
-        this.deepSeaPrepairTimer = new Timer.timer(
-            this.notifyDeepSeaPrepair.bind(this),
+        this.deepSeaPrepareTimer = new Timer.timer(
+            this.notifyDeepSeaPrepare.bind(this),
             nextDelayMs);
-        this.deepSeaPrepairTimer.start();
+        this.deepSeaPrepareTimer.start();
     }
 
     /* Help functions */
@@ -1109,10 +1110,10 @@ class MapMarkers {
             this.crateLargeOilRigTimer.stop();
         }
         this.crateLargeOilRigTimer = null;
-        if (this.deepSeaPrepairTimer) {
-            this.deepSeaPrepairTimer.stop();
+        if (this.deepSeaPrepareTimer) {
+            this.deepSeaPrepareTimer.stop();
         }
-        this.deepSeaPrepairTimer = null;
+        this.deepSeaPrepareTimer = null;
 
         this.timeSinceCargoShipWasOut = null;
         this.timeSinceCH47WasOut = null;

@@ -119,7 +119,7 @@ module.exports = async (client, interaction) => {
         /* To force search of player name via scrape */
         client.battlemetricsIntervalCounter = 0;
     }
-    else if (interaction.customId.startsWith('PrepairModal')) {
+    else if (interaction.customId.startsWith('PrepareModal')) {
         const parts = interaction.customId.split(':');
         if (parts.length < 2) {
             interaction.deferUpdate();
@@ -137,37 +137,37 @@ module.exports = async (client, interaction) => {
             return;
         }
 
-        const prepairRaw = interaction.fields.getTextInputValue('PrepairMinutes');
-        const prepairMinutes = parseInt(prepairRaw);
+        const prepareRaw = interaction.fields.getTextInputValue('PrepareMinutes');
+        const prepareMinutes = parseInt(prepareRaw);
 
-        if (!Number.isNaN(prepairMinutes) && prepairMinutes >= 0) {
-            setting.prepairMinutes = prepairMinutes;
+        if (!Number.isNaN(prepareMinutes) && prepareMinutes >= 0) {
+            setting.prepareMinutes = prepareMinutes;
 
             if (client.rustplusInstances[guildId] &&
                 client.rustplusInstances[guildId].notificationSettings[settingKey]) {
-                client.rustplusInstances[guildId].notificationSettings[settingKey].prepairMinutes = prepairMinutes;
+                client.rustplusInstances[guildId].notificationSettings[settingKey].prepareMinutes = prepareMinutes;
             }
 
             for (const [serverId, server] of Object.entries(instance.serverList)) {
-                server.deepSeaPrepairMinutes = prepairMinutes;
+                server.deepSeaPrepareMinutes = prepareMinutes;
             }
 
             if (client.rustplusInstances[guildId] && client.rustplusInstances[guildId].mapMarkers) {
-                client.rustplusInstances[guildId].mapMarkers.scheduleDeepSeaPrepair();
+                client.rustplusInstances[guildId].mapMarkers.scheduleDeepSeaPrepare();
             }
 
             client.setInstance(guildId, instance);
 
             client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
                 id: `${verifyId}`,
-                value: `${prepairMinutes}`
+                value: `${prepareMinutes}`
             }));
 
             if (channelId && messageId) {
                 try {
                     const channel = await client.channels.fetch(channelId);
                     const message = await channel.messages.fetch(messageId);
-                    const hasPrepair = setting.hasOwnProperty('prepair');
+                    const hasPrepare = setting.hasOwnProperty('prepare');
 
                     const components = [DiscordButtons.getNotificationButtons(
                         guildId,
@@ -175,18 +175,18 @@ module.exports = async (client, interaction) => {
                         setting.discord,
                         setting.inGame,
                         setting.voice,
-                        hasPrepair ? setting.prepair : null,
-                        hasPrepair ? setting.prepairMinutes : null)];
+                        hasPrepare ? setting.prepare : null,
+                        hasPrepare ? setting.prepareMinutes : null)];
 
-                    if (hasPrepair) {
-                        components.push(DiscordButtons.getNotificationPrepairEditButton(
-                            guildId, settingKey, setting.prepairMinutes));
+                    if (hasPrepare) {
+                        components.push(DiscordButtons.getNotificationPrepareEditButton(
+                            guildId, settingKey, setting.prepareMinutes));
                     }
 
                     await message.edit({ components: components });
                 }
                 catch (e) {
-                    client.log(client.intlGet(null, 'errorCap'), `Failed to refresh prepair buttons: ${e}`);
+                    client.log(client.intlGet(null, 'errorCap'), `Failed to refresh prepare buttons: ${e}`);
                 }
             }
         }

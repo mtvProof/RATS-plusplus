@@ -321,7 +321,7 @@ async function setupNotificationSettings(client, guildId, channel) {
 
     for (const setting in instance.notificationSettings) {
         const notification = instance.notificationSettings[setting];
-        const hasPrepair = notification.hasOwnProperty('prepair');
+        const hasPrepare = notification.hasOwnProperty('prepare');
 
         const components = [
             DiscordButtons.getNotificationButtons(
@@ -329,13 +329,13 @@ async function setupNotificationSettings(client, guildId, channel) {
                 notification.discord,
                 notification.inGame,
                 notification.voice,
-                hasPrepair ? notification.prepair : null,
-                hasPrepair ? notification.prepairMinutes : null)
+                hasPrepare ? notification.prepare : null,
+                hasPrepare ? notification.prepareMinutes : null)
         ];
 
-        if (hasPrepair) {
-            components.push(DiscordButtons.getNotificationPrepairEditButton(
-                guildId, setting, notification.prepairMinutes));
+        if (hasPrepare) {
+            components.push(DiscordButtons.getNotificationPrepareEditButton(
+                guildId, setting, notification.prepareMinutes));
         }
 
         let title = client.intlGet(guildId, setting);

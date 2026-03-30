@@ -81,7 +81,9 @@
         "image": "deep_sea_logo.png",
         "discord": true,
         "inGame": false,
-        "voice": true
+        "voice": true,
+        "prepare": true,
+        "prepareMinutes": 30
     },
     "deepSeaLeftMapSetting": {
         "image": "deep_sea_logo.png",

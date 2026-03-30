@@ -805,6 +805,7 @@
     "matchingPlayers": "Matching Players",
     "playerName": "Player Name",
     "deepSea": "Deep Sea",
+    "deepSeaSpawning": "Deep Sea is spawning...",
     "deepSeaDetected": "Deep Sea detected on {side}.",
     "deepSeaDetectedSetting": "When Deep Sea is detected, send a notification.",
     "deepSeaLeftMapSetting": "When Deep Sea leaves the map, send a notification.",

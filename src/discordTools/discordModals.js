@@ -105,9 +105,9 @@ module.exports = {
         return modal;
     },
 
-    getNotificationPrepairModal(guildId, setting, prepairMinutes, messageId = null, channelId = null) {
+    getNotificationPrepareModal(guildId, setting, prepareMinutes, messageId = null, channelId = null) {
         const modalCustomId = [
-            'PrepairModal',
+            'PrepareModal',
             setting,
             messageId || '',
             channelId || ''
@@ -120,9 +120,9 @@ module.exports = {
 
         modal.addComponents(
             new Discord.ActionRowBuilder().addComponents(TextInput.getTextInput({
-                customId: 'PrepairMinutes',
-                label: Client.client.intlGet(guildId, 'deepSeaPrepairMinutesLabel'),
-                value: `${prepairMinutes ?? ''}`,
+                customId: 'PrepareMinutes',
+                label: Client.client.intlGet(guildId, 'deepSeaPrepareMinutesLabel'),
+                value: `${prepareMinutes ?? ''}`,
                 style: Discord.TextInputStyle.Short,
                 required: false,
                 minLength: 0

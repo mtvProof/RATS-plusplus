@@ -166,10 +166,10 @@ module.exports = async (client, interaction) => {
         await client.interactionUpdate(interaction, {
             components: [DiscordButtons.getNotificationButtons(
                 guildId, ids.setting, setting.discord, setting.inGame, setting.voice,
-                setting.hasOwnProperty('prepair') ? setting.prepair : null,
-                setting.hasOwnProperty('prepairMinutes') ? setting.prepairMinutes : null),
-            ...(setting.hasOwnProperty('prepair') ? [DiscordButtons.getNotificationPrepairEditButton(
-                guildId, ids.setting, setting.prepairMinutes)] : [])]
+                setting.hasOwnProperty('prepare') ? setting.prepare : null,
+                setting.hasOwnProperty('prepareMinutes') ? setting.prepareMinutes : null),
+            ...(setting.hasOwnProperty('prepare') ? [DiscordButtons.getNotificationPrepareEditButton(
+                guildId, ids.setting, setting.prepareMinutes)] : [])]
         });
     }
     else if (interaction.customId.startsWith('InGameNotification')) {
@@ -189,10 +189,10 @@ module.exports = async (client, interaction) => {
         await client.interactionUpdate(interaction, {
             components: [DiscordButtons.getNotificationButtons(
                 guildId, ids.setting, setting.discord, setting.inGame, setting.voice,
-                setting.hasOwnProperty('prepair') ? setting.prepair : null,
-                setting.hasOwnProperty('prepairMinutes') ? setting.prepairMinutes : null),
-            ...(setting.hasOwnProperty('prepair') ? [DiscordButtons.getNotificationPrepairEditButton(
-                guildId, ids.setting, setting.prepairMinutes)] : [])]
+                setting.hasOwnProperty('prepare') ? setting.prepare : null,
+                setting.hasOwnProperty('prepareMinutes') ? setting.prepareMinutes : null),
+            ...(setting.hasOwnProperty('prepare') ? [DiscordButtons.getNotificationPrepareEditButton(
+                guildId, ids.setting, setting.prepareMinutes)] : [])]
         });
     }
     else if (interaction.customId.startsWith('VoiceNotification')) {
@@ -212,42 +212,42 @@ module.exports = async (client, interaction) => {
         await client.interactionUpdate(interaction, {
             components: [DiscordButtons.getNotificationButtons(
                 guildId, ids.setting, setting.discord, setting.inGame, setting.voice,
-                setting.hasOwnProperty('prepair') ? setting.prepair : null,
-                setting.hasOwnProperty('prepairMinutes') ? setting.prepairMinutes : null),
-            ...(setting.hasOwnProperty('prepair') ? [DiscordButtons.getNotificationPrepairEditButton(
-                guildId, ids.setting, setting.prepairMinutes)] : [])]
+                setting.hasOwnProperty('prepare') ? setting.prepare : null,
+                setting.hasOwnProperty('prepareMinutes') ? setting.prepareMinutes : null),
+            ...(setting.hasOwnProperty('prepare') ? [DiscordButtons.getNotificationPrepareEditButton(
+                guildId, ids.setting, setting.prepareMinutes)] : [])]
         });
     }
-    else if (interaction.customId.startsWith('PrepairNotification')) {
-        const ids = JSON.parse(interaction.customId.replace('PrepairNotification', ''));
+    else if (interaction.customId.startsWith('PrepareNotification')) {
+        const ids = JSON.parse(interaction.customId.replace('PrepareNotification', ''));
         const setting = instance.notificationSettings[ids.setting];
 
-        if (!setting.hasOwnProperty('prepair')) {
+        if (!setting.hasOwnProperty('prepare')) {
             interaction.deferUpdate();
             return;
         }
 
-        setting.prepair = !setting.prepair;
+        setting.prepare = !setting.prepare;
         client.setInstance(guildId, instance);
 
         if (rustplus && rustplus.notificationSettings[ids.setting]) {
-            rustplus.notificationSettings[ids.setting].prepair = setting.prepair;
+            rustplus.notificationSettings[ids.setting].prepare = setting.prepare;
         }
 
         client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
             id: `${verifyId}`,
-            value: `${setting.prepair}`
+            value: `${setting.prepare}`
         }));
 
         await client.interactionUpdate(interaction, {
             components: [DiscordButtons.getNotificationButtons(
                 guildId, ids.setting, setting.discord, setting.inGame, setting.voice,
-                setting.prepair, setting.prepairMinutes),
-            DiscordButtons.getNotificationPrepairEditButton(guildId, ids.setting, setting.prepairMinutes)]
+                setting.prepare, setting.prepareMinutes),
+            DiscordButtons.getNotificationPrepareEditButton(guildId, ids.setting, setting.prepareMinutes)]
         });
     }
-    else if (interaction.customId.startsWith('PrepairEdit')) {
-        const ids = JSON.parse(interaction.customId.replace('PrepairEdit', ''));
+    else if (interaction.customId.startsWith('PrepareEdit')) {
+        const ids = JSON.parse(interaction.customId.replace('PrepareEdit', ''));
         const setting = instance.notificationSettings[ids.setting];
 
         if (!setting) {
@@ -258,8 +258,8 @@ module.exports = async (client, interaction) => {
         const messageId = interaction.message ? interaction.message.id : null;
         const channelId = interaction.channelId ? interaction.channelId : null;
 
-        await interaction.showModal(DiscordModals.getNotificationPrepairModal(
-            guildId, ids.setting, setting.prepairMinutes, messageId, channelId));
+        await interaction.showModal(DiscordModals.getNotificationPrepareModal(
+            guildId, ids.setting, setting.prepareMinutes, messageId, channelId));
     }
     else if (interaction.customId === 'AllowInGameCommands') {
         instance.generalSettings.inGameCommandsEnabled = !instance.generalSettings.inGameCommandsEnabled;

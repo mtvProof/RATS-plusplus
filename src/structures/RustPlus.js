@@ -3210,15 +3210,25 @@ class RustPlus extends RustPlusLib {
         const deepSeaMaxWipeCooldown = deepSeaSettings.deepSeaMaxWipeCooldownMs;
         const deepSeaWipeDuration = deepSeaSettings.deepSeaWipeDurationMs;
         const wasOnMap = this.mapMarkers.timeSinceDeepSeaWasOnMap;
-        const isOnMap = this.mapMarkers.timeSinceDeepSeaSpawned;
+        const isOnMap = this.mapMarkers.deepSeaSpawnedAt;
         const deepSeaMarkers = Array.isArray(this.mapMarkers.deepSea) ?
             this.mapMarkers.deepSea : (Array.isArray(this.mapMarkers.deepSeas) ? this.mapMarkers.deepSeas : []);
         const deepSea = deepSeaMarkers[0];
         const now = new Date();
 
+        const currentSide = this.mapMarkers.deepSeaLastSide;
+        const currentSideLabel = currentSide
+            ? this.mapMarkers.getDeepSeaSideLabel(currentSide)
+            : null;
+
         if (deepSea && isOnMap !== null) {
             const secondsLeft = Math.max(0, (deepSeaWipeDuration - (now - isOnMap)) / 1000);
             if (isInfoChannel) {
+                if (currentSideLabel) {
+                    return Client.client.intlGet(this.guildId, 'deepSeaActiveShort', {
+                        side: currentSideLabel
+                    });
+                }
                 return Client.client.intlGet(this.guildId, 'activeFor', {
                     time: Timer.secondsToFullScale(secondsLeft, 's')
                 });
@@ -3236,6 +3246,12 @@ class RustPlus extends RustPlusLib {
 
         const secondsSince = (now - wasOnMap) / 1000;
         if (isInfoChannel) {
+            if (currentSideLabel) {
+                return Client.client.intlGet(this.guildId, 'deepSeaLastSeenShort', {
+                    side: currentSideLabel,
+                    time: Timer.secondsToFullScale(secondsSince, 's')
+                });
+            }
             return Client.client.intlGet(this.guildId, 'timeSinceLast', {
                 time: Timer.secondsToFullScale(secondsSince, 's')
             });

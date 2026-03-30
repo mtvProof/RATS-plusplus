@@ -356,7 +356,7 @@ module.exports = {
     },
 
     getNotificationButtons: function (guildId, setting, discordActive, inGameActive, voiceActive,
-        prepairActive = null, prepairMinutes = null) {
+        prepareActive = null, prepareMinutes = null) {
         const identifier = JSON.stringify({ "setting": setting });
         const buttons = [
             module.exports.getButton({
@@ -376,28 +376,28 @@ module.exports = {
             })
         ];
 
-        if (prepairActive !== null) {
-            const prepairLabel = prepairMinutes !== null && prepairMinutes !== undefined ?
-                `${Client.client.intlGet(guildId, 'prepairCap')} (${prepairMinutes})` :
-                Client.client.intlGet(guildId, 'prepairCap');
+        if (prepareActive !== null) {
+            const prepareLabel = prepareMinutes !== null && prepareMinutes !== undefined ?
+                `${Client.client.intlGet(guildId, 'prepareCap')} (${prepareMinutes})` :
+                Client.client.intlGet(guildId, 'prepareCap');
 
             buttons.push(module.exports.getButton({
-                customId: `PrepairNotification${identifier}`,
-                label: prepairLabel,
-                style: prepairActive ? SUCCESS : DANGER
+                customId: `PrepareNotification${identifier}`,
+                label: prepareLabel,
+                style: prepareActive ? SUCCESS : DANGER
             }));
         }
 
         return new Discord.ActionRowBuilder().addComponents(buttons);
     },
 
-    getNotificationPrepairEditButton: function (guildId, setting, _prepairMinutes) {
+    getNotificationPrepareEditButton: function (guildId, setting, _prepareMinutes) {
         const identifier = JSON.stringify({ "setting": setting });
         const label = Client.client.intlGet(guildId, 'editCap');
 
         return new Discord.ActionRowBuilder().addComponents(
             module.exports.getButton({
-                customId: `PrepairEdit${identifier}`,
+                customId: `PrepareEdit${identifier}`,
                 label: label,
                 style: PRIMARY
             }));
