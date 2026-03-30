@@ -59,6 +59,10 @@ module.exports = {
         }
         rustplus.log(client.intlGet(null, 'connectedCap'), client.intlGet(null, 'rustplusOperational'));
 
+        const failureKey = `${guildId}:${rustplus.instanceLabel || 'primary'}`;
+        if (client.rustplusConnectFailures) client.rustplusConnectFailures[failureKey] = 0;
+        if (client.rustplusLastConnectError) client.rustplusLastConnectError[failureKey] = null;
+
         const info = await rustplus.getInfoAsync();
         if (await rustplus.isResponseValid(info)) rustplus.info = new Info(info.info)
 

@@ -186,6 +186,10 @@ module.exports = {
             commandLowerCase.startsWith(`${prefix}codes `)) {
             rustplus.sendInGameMessage(rustplus.getCommandCode(command));
         }
+        else if (commandLowerCase === `${prefix}tracker` ||
+            commandLowerCase.startsWith(`${prefix}tracker `)) {
+            rustplus.sendInGameMessage(rustplus.getCommandTracker(command));
+        }
         else if (commandLowerCase === `${prefix}${client.intlGet('en', 'commandSyntaxTeam')}` ||
             commandLowerCase === `${prefix}${client.intlGet(guildId, 'commandSyntaxTeam')}`) {
             rustplus.sendInGameMessage(rustplus.getCommandTeam());

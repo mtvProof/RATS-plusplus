@@ -290,6 +290,7 @@ async function pairingEntityStorageMonitor(client, guild, title, message, body) 
         id: entityExist ? storageMonitors[body.entityId].id : body.entityId,
         type: entityExist ? storageMonitors[body.entityId].type : null,
         decaying: entityExist ? storageMonitors[body.entityId].decaying : false,
+        decayingLastNotification: entityExist ? storageMonitors[body.entityId].decayingLastNotification : null,
         upkeep: entityExist ? storageMonitors[body.entityId].upkeep : null,
         everyone: entityExist ? storageMonitors[body.entityId].everyone : false,
         inGame: entityExist ? storageMonitors[body.entityId].inGame : true,

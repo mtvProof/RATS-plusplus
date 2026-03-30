@@ -22,9 +22,20 @@ const DiscordMessages = require('../discordTools/discordMessages.js');
 
 const Config = require('../../config');
 
+function computeReconnectDelayMs(failures) {
+    const baseDelay = Number(Config.general.reconnectIntervalMs) || 15000;
+    const safeFailures = Math.max(0, Number(failures || 0));
+
+    const maxDelay = 5 * 60 * 1000;
+    const multiplier = Math.pow(2, Math.min(safeFailures, 6));
+    return Math.min(baseDelay * multiplier, maxDelay);
+}
+
 module.exports = {
     name: 'disconnected',
     async execute(rustplus, client) {
+        rustplus.isOperational = false;
+
         if (!rustplus.isServerAvailable() && !rustplus.isDeleted) {
             rustplus.deleteThisRustplusInstance();
         }
@@ -59,6 +70,12 @@ module.exports = {
 
         /* Was the disconnection unexpected? */
         if (client.activeRustplusInstances[guildId]) {
+            const failureKey = `${guildId}:${rustplus.instanceLabel || 'primary'}`;
+            const failures = client.rustplusConnectFailures && client.rustplusConnectFailures[failureKey]
+                ? client.rustplusConnectFailures[failureKey]
+                : 0;
+            const reconnectDelayMs = computeReconnectDelayMs(failures);
+
             if (!client.rustplusReconnecting[guildId]) {
                 await DiscordMessages.sendServerChangeStateMessage(guildId, serverId, 1);
                 await DiscordMessages.sendServerMessage(guildId, serverId, 2);
@@ -77,7 +94,7 @@ module.exports = {
 
             client.rustplusReconnectTimers[guildId] = setTimeout(
                 client.createRustplusInstance.bind(client),
-                Config.general.reconnectIntervalMs,
+                reconnectDelayMs,
                 guildId,
                 rustplus.server,
                 rustplus.port,

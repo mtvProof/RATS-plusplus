@@ -974,6 +974,292 @@ module.exports = {
         return embed;
     },
 
+    getUpdateToolCupboardUpkeepInformationEmbed: function (rustplus) {
+        const guildId = rustplus.guildId;
+        const instance = Client.client.getInstance(guildId);
+        const serverId = rustplus.serverId;
+
+        const title = Client.client.intlGet(guildId, 'toolCupboardUpkeeps');
+
+        let totalCharacters = title.length + instance.serverList[serverId].title.length;
+        let fieldCharacters = 0;
+        let fieldIndex = 0;
+        let toolCupboardStr = [''];
+
+        // Get all storage monitors that are tool cupboards
+        const toolCupboards = [];
+        if (instance.serverList[serverId].storageMonitors) {
+            for (const entityId in instance.serverList[serverId].storageMonitors) {
+                const monitor = instance.serverList[serverId].storageMonitors[entityId];
+
+                // Only include reachable tool cupboards
+                if (monitor.type === 'toolCupboard' && monitor.reachable) {
+                    toolCupboards.push({
+                        entityId: entityId,
+                        name: monitor.name,
+                        monitor: monitor,
+                        expiry: rustplus.storageMonitors[entityId]?.expiry || 0
+                    });
+                }
+            }
+        }
+
+        // Sort by expiry time (ascending - lowest first)
+        toolCupboards.sort((a, b) => a.expiry - b.expiry);
+
+        // Build the list
+        for (const cupboard of toolCupboards) {
+            const expiry = cupboard.expiry;
+            const currentTime = Math.floor(Date.now() / 1000);
+            const secondsUntilDecay = expiry - currentTime;
+
+            // Calculate days, hours and minutes
+            const days = Math.floor(secondsUntilDecay / 86400);
+            const hours = Math.floor((secondsUntilDecay % 86400) / 3600);
+            const minutes = Math.floor((secondsUntilDecay % 3600) / 60);
+
+            // Determine the status dot: green if > 24 hours, red if < 24 hours
+            const statusDot = secondsUntilDecay > 86400 ? Constants.ONLINE_EMOJI : Constants.OFFLINE_EMOJI;
+
+            // Format the time display
+            let timeStr = '';
+            if (secondsUntilDecay <= 0) {
+                timeStr = 'DECAYED';
+            }
+            else if (days > 0) {
+                timeStr = `${days}d ${hours}h ${minutes}m`;
+            }
+            else if (hours > 0) {
+                timeStr = `${hours}h ${minutes}m`;
+            }
+            else {
+                timeStr = `${minutes}m`;
+            }
+
+            // Create the entry with proper formatting for lists
+            let entry = `${statusDot} ${cupboard.name}: \`${timeStr}\`\n`;
+
+            if (totalCharacters + entry.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
+                break;
+            }
+
+            if (fieldCharacters + entry.length >= Constants.EMBED_MAX_FIELD_VALUE_CHARACTERS) {
+                fieldCharacters = 0;
+                fieldIndex += 1;
+                toolCupboardStr.push('');
+            }
+
+            toolCupboardStr[fieldIndex] += entry;
+            totalCharacters += entry.length;
+            fieldCharacters += entry.length;
+        }
+
+        const embed = module.exports.getEmbed({
+            title: title,
+            color: Constants.COLOR_DEFAULT,
+            thumbnail: 'attachment://tool_cupboard.png',
+            footer: { text: instance.serverList[serverId].title },
+            timestamp: true
+        });
+
+        if (toolCupboards.length === 0) {
+            embed.setDescription(Client.client.intlGet(guildId, 'noToolCupboards'));
+        }
+        else {
+            let fieldCounter = 0;
+            for (const field of toolCupboardStr) {
+                embed.addFields({
+                    name: fieldCounter === 0 ? Client.client.intlGet(guildId, 'upkeepStatus') : '\u200B',
+                    value: field === '' ? '\u200B' : field,
+                    inline: false
+                });
+                fieldCounter += 1;
+            }
+        }
+
+        return embed;
+    },
+
+    getUpdateMarketWatchlistInformationEmbed: function (rustplus) {
+        const guildId = rustplus.guildId;
+        const instance = Client.client.getInstance(guildId);
+
+        const title = Client.client.intlGet(guildId, 'marketWatchlist');
+
+        let totalCharacters = title.length;
+        let watchlistItems = {};
+
+        // Collect all watchlist items (sell orders)
+        for (const itemId of instance.marketSubscriptionList.sell) {
+            const itemName = Client.client.items.getName(itemId);
+            watchlistItems[itemId] = {
+                name: itemName,
+                locations: []
+            };
+        }
+
+        // Find vending machines selling watchlist items
+        if (rustplus.mapMarkers.vendingMachines) {
+            for (const vendingMachine of rustplus.mapMarkers.vendingMachines) {
+                if (!vendingMachine.hasOwnProperty('sellOrders')) continue;
+
+                for (const order of vendingMachine.sellOrders) {
+                    if (watchlistItems.hasOwnProperty(order.itemId)) {
+                        // Skip items with 0 quantity in stock
+                        if (order.amountInStock <= 0) continue;
+
+                        // Check if this location is already in the list
+                        const existingLoc = watchlistItems[order.itemId].locations.find(loc =>
+                            loc.location === vendingMachine.location.location &&
+                            loc.currencyId === order.currencyId
+                        );
+
+                        if (!existingLoc) {
+                            watchlistItems[order.itemId].locations.push({
+                                location: vendingMachine.location.location,
+                                itemId: order.itemId,
+                                currencyId: order.currencyId,
+                                price: order.costPerItem,
+                                quantity: order.amountInStock
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        // Build description with all items and their locations
+        let description = '';
+        let hasItems = false;
+
+        for (const [, itemData] of Object.entries(watchlistItems)) {
+            hasItems = true;
+            const itemNameLine = `**${itemData.name}**\n`;
+            description += itemNameLine;
+
+            // If no in-stock locations, show "No Matching Offers"
+            if (itemData.locations.length === 0) {
+                description += `*No Matching Offers*\n\n`;
+            }
+            else {
+                // Sort locations by price (ascending)
+                itemData.locations.sort((a, b) => a.price - b.price);
+
+                for (const location of itemData.locations) {
+                    const currencyName = Client.client.items.getName(location.currencyId);
+                    const locationLine = `  • ${location.location}: ${location.quantity} at \`${location.price}\` ${currencyName} each\n`;
+
+                    if (totalCharacters + description.length + locationLine.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
+                        break;
+                    }
+                    description += locationLine;
+                }
+                description += '\n';
+            }
+
+            if (totalCharacters + description.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
+                break;
+            }
+        }
+
+        const embed = module.exports.getEmbed({
+            title: title,
+            color: Constants.COLOR_DEFAULT,
+            description: hasItems && description.trim().length > 0 ? description.trim() :
+                Client.client.intlGet(guildId, 'noWatchlistItems'),
+            footer: { text: `${Client.client.intlGet(guildId, 'marketWatchlist')} | /market subscribe order:sell name:Item Name` },
+            timestamp: true
+        });
+
+        return embed;
+    },
+
+    getUpdateLootInformationEmbed: function (rustplus) {
+        const guildId = rustplus.guildId;
+        const instance = Client.client.getInstance(guildId);
+        const serverId = rustplus.serverId;
+
+        const title = 'Monitored Loot';
+
+        const categories = {
+            'Bunker': { name: 'Bunker', items: {}, hasMonitors: false },
+            'Components': { name: 'Components', items: {}, hasMonitors: false },
+            'Resources': { name: 'Resources', items: {}, hasMonitors: false },
+            'Boom': { name: 'Boom', items: {}, hasMonitors: false },
+            'Teas': { name: 'Teas', items: {}, hasMonitors: false },
+            'Heli Garage': { name: 'Heli Garage', items: {}, hasMonitors: false },
+            'Factory': { name: 'Factory', items: {}, hasMonitors: false }
+        };
+
+        // Collect all storage monitors and categorize them
+        for (const entityId in instance.serverList[serverId].storageMonitors) {
+            const monitor = instance.serverList[serverId].storageMonitors[entityId];
+            const monitorName = monitor.name.toLowerCase();
+
+            // Determine which category this monitor belongs to
+            let category = null;
+            for (const [key] of Object.entries(categories)) {
+                if (monitorName.startsWith(key.toLowerCase())) {
+                    category = key;
+                    break;
+                }
+            }
+
+            // If a match was found, mark that this category has monitors
+            if (category) {
+                categories[category].hasMonitors = true;
+
+                // Get the storage contents and add to category if available
+                if (rustplus.storageMonitors.hasOwnProperty(entityId)) {
+                    const storage = rustplus.storageMonitors[entityId];
+                    if (storage.items && storage.items.length > 0) {
+                        for (const item of storage.items) {
+                            const itemName = Client.client.items.getName(item.itemId);
+                            if (!categories[category].items.hasOwnProperty(itemName)) {
+                                categories[category].items[itemName] = 0;
+                            }
+                            categories[category].items[itemName] += item.quantity;
+                        }
+                    }
+                }
+            }
+        }
+
+        // Build the description with all categories
+        let description = '';
+
+        for (const [, categoryData] of Object.entries(categories)) {
+            const itemCount = Object.keys(categoryData.items).length;
+
+            if (!categoryData.hasMonitors) {
+                description += `**${categoryData.name}**\n*No Monitors Connected*\n\n`;
+            }
+            else if (itemCount === 0) {
+                description += `**${categoryData.name}**\n*Empty*\n\n`;
+            }
+            else {
+                description += `**${categoryData.name}**\n`;
+
+                // Sort items by name
+                const sortedItems = Object.entries(categoryData.items).sort((a, b) => a[0].localeCompare(b[0]));
+                for (const [itemName, quantity] of sortedItems) {
+                    description += `  • ${itemName}: \`${quantity}\`\n`;
+                }
+                description += '\n';
+            }
+        }
+
+        const embed = module.exports.getEmbed({
+            title: title,
+            color: Constants.COLOR_DEFAULT,
+            description: description.trim(),
+            footer: { text: instance.serverList[serverId].title },
+            timestamp: true
+        });
+
+        return embed;
+    },
+
     getDiscordCommandResponseEmbed: function (rustplus, response) {
         const instance = Client.client.getInstance(rustplus.guildId);
 

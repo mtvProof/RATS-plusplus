@@ -259,6 +259,7 @@ async function updateToolCupboard(rustplus, client, message) {
 
         if (info.entityInfo.payload.protectionExpiry === 0 && server.storageMonitors[entityId].decaying === false) {
             server.storageMonitors[entityId].decaying = true;
+            server.storageMonitors[entityId].decayingLastNotification = Date.now();
 
             await DiscordMessages.sendDecayingNotificationMessage(rustplus.guildId, rustplus.serverId, entityId);
 
@@ -270,6 +271,7 @@ async function updateToolCupboard(rustplus, client, message) {
         }
         else if (info.entityInfo.payload.protectionExpiry !== 0) {
             server.storageMonitors[entityId].decaying = false;
+            server.storageMonitors[entityId].decayingLastNotification = null;
         }
         client.setInstance(rustplus.guildId, instance);
     }

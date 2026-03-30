@@ -67,6 +67,7 @@ class RustPlus extends RustPlusLib {
         this.timers = new Object();                 /* Stores all custom timers that are created. */
         this.markers = new Object();                /* Stores all custom markers that are created. */
         this.storageMonitors = new Object();        /* Contain content information of paired storage monitors. */
+        this.storageMonitorMessageTimestamps = new Object(); /* Throttle timestamps for storage monitor message edits. */
         this.currentSwitchTimeouts = new Object();  /* Stores timer ids for auto ON/OFF Smart Switch timeouts. */
         this.passedFirstSunriseOrSunset = false;    /* Becomes true when first sunrise/sunset. */
         this.startTimeObject = new Object();        /* Stores in-game time points before first sunrise/sunset. */
@@ -280,17 +281,18 @@ class RustPlus extends RustPlusLib {
     }
 
     async sendEvent(setting, text, event, embed_color, firstPoll = false, image = null) {
-        const img = (image !== null) ? image : setting.image;
+        const effectiveSetting = setting || {};
+        const img = (image !== null) ? image : effectiveSetting.image;
 
         this.updateEvents(event, text);
 
-        if (!firstPoll && setting.discord) {
+        if (!firstPoll && effectiveSetting.discord) {
             await DiscordMessages.sendDiscordEventMessage(this.guildId, this.serverId, text, img, embed_color);
         }
-        if (!firstPoll && setting.inGame) {
+        if (!firstPoll && effectiveSetting.inGame) {
             await this.sendInGameMessage(`${text}`);
         }
-        if (!firstPoll && setting.voice) {
+        if (!firstPoll && effectiveSetting.voice) {
             await DiscordVoice.sendDiscordVoiceMessage(this.guildId, text);
         }
         this.log(Client.client.intlGet(null, 'eventCap'), text);
@@ -2561,6 +2563,319 @@ class RustPlus extends RustPlusLib {
         return string !== '' ? `${string.slice(0, -2)}.` : null;
     }
 
+    getCommandCams(command) {
+        const prefix = this.generalSettings.prefix;
+        const commandCams = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxCams')}`;
+        const commandCamsEn = `${prefix}${Client.client.intlGet('en', 'commandSyntaxCams')}`;
+
+        const instance = Client.client.getInstance(this.guildId);
+        const server = instance.serverList[this.serverId];
+        if (!server) return null;
+        if (!Array.isArray(server.cameraCodes)) server.cameraCodes = [];
+
+        const lower = command.toLowerCase();
+        const matchesExact = (syntax) => lower === syntax.toLowerCase();
+        const startsWithSyntax = (syntax) => lower.startsWith(`${syntax.toLowerCase()} `);
+        const listResponse = () => {
+            if (server.cameraCodes.length === 0) {
+                return Client.client.intlGet(this.guildId, 'cameraCodesEmpty');
+            }
+
+            const codes = [...server.cameraCodes].sort();
+            return Client.client.intlGet(this.guildId, 'cameraCodesList', {
+                codes: codes.join(', ')
+            });
+        };
+
+        if (matchesExact(commandCams) || matchesExact(commandCamsEn)) {
+            return listResponse();
+        }
+
+        const activeSyntax = startsWithSyntax(commandCams) ? commandCams :
+            (startsWithSyntax(commandCamsEn) ? commandCamsEn : null);
+
+        if (!activeSyntax) return null;
+
+        const args = command.slice(activeSyntax.length).trim();
+        if (!args) return listResponse();
+
+        const [actionRaw, ...rest] = args.split(/\s+/);
+        const action = (actionRaw || '').toLowerCase();
+        const code = rest.join(' ').trim();
+
+        if (!code) {
+            return Client.client.intlGet(this.guildId, 'cameraCodeMissing');
+        }
+
+        const codeNormalized = code.toUpperCase();
+
+        if (action === 'add') {
+            if (server.cameraCodes.includes(codeNormalized)) {
+                return Client.client.intlGet(this.guildId, 'cameraCodeExists', {
+                    code: codeNormalized
+                });
+            }
+
+            server.cameraCodes.push(codeNormalized);
+            Client.client.setInstance(this.guildId, instance);
+            return Client.client.intlGet(this.guildId, 'cameraCodeAdded', { code: codeNormalized });
+        }
+
+        if (['remove', 'rm', 'delete', 'del'].includes(action)) {
+            if (!server.cameraCodes.includes(codeNormalized)) {
+                return Client.client.intlGet(this.guildId, 'cameraCodeNotFound', {
+                    code: codeNormalized
+                });
+            }
+
+            server.cameraCodes = server.cameraCodes.filter(c => c !== codeNormalized);
+            Client.client.setInstance(this.guildId, instance);
+            return Client.client.intlGet(this.guildId, 'cameraCodeRemoved', { code: codeNormalized });
+        }
+
+        return listResponse();
+    }
+
+    getCommandSamloc(command) {
+        const prefix = this.generalSettings.prefix;
+        const commandSamloc = `${prefix}samloc`;
+
+        const instance = Client.client.getInstance(this.guildId);
+        const server = instance.serverList[this.serverId];
+        if (!server) return null;
+        if (!Array.isArray(server.samLocations)) server.samLocations = [];
+
+        const lower = command.toLowerCase();
+        const matchesExact = (syntax) => lower === syntax.toLowerCase();
+        const startsWithSyntax = (syntax) => lower.startsWith(`${syntax.toLowerCase()} `);
+        const listResponse = () => {
+            if (server.samLocations.length === 0) {
+                return 'No saved SAM locations';
+            }
+
+            const locations = [...server.samLocations].sort();
+            return `Known SAM Locations: ${locations.join(', ')}`;
+        };
+
+        if (matchesExact(commandSamloc)) {
+            return listResponse();
+        }
+
+        if (!startsWithSyntax(commandSamloc)) {
+            return null;
+        }
+
+        const args = command.slice(commandSamloc.length).trim();
+        if (!args) return listResponse();
+
+        const [actionRaw, ...rest] = args.split(/\s+/);
+        const action = (actionRaw || '').toLowerCase();
+        const location = rest.join(' ').trim();
+
+        if (!location) {
+            return 'Location name required';
+        }
+
+        const locationNormalized = location.toUpperCase();
+
+        if (action === 'add') {
+            if (server.samLocations.includes(locationNormalized)) {
+                return `${locationNormalized} is already in the SAM locations list`;
+            }
+
+            server.samLocations.push(locationNormalized);
+            Client.client.setInstance(this.guildId, instance);
+            return `${locationNormalized} added to SAM locations`;
+        }
+
+        if (['remove', 'rm', 'delete', 'del'].includes(action)) {
+            if (!server.samLocations.includes(locationNormalized)) {
+                return `${locationNormalized} not found in SAM locations`;
+            }
+
+            server.samLocations = server.samLocations.filter(loc => loc !== locationNormalized);
+            Client.client.setInstance(this.guildId, instance);
+            return `${locationNormalized} removed from SAM locations`;
+        }
+
+        return listResponse();
+    }
+
+    getCommandCode(command) {
+        const prefix = this.generalSettings.prefix;
+        const commandCode = `${prefix}${Client.client.intlGet(this.guildId, 'commandSyntaxCode')}`;
+        const commandCodeEn = `${prefix}${Client.client.intlGet('en', 'commandSyntaxCode')}`;
+        const commandCodes = `${prefix}codes`;
+
+        const instance = Client.client.getInstance(this.guildId);
+        if (!instance.baseCodes) {
+            instance.baseCodes = { main: null, secondary: null };
+            Client.client.setInstance(this.guildId, instance);
+        }
+
+        if (!instance.generalSettings.codeCommandEnabled) {
+            return Client.client.intlGet(this.guildId, 'codeCommandDisabled');
+        }
+
+        const lower = command.toLowerCase();
+        const matchesExact = (syntax) => lower === syntax.toLowerCase();
+        const startsWithSyntax = (syntax) => lower.startsWith(`${syntax.toLowerCase()} `);
+        const showResponse = () => {
+            const mainCode = instance.baseCodes.main || Client.client.intlGet(this.guildId, 'notSet');
+            const secondaryCode = instance.baseCodes.secondary || Client.client.intlGet(this.guildId, 'notSet');
+            return `Main: ${mainCode}, Secondary: ${secondaryCode}`;
+        };
+
+        if (matchesExact(commandCode) || matchesExact(commandCodeEn) || matchesExact(commandCodes)) {
+            return showResponse();
+        }
+
+        const activeSyntax = startsWithSyntax(commandCode) ? commandCode :
+            (startsWithSyntax(commandCodeEn) ? commandCodeEn :
+                (startsWithSyntax(commandCodes) ? commandCodes : null));
+
+        if (!activeSyntax) return null;
+
+        const args = command.slice(activeSyntax.length).trim();
+        if (!args) return showResponse();
+
+        const [actionRaw, ...rest] = args.split(/\s+/);
+        const action = (actionRaw || '').toLowerCase();
+        const code = rest.join(' ').trim();
+
+        if (!code) {
+            return Client.client.intlGet(this.guildId, 'baseCodeMissing');
+        }
+
+        if (action === 'add') {
+            if (!instance.baseCodes.main) {
+                instance.baseCodes.main = code;
+                Client.client.setInstance(this.guildId, instance);
+                DiscordMessages.sendUpdateServerInformationMessage(this);
+                return Client.client.intlGet(this.guildId, 'baseCodeMainAdded', { code: code });
+            }
+            else if (!instance.baseCodes.secondary) {
+                instance.baseCodes.secondary = code;
+                Client.client.setInstance(this.guildId, instance);
+                DiscordMessages.sendUpdateServerInformationMessage(this);
+                return Client.client.intlGet(this.guildId, 'baseCodeSecondaryAdded', { code: code });
+            }
+            else {
+                return Client.client.intlGet(this.guildId, 'baseCodeBothExist');
+            }
+        }
+
+        if (['remove', 'rm', 'delete', 'del'].includes(action)) {
+            if (instance.baseCodes.main === code) {
+                instance.baseCodes.main = null;
+                Client.client.setInstance(this.guildId, instance);
+                DiscordMessages.sendUpdateServerInformationMessage(this);
+                return Client.client.intlGet(this.guildId, 'baseCodeMainRemoved');
+            }
+            else if (instance.baseCodes.secondary === code) {
+                instance.baseCodes.secondary = null;
+                Client.client.setInstance(this.guildId, instance);
+                DiscordMessages.sendUpdateServerInformationMessage(this);
+                return Client.client.intlGet(this.guildId, 'baseCodeSecondaryRemoved');
+            }
+            else {
+                return Client.client.intlGet(this.guildId, 'baseCodeNotFound', { code: code });
+            }
+        }
+
+        return showResponse();
+    }
+
+    getCommandTracker(command) {
+        const prefix = this.generalSettings.prefix;
+        const commandTracker = `${prefix}tracker`;
+
+        const instance = Client.client.getInstance(this.guildId);
+        
+        // Get all trackers (some legacy data has mismatched serverId formats)
+        const trackerList = [];
+        for (const [trackerId, tracker] of Object.entries(instance.trackers || {})) {
+            trackerList.push({ id: trackerId, ...tracker });
+        }
+
+        const lower = command.toLowerCase();
+        
+        // If just "!tracker" with no args, list all trackers
+        if (lower === commandTracker) {
+            if (trackerList.length === 0) {
+                return 'No trackers available';
+            }
+
+            const list = trackerList
+                .map(t => `${t.name} (${t.clanTag || 'Unknown'})`)
+                .join(', ');
+            return `Available trackers: ${list}`;
+        }
+
+        // Must start with "!tracker "
+        if (!lower.startsWith(`${commandTracker} `)) {
+            return null;
+        }
+
+        const trackerName = command.slice(commandTracker.length).trim();
+        if (!trackerName) {
+            if (trackerList.length === 0) {
+                return 'No trackers available';
+            }
+
+            const list = trackerList
+                .map(t => `${t.name} (${t.clanTag || 'Unknown'})`)
+                .join(', ');
+            return `Available trackers: ${list}`;
+        }
+
+        const trackerSearch = trackerName.toLowerCase();
+
+        // Find by exact name/tag/id first, then fallback to partial match
+        const tracker = trackerList.find(t => 
+            (t.name && t.name.toLowerCase() === trackerSearch) ||
+            (t.clanTag && t.clanTag.toLowerCase() === trackerSearch) ||
+            (t.id && String(t.id).toLowerCase() === trackerSearch)
+        ) || trackerList.find(t =>
+            (t.name && t.name.toLowerCase().includes(trackerSearch)) ||
+            (t.clanTag && t.clanTag.toLowerCase().includes(trackerSearch))
+        );
+        if (!tracker) {
+            return `Tracker "${trackerName}" not found`;
+        }
+
+        // Count total players
+        const totalPlayers = Array.isArray(tracker.players) ? tracker.players.length : 0;
+        if (totalPlayers === 0) {
+            return `${tracker.name} (${tracker.clanTag || 'Unknown'}) currently has 0/0 online`;
+        }
+
+        // Get BattleMetrics instance to check online status
+        const bmInstance = Client.client.battlemetricsInstances[tracker.battlemetricsId];
+        if (!bmInstance || !bmInstance.lastUpdateSuccessful) {
+            return `${tracker.name} (${tracker.clanTag || 'Unknown'}): Unable to check player status`;
+        }
+
+        // Get online player IDs from BattleMetrics
+        const onlinePlayerIds = bmInstance.getOnlinePlayerIdsOrderedByTime();
+        const onlinePlayerNames = [];
+
+        // Match tracker players with online players
+        for (const player of tracker.players) {
+            if (player.playerId && onlinePlayerIds.includes(player.playerId)) {
+                onlinePlayerNames.push(player.name);
+            }
+        }
+
+        const onlineCount = onlinePlayerNames.length;
+        if (onlineCount === 0) {
+            return `${tracker.name} (${tracker.clanTag || 'Unknown'}) currently has 0/${totalPlayers} online`;
+        }
+
+        const playerList = onlinePlayerNames.join(', ');
+        return `${tracker.name} (${tracker.clanTag || 'Unknown'}) currently has ${onlineCount}/${totalPlayers} online: ${playerList}`;
+    }
+
     getCommandTime(isInfoChannel = false) {
         const time = Timer.convertDecimalToHoursMinutes(this.time.time);
         if (isInfoChannel) {
@@ -2771,7 +3086,11 @@ class RustPlus extends RustPlusLib {
             text = command.slice(`${commandTTSEn} `.length).trim();
         }
 
-        await DiscordMessages.sendTTSMessage(this.guildId, callerName, text);
+        const voiceSuccess = await DiscordMessages.sendTTSMessage(this.guildId, callerName, text);
+        if (!voiceSuccess) {
+            return 'Could not play text-to-speech in Discord voice.';
+        }
+
         return Client.client.intlGet(this.guildId, 'sentTextToSpeech');
     }
 

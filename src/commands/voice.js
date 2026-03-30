@@ -57,7 +57,10 @@ module.exports = {
                         channelId: voiceChannel.id,
                         guildId: interaction.guild.id,
                         adapterCreator: interaction.guild.voiceAdapterCreator,
+                        selfDeaf: false,
+                        selfMute: false,
                     });
+
                     await DiscordMessages.sendVoiceMessage(interaction,
                         client.intlGet(interaction.guildId, 'commandsVoiceBotJoinedVoice'));
                     client.log(client.intlGet(null, 'infoCap'), client.intlGet(interaction.guildId, 'commandsVoiceJoin',

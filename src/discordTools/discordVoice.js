@@ -18,20 +18,40 @@
     https://github.com/alexemanuelol/rustplusplus
 
 */
-const { getVoiceConnection, createAudioPlayer, createAudioResource, StreamType } = require('@discordjs/voice');
+const {
+    getVoiceConnection,
+    createAudioPlayer,
+    createAudioResource,
+    AudioPlayerStatus,
+    StreamType,
+} = require('@discordjs/voice');
+const Prism = require('prism-media');
 const { Readable } = require('stream');
 const Actors = require('../staticFiles/actors.json');
 const Client = require('../../index.ts');
 
+const guildPlayers = new Map();
+
 module.exports = {
     sendDiscordVoiceMessage: async function (guildId, text) {
         const connection = getVoiceConnection(guildId);
-        const voice = await this.getVoice(guildId);
-        const url = `https://cache-a.oddcast.com/tts/genC.php?EID=${voice.EID}&LID=${voice.LID}&VID=${voice.VID}&TXT=${encodeURIComponent(text)}&EXT=mp3`;
+
+        if (!connection) {
+            Client.client.log(Client.client.intlGet(null, 'errorCap'),
+                `TTS: No active voice connection for guild ${guildId}`);
+            return false;
+        }
 
         try {
             const voice = await this.getVoice(guildId);
-            const url = `https://api.streamelements.com/kappa/v2/speech?voice=${voice}&text=${encodeURIComponent(text)}`;
+
+            if (!voice || voice.EID === undefined || voice.LID === undefined || voice.VID === undefined) {
+                Client.client.log(Client.client.intlGet(null, 'errorCap'),
+                    `TTS: Invalid voice actor settings for guild ${guildId}`);
+                return false;
+            }
+
+            const url = `https://cache-a.oddcast.com/tts/genC.php?EID=${voice.EID}&LID=${voice.LID}&VID=${voice.VID}&TXT=${encodeURIComponent(text)}&EXT=mp3`;
 
             const response = await fetch(url);
             if (!response.ok) {
@@ -40,16 +60,49 @@ module.exports = {
                 return false;
             }
 
-            // Convert the response to a Node.js readable stream
+            // Transcode MP3 -> Ogg Opus to avoid requiring native Node Opus modules.
             const arrayBuffer = await response.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            const stream = Readable.from(buffer);
-            
-            const resource = createAudioResource(stream, {
-                inputType: StreamType.Arbitrary,
+            const inputStream = Readable.from(Buffer.from(arrayBuffer));
+            const transcoder = new Prism.FFmpeg({
+                args: [
+                    '-analyzeduration', '0',
+                    '-loglevel', '0',
+                    '-f', 'mp3',
+                    '-i', 'pipe:0',
+                    '-ac', '2',
+                    '-ar', '48000',
+                    '-c:a', 'libopus',
+                    '-f', 'ogg',
+                    'pipe:1',
+                ],
             });
-            const player = createAudioPlayer();
+
+            inputStream.pipe(transcoder);
+
+            const resource = createAudioResource(transcoder, {
+                inputType: StreamType.OggOpus,
+            });
+
+            let player = guildPlayers.get(guildId);
+            if (!player) {
+                player = createAudioPlayer();
+                player.on('error', (error) => {
+                    Client.client.log(Client.client.intlGet(null, 'errorCap'),
+                        `TTS: Audio player error in guild ${guildId}: ${error.message}`);
+                });
+                player.on(AudioPlayerStatus.Idle, () => {
+                    Client.client.log(Client.client.intlGet(null, 'infoCap'),
+                        `TTS: Playback finished in guild ${guildId}`);
+                });
+                guildPlayers.set(guildId, player);
+            }
+
             connection.subscribe(player);
+
+            if (player.state.status !== AudioPlayerStatus.Idle) {
+                player.stop(true);
+            }
+
             player.play(resource);
             
             Client.client.log(Client.client.intlGet(null, 'infoCap'), 

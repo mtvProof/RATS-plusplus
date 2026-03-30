@@ -19,20 +19,49 @@
 */
 
 const DiscordMessages = require('../discordTools/discordMessages.js');
+const Client = require('../../index.ts');
 
 module.exports = {
     handler: async function (rustplus) {
-        if (rustplus.informationIntervalCounter === 0) {
-            await DiscordMessages.sendUpdateServerInformationMessage(rustplus);
-            await DiscordMessages.sendUpdateEventInformationMessage(rustplus);
-            await DiscordMessages.sendUpdateTeamInformationMessage(rustplus);
-        }
+        if (rustplus.isInformationHandlerRunning) return;
+        rustplus.isInformationHandlerRunning = true;
 
-        if (rustplus.informationIntervalCounter === 5) {
-            rustplus.informationIntervalCounter = 0;
-        }
-        else {
-            rustplus.informationIntervalCounter += 1;
+        try {
+            if (rustplus.informationIntervalCounter === 0) {
+                const timeoutMs = 15000;
+                const runWithTimeout = async (name, fn) => {
+                    try {
+                        await Promise.race([
+                            fn(),
+                            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
+                        ]);
+                    } catch (e) {
+                        rustplus.log(Client.client.intlGet(null, 'errorCap'), `${name} failed: ${e}`, 'error');
+                    }
+                };
+
+                await runWithTimeout('sendUpdateServerInformationMessage',
+                    () => DiscordMessages.sendUpdateServerInformationMessage(rustplus));
+                await runWithTimeout('sendUpdateEventInformationMessage',
+                    () => DiscordMessages.sendUpdateEventInformationMessage(rustplus));
+                await runWithTimeout('sendUpdateTeamInformationMessage',
+                    () => DiscordMessages.sendUpdateTeamInformationMessage(rustplus));
+                await runWithTimeout('sendUpdateToolCupboardUpkeepInformationMessage',
+                    () => DiscordMessages.sendUpdateToolCupboardUpkeepInformationMessage(rustplus));
+                await runWithTimeout('sendUpdateMarketWatchlistInformationMessage',
+                    () => DiscordMessages.sendUpdateMarketWatchlistInformationMessage(rustplus));
+                await runWithTimeout('sendUpdateLootInformationMessage',
+                    () => DiscordMessages.sendUpdateLootInformationMessage(rustplus));
+            }
+
+            if (rustplus.informationIntervalCounter === 5) {
+                rustplus.informationIntervalCounter = 0;
+            }
+            else {
+                rustplus.informationIntervalCounter += 1;
+            }
+        } finally {
+            rustplus.isInformationHandlerRunning = false;
         }
     },
 }

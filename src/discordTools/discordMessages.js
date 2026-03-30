@@ -299,6 +299,10 @@ module.exports = {
         // Throttle updates to prevent Discord rate limiting (max 5 edits per 5 seconds per message)
         const rustplus = Client.client.rustplusInstances[guildId];
         if (rustplus && !interaction) {
+            if (!rustplus.storageMonitorMessageTimestamps) {
+                rustplus.storageMonitorMessageTimestamps = {};
+            }
+
             const now = Date.now();
             const lastUpdate = rustplus.storageMonitorMessageTimestamps[entityId] || 0;
             const minInterval = 2000; // 2 seconds minimum between updates
@@ -607,7 +611,7 @@ module.exports = {
         let content;
         if (!voiceSuccess) {
             content = {
-                content: `${message} ${Client.client.intlGet(guildId, 'ttsNotInVoice')}`
+                content: `${message} (${Client.client.intlGet(guildId, 'commandsVoiceNotInVoice')})`
             };
         } else {
             content = {
@@ -616,6 +620,7 @@ module.exports = {
         }
 
         await module.exports.sendMessage(guildId, content, null, instance.channelId.teamchat);
+        return voiceSuccess;
     },
 
     sendUpdateMapInformationMessage: async function (rustplus) {

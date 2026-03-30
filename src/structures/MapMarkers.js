@@ -441,8 +441,12 @@ class MapMarkers {
                 const sideLabel = this.getDeepSeaSideLabel(side);
 
                 if (isPrimary && !deepSeaLeftHandled) {
+                    const deepSeaLeftNotificationSetting =
+                        this.rustplus.notificationSettings.deepSeaLeftMapSetting ||
+                        this.rustplus.notificationSettings.deepSeaLeftSetting;
+
                     this.rustplus.sendEvent(
-                        this.rustplus.notificationSettings.deepSeaLeftSetting,
+                        deepSeaLeftNotificationSetting,
                         this.client.intlGet(this.rustplus.guildId, 'deepSeaLeftMap', { side: sideLabel }),
                         'deepsea',
                         Constants.COLOR_DEEP_SEA_LEFT);

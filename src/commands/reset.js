@@ -168,6 +168,8 @@ module.exports = {
 					/* Ignore */
 				}
 
+				await DiscordTools.clearTextChannel(guild.id, instance.channelId.settings, 1000);
+
 				await require('../discordTools/SetupSettingsMenu')(client, guild, true);
 
 				await PermissionHandler.resetPermissionsAllChannels(client, guild);

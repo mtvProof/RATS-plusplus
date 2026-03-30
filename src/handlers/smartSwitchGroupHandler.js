@@ -27,6 +27,7 @@ module.exports = {
 
     updateSwitchGroupIfContainSwitch: async function (client, guildId, serverId, switchId) {
         const instance = client.getInstance(guildId);
+        if (!instance.serverList[serverId] || !instance.serverList[serverId].switchGroups) return;
 
         for (const [groupId, content] of Object.entries(instance.serverList[serverId].switchGroups)) {
             if (content.switches.includes(`${switchId}`)) {
@@ -53,6 +54,9 @@ module.exports = {
 
     TurnOnOffGroup: async function (client, rustplus, guildId, serverId, groupId, value) {
         const instance = client.getInstance(guildId);
+        if (!instance.serverList[serverId] ||
+            !instance.serverList[serverId].switchGroups ||
+            !instance.serverList[serverId].switchGroups.hasOwnProperty(groupId)) return;
 
         const switches = instance.serverList[serverId].switchGroups[groupId].switches;
 

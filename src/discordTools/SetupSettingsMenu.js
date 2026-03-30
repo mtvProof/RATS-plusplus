@@ -43,7 +43,7 @@ module.exports = async (client, guild, forced = false) => {
     const shouldForce = forced || instance.firstTime || currentVersion < SETTINGS_MENU_VERSION;
 
     if (shouldForce) {
-        await DiscordTools.clearTextChannel(guild.id, instance.channelId.settings, 100);
+        await DiscordTools.clearTextChannel(guild.id, instance.channelId.settings, 1000);
 
         await setupGeneralSettings(client, guild.id, channel);
         await setupNotificationSettings(client, guild.id, channel);
@@ -270,6 +270,19 @@ async function setupGeneralSettings(client, guildId, channel) {
             thumbnail: `attachment://settings_logo.png`
         })],
         components: DiscordButtons.getSubscribeToChangesBattlemetricsButtons(guildId),
+        files: [new Discord.AttachmentBuilder(
+            Path.join(__dirname, '..', 'resources/images/settings_logo.png'))]
+    });
+
+    await client.messageSend(channel, {
+        embeds: [DiscordEmbeds.getEmbed({
+            color: Constants.COLOR_SETTINGS,
+            title: 'Recurring TC Decay Alerts',
+            description: 'When enabled, the bot will re-send a decaying TC alert every 30 minutes until the TC is refilled. When disabled, only one alert is sent.',
+            thumbnail: `attachment://settings_logo.png`
+        })],
+        components: [DiscordButtons.getRecurringDecayAlertsButton(guildId,
+            instance.generalSettings.recurringDecayAlerts)],
         files: [new Discord.AttachmentBuilder(
             Path.join(__dirname, '..', 'resources/images/settings_logo.png'))]
     });

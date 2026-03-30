@@ -561,6 +561,17 @@ module.exports = {
             }));
     },
 
+    getRecurringDecayAlertsButton: function (guildId, enabled) {
+        return new Discord.ActionRowBuilder().addComponents(
+            module.exports.getButton({
+                customId: 'RecurringDecayAlerts',
+                label: enabled ?
+                    Client.client.intlGet(guildId, 'enabledCap') :
+                    Client.client.intlGet(guildId, 'disabledCap'),
+                style: enabled ? SUCCESS : DANGER
+            }));
+    },
+
     getMapWipeNotifyEveryoneButton: function (everyone) {
         return new Discord.ActionRowBuilder().addComponents(
             module.exports.getButton({
