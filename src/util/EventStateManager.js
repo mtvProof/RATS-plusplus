@@ -41,15 +41,21 @@ module.exports = {
             mapMarkers.timeSinceDeepSeaWasOnMap.getTime() : null;
         instance.eventTimers.deepSeaSpawnedAt = mapMarkers.deepSeaSpawnedAt ? 
             mapMarkers.deepSeaSpawnedAt.getTime() : null;
-        instance.eventTimers.deepSeaRespawnAt = mapMarkers.deepSeaRespawnAt;
+            instance.eventTimers.deepSeaRespawnAt = mapMarkers.deepSeaRespawnAt ?
+                mapMarkers.deepSeaRespawnAt.getTime() : null;
         instance.eventTimers.deepSeaLastSpawnAt = mapMarkers.deepSeaLastSpawnAt ? 
             mapMarkers.deepSeaLastSpawnAt.getTime() : null;
-        instance.eventTimers.deepSeaLastSide = mapMarkers.deepSeaLastSide;
         instance.eventTimers.isDeepSeaActive = mapMarkers.isDeepSeaActive;
 
         // Save Cargoship event timers
         instance.eventTimers.timeSinceCargoShipWasOut = mapMarkers.timeSinceCargoShipWasOut ? 
             mapMarkers.timeSinceCargoShipWasOut.getTime() : null;
+
+            // Save CH47 and Traveling Vendor event timers
+            instance.eventTimers.timeSinceCH47WasOut = mapMarkers.timeSinceCH47WasOut ?
+                mapMarkers.timeSinceCH47WasOut.getTime() : null;
+            instance.eventTimers.timeSinceTravelingVendorWasOnMap = mapMarkers.timeSinceTravelingVendorWasOnMap ?
+                mapMarkers.timeSinceTravelingVendorWasOnMap.getTime() : null;
 
         // Save Patrol Helicopter event timers
         instance.eventTimers.timeSincePatrolHelicopterWasOnMap = mapMarkers.timeSincePatrolHelicopterWasOnMap ? 
@@ -85,14 +91,11 @@ module.exports = {
         if (timers.deepSeaSpawnedAt) {
             mapMarkers.deepSeaSpawnedAt = new Date(timers.deepSeaSpawnedAt);
         }
-        if (timers.deepSeaRespawnAt !== undefined && timers.deepSeaRespawnAt !== null) {
-            mapMarkers.deepSeaRespawnAt = timers.deepSeaRespawnAt;
+            if (timers.deepSeaRespawnAt !== undefined && timers.deepSeaRespawnAt !== null) {
+                mapMarkers.deepSeaRespawnAt = new Date(timers.deepSeaRespawnAt);
         }
         if (timers.deepSeaLastSpawnAt) {
             mapMarkers.deepSeaLastSpawnAt = new Date(timers.deepSeaLastSpawnAt);
-        }
-        if (timers.deepSeaLastSide) {
-            mapMarkers.deepSeaLastSide = timers.deepSeaLastSide;
         }
         if (timers.isDeepSeaActive !== undefined && timers.isDeepSeaActive !== null) {
             mapMarkers.isDeepSeaActive = timers.isDeepSeaActive;
@@ -102,6 +105,14 @@ module.exports = {
         if (timers.timeSinceCargoShipWasOut) {
             mapMarkers.timeSinceCargoShipWasOut = new Date(timers.timeSinceCargoShipWasOut);
         }
+
+            // Restore CH47 and Traveling Vendor event timers
+            if (timers.timeSinceCH47WasOut) {
+                mapMarkers.timeSinceCH47WasOut = new Date(timers.timeSinceCH47WasOut);
+            }
+            if (timers.timeSinceTravelingVendorWasOnMap) {
+                mapMarkers.timeSinceTravelingVendorWasOnMap = new Date(timers.timeSinceTravelingVendorWasOnMap);
+            }
 
         // Restore Patrol Helicopter event timers
         if (timers.timeSincePatrolHelicopterWasOnMap) {

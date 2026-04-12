@@ -75,7 +75,6 @@ class MapMarkers {
         /* Event location */
         this.patrolHelicopterDestroyedLocation = null;
         this.deepSeaLastLocation = null;
-        this.deepSeaLastSide = null;
         this.deepSeaSpawnedAt = null;
         this.deepSeaRespawnAt = null;
         this.deepSeaLastSpawnAt = null;
@@ -271,46 +270,6 @@ class MapMarkers {
         return remainingMarkersOfType;
     }
 
-    getDeepSeaSide(x, y, mapSize) {
-        // Determine which side of the map the deep sea is closest to
-        // In RustPlus coordinates: X is horizontal (west-east), Y is vertical (south-north)
-        const northDistance = Math.max(0, y - mapSize);
-        const southDistance = Math.max(0, -y);
-        const eastDistance = Math.max(0, x - mapSize);
-        const westDistance = Math.max(0, -x);
-
-        // Prioritize cardinal directions (north/south) over diagonal edges
-        const verticalMax = Math.max(northDistance, southDistance);
-        const horizontalMax = Math.max(eastDistance, westDistance);
-
-        let result;
-        if (verticalMax > horizontalMax) {
-            result = northDistance > southDistance ? 'north' : 'south';
-        } else if (horizontalMax > verticalMax) {
-            result = eastDistance > westDistance ? 'east' : 'west';
-        } else if (verticalMax > 0) {
-            result = northDistance > southDistance ? 'north' : 'south';
-        } else if (horizontalMax > 0) {
-            result = eastDistance > westDistance ? 'east' : 'west';
-        } else {
-            result = null;
-        }
-
-        return result;
-    }
-
-    getDeepSeaSideLabel(side) {
-        if (!side) return null;
-
-        switch (side) {
-            case 'north': return this.client.intlGet(this.rustplus.guildId, 'deepSeaSideNorth');
-            case 'south': return this.client.intlGet(this.rustplus.guildId, 'deepSeaSideSouth');
-            case 'east': return this.client.intlGet(this.rustplus.guildId, 'deepSeaSideEast');
-            case 'west': return this.client.intlGet(this.rustplus.guildId, 'deepSeaSideWest');
-            default: return null;
-        }
-    }
-
     /* Update event map markers */
 
     updateMapMarkers(mapMarkers) {
@@ -375,21 +334,17 @@ class MapMarkers {
 
             if (isDeepSea) {
                 const now = new Date();
-                const side = this.getDeepSeaSide(marker.x, marker.y, mapSize);
-                const sideLabel = this.getDeepSeaSideLabel(side);
 
                 if (!deepSeaSpawnHandled) {
                     if (isPrimary && !this.rustplus.isFirstPoll) {
                         this.rustplus.sendEvent(
                             this.rustplus.notificationSettings.deepSeaDetectedSetting,
-                            this.client.intlGet(this.rustplus.guildId, 'deepSeaDetected',
-                                { side: sideLabel }),
+                            this.client.intlGet(this.rustplus.guildId, 'deepSeaSpawning'),
                             'deepsea',
                             Constants.COLOR_DEEP_SEA_DETECTED);
                     }
 
                     this.deepSeaLastLocation = pos.string;
-                    this.deepSeaLastSide = side || this.deepSeaLastSide;
                     this.isDeepSeaActive = true;
 
                     // Preserve restored spawn state on first poll after reboot.
@@ -438,9 +393,6 @@ class MapMarkers {
             const isDeepSea = marker.isDeepSea || Map.isOutsideGridSystem(marker.x, marker.y, mapSize);
 
             if (isDeepSea) {
-                const side = this.getDeepSeaSide(marker.x, marker.y, mapSize) || this.deepSeaLastSide;
-                const sideLabel = this.getDeepSeaSideLabel(side);
-
                 if (isPrimary && !deepSeaLeftHandled) {
                     const deepSeaLeftNotificationSetting =
                         this.rustplus.notificationSettings.deepSeaLeftMapSetting ||
@@ -448,13 +400,12 @@ class MapMarkers {
 
                     this.rustplus.sendEvent(
                         deepSeaLeftNotificationSetting,
-                        this.client.intlGet(this.rustplus.guildId, 'deepSeaLeftMap', { side: sideLabel }),
+                        this.client.intlGet(this.rustplus.guildId, 'deepSeaLeftMap'),
                         'deepsea',
                         Constants.COLOR_DEEP_SEA_LEFT);
                 }
 
                 if (!deepSeaLeftHandled) {
-                    this.deepSeaLastSide = side || this.deepSeaLastSide;
                     this.isDeepSeaActive = false;
                     this.timeSinceDeepSeaWasOnMap = new Date();
                     this.deepSeaSpawnedAt = null;
@@ -498,7 +449,6 @@ class MapMarkers {
 
             if (isDeepSea) {
                 this.deepSeaLastLocation = pos.string;
-                this.deepSeaLastSide = this.getDeepSeaSide(marker.x, marker.y, mapSize) || this.deepSeaLastSide;
             }
         }
     }
@@ -1128,7 +1078,6 @@ class MapMarkers {
         this.deepSeaSpawnedAt = null;
         this.deepSeaLastSpawnAt = null;
         this.deepSeaRespawnAt = null;
-        this.deepSeaLastSide = null;
         this.deepSeaLastLocation = null;
         this.isDeepSeaActive = false;
         this.deepSea = [];
@@ -1147,9 +1096,16 @@ class MapMarkers {
 
     loadEventTimes() {
         const Client = require('../../index.ts');
-        // Note: Event times are now loaded via EventStateManager.restoreEventState()
-        // This legacy method is kept for backwards compatibility only.
-        // All event time restoration happens through EventStateManager.
+        const EventStateManager = require('../util/EventStateManager.js');
+        const instance = Client.client.getInstance(this.rustplus.guildId);
+
+        if (!instance) return;
+
+        EventStateManager.restoreEventState(instance, this);
+
+        if (!this.deepSeaSpawnedAt && this.deepSea.length === 0 && this.timeSinceDeepSeaWasOnMap) {
+            this.scheduleDeepSeaPrepare();
+        }
     }
 
     persistEventTimes() {
