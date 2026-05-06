@@ -489,6 +489,13 @@ class Battlemetrics {
             return false;
         }
 
+        if (!data || !data.data || !data.data.attributes) {
+            this.lastUpdateSuccessful = false;
+            Client.client.log(Client.client.intlGet(null, 'errorCap'),
+                Client.client.intlGet(null, 'battlemetricsFailedToUpdate', { server: this.id }), 'error');
+            return false;
+        }
+
         this.lastUpdateSuccessful = true;
         this.data = data;
 

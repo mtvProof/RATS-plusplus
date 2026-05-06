@@ -75,8 +75,10 @@ module.exports = {
         const server = instance.serverList[serverId];
         let hoster = Client.client.intlGet(guildId, 'unknown');
         if (credentials.hasOwnProperty(server.steamId)) {
-            hoster = await DiscordTools.getUserById(guildId, credentials[server.steamId].discord_user_id);
-            hoster = hoster.user.username;
+            const hosterUser = await DiscordTools.getUserById(guildId, credentials[server.steamId].discord_user_id);
+            if (hosterUser && hosterUser.user) {
+                hoster = hosterUser.user.username;
+            }
         }
 
         let description = '';
@@ -503,13 +505,14 @@ module.exports = {
         const server = instance.serverList[serverId];
         const entity = server.storageMonitors[entityId];
         const credentials = InstanceUtils.readCredentialsFile(guildId);
-        const user = await DiscordTools.getUserById(guildId, credentials[server.steamId].discord_user_id);
+        const userObj = await DiscordTools.getUserById(guildId, credentials[server.steamId].discord_user_id);
+        const username = (userObj && userObj.user) ? userObj.user.username : Client.client.intlGet(guildId, 'unknown');
         const grid = entity.location !== null ? ` (${entity.location})` : '';
 
         return module.exports.getEmbed({
             title: Client.client.intlGet(guildId, 'smartDeviceNotFound', {
                 device: `${entity.name}${grid}`,
-                user: user.user.username
+                user: username
             }),
             color: Constants.COLOR_INACTIVE,
             description: `**ID** \`${entityId}\``,
@@ -524,13 +527,14 @@ module.exports = {
         const server = instance.serverList[serverId];
         const entity = instance.serverList[serverId].switches[entityId];
         const credentials = InstanceUtils.readCredentialsFile(guildId);
-        const user = await DiscordTools.getUserById(guildId, credentials[server.steamId].discord_user_id);
+        const userObj = await DiscordTools.getUserById(guildId, credentials[server.steamId].discord_user_id);
+        const username = (userObj && userObj.user) ? userObj.user.username : Client.client.intlGet(guildId, 'unknown');
         const grid = entity.location !== null ? ` (${entity.location})` : '';
 
         return module.exports.getEmbed({
             title: Client.client.intlGet(guildId, 'smartDeviceNotFound', {
                 device: `${entity.name}${grid}`,
-                user: user.user.username
+                user: username
             }),
             color: Constants.COLOR_INACTIVE,
             description: `**ID** \`${entityId}\``,
@@ -545,13 +549,14 @@ module.exports = {
         const server = instance.serverList[serverId];
         const entity = server.alarms[entityId];
         const credentials = InstanceUtils.readCredentialsFile(guildId);
-        const user = await DiscordTools.getUserById(guildId, credentials[server.steamId].discord_user_id);
+        const userObj = await DiscordTools.getUserById(guildId, credentials[server.steamId].discord_user_id);
+        const username = (userObj && userObj.user) ? userObj.user.username : Client.client.intlGet(guildId, 'unknown');
         const grid = entity.location !== null ? ` (${entity.location})` : '';
 
         return module.exports.getEmbed({
             title: Client.client.intlGet(guildId, 'smartDeviceNotFound', {
                 device: `${entity.name}${grid}`,
-                user: user.user.username
+                user: username
             }),
             color: Constants.COLOR_INACTIVE,
             description: `**ID** \`${entityId}\``,
@@ -1129,17 +1134,29 @@ module.exports = {
         }
 
         // Build description with all items and their locations
+        const maxDescriptionCharacters = Constants.EMBED_MAX_DESCRIPTION_CHARACTERS;
+        const canAppend = (str, addition) => (str.length + addition.length) <= maxDescriptionCharacters;
+
         let description = '';
         let hasItems = false;
 
         for (const [, itemData] of Object.entries(watchlistItems)) {
-            hasItems = true;
             const itemNameLine = `**${itemData.name}**\n`;
+
+            if (!canAppend(description, itemNameLine)) {
+                break;
+            }
+
+            hasItems = true;
             description += itemNameLine;
 
             // If no in-stock locations, show "No Matching Offers"
             if (itemData.locations.length === 0) {
-                description += `*No Matching Offers*\n\n`;
+                const noOffersLine = `*No Matching Offers*\n\n`;
+                if (!canAppend(description, noOffersLine)) {
+                    break;
+                }
+                description += noOffersLine;
             }
             else {
                 // Sort locations by price (ascending)
@@ -1149,15 +1166,20 @@ module.exports = {
                     const currencyName = Client.client.items.getName(location.currencyId);
                     const locationLine = `  • ${location.location}: ${location.quantity} at \`${location.price}\` ${currencyName} each\n`;
 
-                    if (totalCharacters + description.length + locationLine.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
+                    if (!canAppend(description, locationLine) ||
+                        totalCharacters + description.length + locationLine.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
                         break;
                     }
                     description += locationLine;
                 }
-                description += '\n';
+
+                if (canAppend(description, '\n')) {
+                    description += '\n';
+                }
             }
 
-            if (totalCharacters + description.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
+            if (description.length >= maxDescriptionCharacters ||
+                totalCharacters + description.length >= Constants.EMBED_MAX_TOTAL_CHARACTERS) {
                 break;
             }
         }
@@ -1290,7 +1312,8 @@ module.exports = {
             if (credential === 'hoster') continue;
 
             const user = await DiscordTools.getUserById(guildId, credentials[credential].discord_user_id);
-            names += `${user.user.username}\n`;
+            const credUsername = (user && user.user) ? user.user.username : Client.client.intlGet(guildId, 'unknown');
+            names += `${credUsername}\n`;
             steamIds += `${credential}\n`;
             hoster += `${credential === credentials.hoster ? `${Constants.LEADER_EMOJI}\n` : '\u200B\n'}`;
         }
