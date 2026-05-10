@@ -22,6 +22,7 @@ const DiscordMessages = require('../discordTools/discordMessages.js');
 const Info = require('../structures/Info');
 const Map = require('../structures/Map');
 const PollingHandler = require('../handlers/pollingHandler.js');
+const { isTransientResponseFailure } = require('../util/rustplusReconnect.js');
 
 module.exports = {
     name: 'connected',
@@ -44,6 +45,11 @@ module.exports = {
         if (!(await rustplus.isResponseValid(map))) {
             rustplus.log(client.intlGet(null, 'errorCap'),
                 client.intlGet(null, 'somethingWrongWithConnection'), 'error');
+
+            if (isTransientResponseFailure(map) && client.activeRustplusInstances[guildId]) {
+                rustplus.disconnect();
+                return;
+            }
 
             instance.activeServer = null;
             client.setInstance(guildId, instance);
@@ -104,6 +110,10 @@ module.exports = {
         /* Setup Smart Devices */
         await require('../discordTools/SetupSwitches')(client, rustplus);
         await require('../discordTools/SetupSwitchGroups')(client, rustplus);
+        const guild = client.guilds.cache.get(guildId);
+        if (guild) {
+            await require('../discordTools/SetupTrackers')(client, guild);
+        }
         await require('../discordTools/SetupAlarms')(client, rustplus);
         await require('../discordTools/SetupStorageMonitors')(client, rustplus);
         rustplus.isNewConnection = false;

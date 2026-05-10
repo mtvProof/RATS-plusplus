@@ -21,20 +21,6 @@
 const DiscordMessages = require('../discordTools/discordMessages.js');
 const Timer = require('../util/timer.js');
 
-function isNotFoundResponse(response) {
-    if (response === 'not_found') return true;
-    if (response && typeof response === 'object' && response.error === 'not_found') return true;
-    return false;
-}
-
-function isTransientFailureResponse(response) {
-    if (response === undefined || response === null) return true;
-
-    const text = (response && response.toString) ? response.toString() : `${response}`;
-    return text === 'Error: Timeout reached while waiting for response' ||
-        /socket hang up|ECONNRESET|EPIPE|ETIMEDOUT|network/i.test(text);
-}
-
 module.exports = {
     handler: async function (rustplus, client) {
         let instance = client.getInstance(rustplus.guildId);
@@ -42,10 +28,6 @@ module.exports = {
         const serverId = rustplus.serverId;
 
         if (!instance.serverList.hasOwnProperty(serverId)) return;
-
-        const isReconnecting = client.rustplusReconnecting[guildId];
-        const suppressNotFound = isReconnecting || (rustplus.uptimeServer &&
-            (Date.now() - rustplus.uptimeServer.getTime()) < 5 * 60 * 1000);
 
         if (rustplus.smartAlarmIntervalCounter === 29) {
             rustplus.smartAlarmIntervalCounter = 0;
@@ -58,22 +40,18 @@ module.exports = {
             for (const entityId in instance.serverList[serverId].alarms) {
                 instance = client.getInstance(guildId);
 
+                /* Skip alarms paired by a non-hoster teammate — the hoster cannot query them via
+                   getEntityInfo, but they still receive entityChanged broadcasts when triggered. */
+                if (instance.serverList[serverId].alarms[entityId].broadcastOnly) {
+                    continue;
+                }
+
                 const info = await rustplus.getEntityInfoAsync(entityId);
                 if (!(await rustplus.isResponseValid(info))) {
-                    if (isTransientFailureResponse(info)) {
-                        continue;
-                    }
-
-                    if (suppressNotFound) {
-                        continue;
-                    }
-
-                    if (isNotFoundResponse(info) && instance.serverList[serverId].alarms[entityId].reachable) {
+                    if (instance.serverList[serverId].alarms[entityId].reachable) {
                         await DiscordMessages.sendSmartAlarmNotFoundMessage(guildId, serverId, entityId);
-
                         instance.serverList[serverId].alarms[entityId].reachable = false;
                         client.setInstance(guildId, instance);
-
                         await DiscordMessages.sendSmartAlarmMessage(guildId, serverId, entityId);
                     }
                 }
@@ -81,7 +59,6 @@ module.exports = {
                     if (!instance.serverList[serverId].alarms[entityId].reachable) {
                         instance.serverList[serverId].alarms[entityId].reachable = true;
                         client.setInstance(guildId, instance);
-
                         await DiscordMessages.sendSmartAlarmMessage(guildId, serverId, entityId);
                     }
                 }

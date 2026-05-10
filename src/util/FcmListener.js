@@ -256,9 +256,13 @@ async function pairingServer(client, guild, title, message, body) {
         cargoShipEgressTimeMs: server ? server.cargoShipEgressTimeMs : Constants.DEFAULT_CARGO_SHIP_EGRESS_TIME_MS,
         oilRigLockedCrateUnlockTimeMs: server ? server.oilRigLockedCrateUnlockTimeMs :
             Constants.DEFAULT_OIL_RIG_LOCKED_CRATE_UNLOCK_TIME_MS,
-        deepSeaMinWipeCooldownMs: server ? server.deepSeaMinWipeCooldownMs : Constants.DEFAULT_DEEP_SEA_MIN_WIPE_COOLDOWN_MS,
-        deepSeaMaxWipeCooldownMs: server ? server.deepSeaMaxWipeCooldownMs : Constants.DEFAULT_DEEP_SEA_MAX_WIPE_COOLDOWN_MS,
-        deepSeaWipeDurationMs: server ? server.deepSeaWipeDurationMs : Constants.DEFAULT_DEEP_SEA_WIPE_DURATION_MS,
+        deepSeaMinWipeCooldownMs: server?.deepSeaMinWipeCooldownMs ??
+            server?.deepSeaWipeCooldownMs ??
+            Constants.DEFAULT_DEEP_SEA_MIN_WIPE_COOLDOWN_MS,
+        deepSeaMaxWipeCooldownMs: server?.deepSeaMaxWipeCooldownMs ??
+            Constants.DEFAULT_DEEP_SEA_MAX_WIPE_COOLDOWN_MS,
+        deepSeaWipeDurationMs: server?.deepSeaWipeDurationMs ??
+            Constants.DEFAULT_DEEP_SEA_WIPE_DURATION_MS,
         timeTillDay: server ? server.timeTillDay : null,
         timeTillNight: server ? server.timeTillNight : null
     };
@@ -286,6 +290,7 @@ async function pairingEntitySwitch(client, guild, title, message, body) {
     instance.serverList[serverId].switches[body.entityId] = {
         active: entityExist ? switches[body.entityId].active : false,
         reachable: entityExist ? switches[body.entityId].reachable : true,
+        broadcastOnly: entityExist ? switches[body.entityId].broadcastOnly === true : false,
         name: entityExist ? switches[body.entityId].name : client.intlGet(guild.id, 'smartSwitch'),
         command: entityExist ? switches[body.entityId].command : body.entityId,
         image: entityExist ? switches[body.entityId].image : 'smart_switch.png',
@@ -303,7 +308,17 @@ async function pairingEntitySwitch(client, guild, title, message, body) {
     if (rustplus && serverId === rustplus.serverId) {
         const info = await rustplus.getEntityInfoAsync(body.entityId);
         if (!(await rustplus.isResponseValid(info))) {
-            instance.serverList[serverId].switches[body.entityId].reachable = false;
+            /* not_found means the hoster hasn't paired with this entity (e.g. paired by a teammate).
+               Mark as broadcastOnly so it still receives broadcasts without false 'not found' alerts. */
+            if (info && info.error === 'not_found') {
+                instance.serverList[serverId].switches[body.entityId].broadcastOnly = true;
+            }
+            else {
+                instance.serverList[serverId].switches[body.entityId].reachable = false;
+            }
+        }
+        else {
+            instance.serverList[serverId].switches[body.entityId].broadcastOnly = false;
         }
 
         const teamInfo = await rustplus.getTeamInfoAsync();
@@ -317,7 +332,8 @@ async function pairingEntitySwitch(client, guild, title, message, body) {
             }
         }
 
-        if (instance.serverList[serverId].switches[body.entityId].reachable) {
+        if (instance.serverList[serverId].switches[body.entityId].reachable &&
+            !instance.serverList[serverId].switches[body.entityId].broadcastOnly) {
             instance.serverList[serverId].switches[body.entityId].active = info.entityInfo.payload.value;
         }
         client.setInstance(guild.id, instance);
@@ -336,6 +352,7 @@ async function pairingEntitySmartAlarm(client, guild, title, message, body) {
     instance.serverList[serverId].alarms[body.entityId] = {
         active: entityExist ? alarms[body.entityId].active : false,
         reachable: entityExist ? alarms[body.entityId].reachable : true,
+        broadcastOnly: entityExist ? alarms[body.entityId].broadcastOnly === true : false,
         everyone: entityExist ? alarms[body.entityId].everyone : false,
         name: entityExist ? alarms[body.entityId].name : client.intlGet(guild.id, 'smartAlarm'),
         message: entityExist ? alarms[body.entityId].message : client.intlGet(guild.id, 'baseIsUnderAttack'),
@@ -353,7 +370,17 @@ async function pairingEntitySmartAlarm(client, guild, title, message, body) {
     if (rustplus && serverId === rustplus.serverId) {
         const info = await rustplus.getEntityInfoAsync(body.entityId);
         if (!(await rustplus.isResponseValid(info))) {
-            instance.serverList[serverId].alarms[body.entityId].reachable = false;
+            /* not_found means the hoster hasn't paired with this entity (e.g. paired by a teammate).
+               Mark as broadcastOnly so it still receives trigger broadcasts without false 'not found' alerts. */
+            if (info && info.error === 'not_found') {
+                instance.serverList[serverId].alarms[body.entityId].broadcastOnly = true;
+            }
+            else {
+                instance.serverList[serverId].alarms[body.entityId].reachable = false;
+            }
+        }
+        else {
+            instance.serverList[serverId].alarms[body.entityId].broadcastOnly = false;
         }
 
         const teamInfo = await rustplus.getTeamInfoAsync();
@@ -365,7 +392,8 @@ async function pairingEntitySmartAlarm(client, guild, title, message, body) {
             }
         }
 
-        if (instance.serverList[serverId].alarms[body.entityId].reachable) {
+        if (instance.serverList[serverId].alarms[body.entityId].reachable &&
+            !instance.serverList[serverId].alarms[body.entityId].broadcastOnly) {
             instance.serverList[serverId].alarms[body.entityId].active = info.entityInfo.payload.value;
         }
         client.setInstance(guild.id, instance);
@@ -384,6 +412,7 @@ async function pairingEntityStorageMonitor(client, guild, title, message, body) 
     instance.serverList[serverId].storageMonitors[body.entityId] = {
         name: entityExist ? storageMonitors[body.entityId].name : client.intlGet(guild.id, 'storageMonitor'),
         reachable: entityExist ? storageMonitors[body.entityId].reachable : true,
+        broadcastOnly: entityExist ? storageMonitors[body.entityId].broadcastOnly === true : false,
         id: entityExist ? storageMonitors[body.entityId].id : body.entityId,
         type: entityExist ? storageMonitors[body.entityId].type : null,
         decaying: entityExist ? storageMonitors[body.entityId].decaying : false,
@@ -402,7 +431,17 @@ async function pairingEntityStorageMonitor(client, guild, title, message, body) 
     if (rustplus && serverId === rustplus.serverId) {
         const info = await rustplus.getEntityInfoAsync(body.entityId);
         if (!(await rustplus.isResponseValid(info))) {
-            instance.serverList[serverId].storageMonitors[body.entityId].reachable = false;
+            /* not_found means the hoster hasn't paired with this entity (e.g. paired by a teammate).
+               Mark as broadcastOnly so it still receives broadcasts without false 'not found' alerts. */
+            if (info && info.error === 'not_found') {
+                instance.serverList[serverId].storageMonitors[body.entityId].broadcastOnly = true;
+            }
+            else {
+                instance.serverList[serverId].storageMonitors[body.entityId].reachable = false;
+            }
+        }
+        else {
+            instance.serverList[serverId].storageMonitors[body.entityId].broadcastOnly = false;
         }
 
         const teamInfo = await rustplus.getTeamInfoAsync();
@@ -414,7 +453,8 @@ async function pairingEntityStorageMonitor(client, guild, title, message, body) 
             }
         }
 
-        if (instance.serverList[serverId].storageMonitors[body.entityId].reachable) {
+        if (instance.serverList[serverId].storageMonitors[body.entityId].reachable &&
+            !instance.serverList[serverId].storageMonitors[body.entityId].broadcastOnly) {
             if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_TOOL_CUPBOARD_CAPACITY) {
                 instance.serverList[serverId].storageMonitors[body.entityId].type = 'toolCupboard';
                 instance.serverList[serverId].storageMonitors[body.entityId].image = 'tool_cupboard.png';

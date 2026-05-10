@@ -577,6 +577,7 @@
     "populationPlayers": "Oyuncu: ({current}/{max})",
     "populationQueue": "{number} oyuncu sırada.",
     "powerPlant": "Nükleer Santral",
+    "prepareCap": "PREPARE",
     "profile": "Profil",
     "proxLocation": "{name}, {caller} {direction}° [{location}] yönünde {distance}m",
     "quantity": "Miktar",

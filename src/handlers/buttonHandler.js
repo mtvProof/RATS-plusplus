@@ -1058,17 +1058,34 @@ module.exports = async (client, interaction) => {
         const server = instance.serverList[ids.serverId];
 
         if (Config.discord.needAdminPrivileges && !client.isAdministrator(interaction)) {
-            interaction.deferUpdate();
+            await interaction.deferUpdate();
             return;
         }
+
+        await interaction.deferUpdate();
 
         if (!server || (server && !server.alarms.hasOwnProperty(ids.entityId))) {
-            await interaction.message.delete();
+            try {
+                await interaction.message.delete();
+            }
+            catch (e) {
+                // Message may already be gone
+            }
             return;
         }
 
-        await DiscordTools.deleteMessageById(guildId, instance.channelId.alarms,
-            server.alarms[ids.entityId].messageId);
+        const messageId = server.alarms[ids.entityId].messageId;
+
+        try {
+            await interaction.message.delete();
+        }
+        catch (e) {
+            // Fall back to deleting the stored message id
+        }
+
+        if (messageId && interaction.message.id !== messageId) {
+            await DiscordTools.deleteMessageById(guildId, instance.channelId.alarms, messageId);
+        }
 
         delete server.alarms[ids.entityId];
         client.setInstance(guildId, instance);

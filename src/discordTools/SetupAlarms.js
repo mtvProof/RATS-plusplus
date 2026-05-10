@@ -27,6 +27,16 @@ module.exports = async (client, rustplus) => {
 
     for (const entityId in instance.serverList[serverId].alarms) {
         const entity = instance.serverList[serverId].alarms[entityId];
+
+        /* Skip alarms paired by a non-hoster teammate — the hoster cannot query them via
+           getEntityInfo, but they still receive entityChanged broadcasts when triggered. */
+        if (entity.broadcastOnly) {
+            entity.reachable = true;
+            client.setInstance(guildId, instance);
+            await DiscordMessages.sendSmartAlarmMessage(guildId, serverId, entityId);
+            continue;
+        }
+
         const info = await rustplus.getEntityInfoAsync(entityId);
 
         if (!(await rustplus.isResponseValid(info))) {

@@ -577,6 +577,7 @@
     "populationPlayers": "População: ({current}/{max}) jogadores.",
     "populationQueue": "{number} jogadores na fila.",
     "powerPlant": "Central Elétrica",
+    "prepareCap": "PREPARE",
     "profile": "Perfil",
     "proxLocation": "{name} está a {distance}m de {caller} na direção {direction}° [{location}]",
     "quantity": "Quantidade",

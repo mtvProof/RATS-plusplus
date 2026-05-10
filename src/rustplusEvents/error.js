@@ -19,6 +19,11 @@
 */
 
 const DiscordMessages = require('../discordTools/discordMessages.js');
+const {
+    getFailureKey,
+    isConnectFailureError,
+    scheduleReconnect,
+} = require('../util/rustplusReconnect.js');
 
 module.exports = {
     name: 'error',
@@ -27,19 +32,19 @@ module.exports = {
 
         rustplus.log(client.intlGet(null, 'errorCap'), err, 'error');
 
-        const errMsg = err ? err.toString() : '';
-        const isConnectFailure = err && (
-            err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT' || err.code === 'ECONNREFUSED' ||
-            errMsg.includes('socket hang up') || errMsg.includes('WebSocket was closed before the connection was established')
-        );
+        const isConnectFailure = isConnectFailureError(err);
 
         if (isConnectFailure) {
             if (!client.rustplusConnectFailures) client.rustplusConnectFailures = {};
             if (!client.rustplusLastConnectError) client.rustplusLastConnectError = {};
 
-            const failureKey = `${rustplus.guildId}:${rustplus.instanceLabel}`;
+            const failureKey = getFailureKey(rustplus);
             client.rustplusConnectFailures[failureKey] = (client.rustplusConnectFailures[failureKey] || 0) + 1;
-            client.rustplusLastConnectError[failureKey] = err.code || errMsg || 'UNKNOWN';
+            client.rustplusLastConnectError[failureKey] = err.code || err.toString() || 'UNKNOWN';
+
+            if (!rustplus.isOperational) {
+                await scheduleReconnect(rustplus, client);
+            }
         }
 
         switch (err.code) {

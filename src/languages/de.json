@@ -581,6 +581,7 @@
     "populationPlayers": "Bevölkerung: ({current}/{max}) Spieler.",
     "populationQueue": "{number} Spieler in der Warteschlange.",
     "powerPlant": "Kraftwerk",
+    "prepareCap": "PREPARE",
     "profile": "Profil",
     "proxLocation": "{name} ist {distance}m von {caller} in Richtung {direction}° [{location}] entfernt",
     "quantity": "Menge",

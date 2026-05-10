@@ -577,6 +577,7 @@
     "populationPlayers": "Population: ({current}/{max}) spelare.",
     "populationQueue": "{number} spelare i kö.",
     "powerPlant": "Kraftverk",
+    "prepareCap": "PREPARE",
     "profile": "Profile",
     "proxLocation": "{name} är {distance}m från {caller} i riktning {direction}° [{location}]",
     "quantity": "Kvantitet",

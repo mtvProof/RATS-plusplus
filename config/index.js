@@ -27,8 +27,8 @@ module.exports = {
     },
     discord: {
         username: process.env.RPP_DISCORD_USERNAME || 'RATS++',
-        clientId: process.env.RPP_DISCORD_CLIENT_ID || '1380208199688257668',
-        token: process.env.RPP_DISCORD_TOKEN || 'MTM4MDIwODE5OTY4ODI1NzY2OA.G0men4.pb4lD7rGEgeN8Dt5sQPP2TNHZZZtUgUPOZrZ3A',
+        clientId: process.env.RPP_DISCORD_CLIENT_ID || '1492324580394536960',
+        token: process.env.RPP_DISCORD_TOKEN || 'MTQ5MjMyNDU4MDM5NDUzNjk2MA.GU6gVx.g9rQOh3w9CTQaR-s_u7WQXR6A_8wm73s9GutSs',
         needAdminPrivileges: process.env.RPP_NEED_ADMIN_PRIVILEGES || true, /* If true, only admins can delete (server, switch..), manage credentials and reset a channel */
     },
     webui: {

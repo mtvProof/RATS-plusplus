@@ -602,6 +602,7 @@
     "populationPlayers": "Население: ({current}/{max}) игроков.",
     "populationQueue": "{number} находятся в очереди.",
     "powerPlant": "Электростанция",
+    "prepareCap": "PREPARE",
     "profile": "Профиль",
     "proxLocation": "{name} в {distance}m от {caller} направление {direction}° [{location}]",
     "quantity": "Количество",

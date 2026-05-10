@@ -30,6 +30,7 @@ const TeamHandler = require('../handlers/teamHandler.js');
 const Time = require('../structures/Time');
 const TimeHandler = require('../handlers/timeHandler.js');
 const VendingMachines = require('../handlers/vendingMachineHandler.js');
+const { getFailureKey } = require('../util/rustplusReconnect.js');
 
 const RPC_TIMEOUT_MS = 20000;
 const HANDLER_TIMEOUT_MS = 30000;
@@ -89,6 +90,16 @@ module.exports = {
         } catch (error) {
             console.error('CRITICAL: Polling handler error:', error);
             rustplus.log(null, `POLLING ERROR: ${error.message}`);
+
+            if (error.message && error.message.includes('timed out')) {
+                if (!client.rustplusConnectFailures) client.rustplusConnectFailures = {};
+                if (!client.rustplusLastConnectError) client.rustplusLastConnectError = {};
+                const failureKey = getFailureKey(rustplus);
+                client.rustplusConnectFailures[failureKey] =
+                    (client.rustplusConnectFailures[failureKey] || 0) + 1;
+                client.rustplusLastConnectError[failureKey] = 'RPC_TIMEOUT';
+                rustplus.disconnect();
+            }
         } finally {
             rustplus.isPollingHandlerRunning = false;
         }

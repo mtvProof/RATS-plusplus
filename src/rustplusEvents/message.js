@@ -182,6 +182,9 @@ async function messageBroadcastEntityChangedSmartAlarm(rustplus, client, message
     if (!server || (server && !server.alarms[entityId])) return;
 
     const active = message.broadcast.entityChanged.payload.value;
+    if (!server.alarms[entityId].reachable) {
+        server.alarms[entityId].broadcastOnly = true;
+    }
     server.alarms[entityId].active = active;
     server.alarms[entityId].reachable = true;
     client.setInstance(rustplus.guildId, instance);

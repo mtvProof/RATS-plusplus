@@ -581,6 +581,7 @@
     "populationPlayers": "서버인원: ({current}/{max}) 플레이어.",
     "populationQueue": "{number}명의 플레이어가 대기열에 있습니다.",
     "powerPlant": "발전소",
+    "prepareCap": "PREPARE",
     "profile": "Profile",
     "proxLocation": "{name}은(는) {caller}에서 {direction}° [{location}]방향으로 {distance}m 떨어져 있습니다.",
     "quantity": "수량",

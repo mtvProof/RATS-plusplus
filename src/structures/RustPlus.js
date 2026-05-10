@@ -342,13 +342,114 @@ class RustPlus extends RustPlusLib {
         }
     }
 
+    isRawResponseValid(response) {
+        if (response === undefined) return false;
+        if (response.toString && response.toString() === 'Error: Timeout reached while waiting for response') {
+            return false;
+        }
+        if (response.hasOwnProperty && response.hasOwnProperty('error')) return false;
+        if (Object.keys(response).length === 0) return false;
+        return true;
+    }
+
+    async connectFallbackClientAsync(client, timeoutMs = 8000) {
+        return await new Promise((resolve) => {
+            let settled = false;
+
+            const finish = (value) => {
+                if (settled) return;
+                settled = true;
+
+                clearTimeout(timer);
+                client.removeListener('connected', onConnected);
+                client.removeListener('error', onError);
+                client.removeListener('disconnected', onDisconnected);
+
+                resolve(value);
+            }
+
+            const onConnected = () => finish(true);
+            const onError = () => finish(false);
+            const onDisconnected = () => finish(false);
+
+            const timer = setTimeout(() => finish(false), timeoutMs);
+
+            client.on('connected', onConnected);
+            client.on('error', onError);
+            client.on('disconnected', onDisconnected);
+
+            try {
+                client.connect();
+            }
+            catch (e) {
+                finish(false);
+            }
+        });
+    }
+
+    safeDisconnectFallbackClient(client) {
+        if (!client || !client.websocket) return;
+
+        try {
+            /* ws readyState values: 0 CONNECTING, 1 OPEN, 2 CLOSING, 3 CLOSED */
+            if (client.websocket.readyState === 0) {
+                client.websocket.close();
+                return;
+            }
+
+            client.disconnect();
+        }
+        catch (e) {
+        }
+    }
+
+    async sendRequestViaPairedLiteAsync(request, timeout = 10000) {
+        const instance = Client.client.getInstance(this.guildId);
+        if (!instance.serverListLite || !instance.serverListLite.hasOwnProperty(this.serverId)) {
+            return null;
+        }
+
+        for (const [steamId, serverLite] of Object.entries(instance.serverListLite[this.serverId])) {
+            if (`${steamId}` === `${this.playerId}`) continue;
+
+            const fallbackClient = new RustPlusLib(
+                serverLite.serverIp,
+                serverLite.appPort,
+                serverLite.steamId,
+                serverLite.playerToken
+            );
+
+            const connected = await this.connectFallbackClientAsync(fallbackClient);
+            if (!connected) {
+                this.safeDisconnectFallbackClient(fallbackClient);
+                continue;
+            }
+
+            let response;
+            try {
+                response = await fallbackClient.sendRequestAsync(request, timeout).catch((e) => {
+                    return e;
+                });
+            }
+            catch (e) {
+                response = e;
+            }
+
+            this.safeDisconnectFallbackClient(fallbackClient);
+
+            if (this.isRawResponseValid(response)) return response;
+        }
+
+        return null;
+    }
+
     async setEntityValueAsync(id, value, timeout = 10000) {
         try {
             if (!(await this.waitForAvailableTokens(1))) {
                 return { error: Client.client.intlGet(null, 'tokensDidNotReplenish') };
             }
 
-            return await this.sendRequestAsync({
+            const response = await this.sendRequestAsync({
                 entityId: id,
                 setEntityValue: {
                     value: value
@@ -356,6 +457,19 @@ class RustPlus extends RustPlusLib {
             }, timeout).catch((e) => {
                 return e;
             });
+
+            if (response && response.error === 'not_found') {
+                const fallbackResponse = await this.sendRequestViaPairedLiteAsync({
+                    entityId: id,
+                    setEntityValue: {
+                        value: value
+                    }
+                }, timeout);
+
+                if (this.isRawResponseValid(fallbackResponse)) return fallbackResponse;
+            }
+
+            return response;
         }
         catch (e) {
             return e;
@@ -387,12 +501,23 @@ class RustPlus extends RustPlusLib {
                 return { error: Client.client.intlGet(null, 'tokensDidNotReplenish') };
             }
 
-            return await this.sendRequestAsync({
+            const response = await this.sendRequestAsync({
                 entityId: id,
                 getEntityInfo: {}
             }, timeout).catch((e) => {
                 return e;
             });
+
+            if (response && response.error === 'not_found') {
+                const fallbackResponse = await this.sendRequestViaPairedLiteAsync({
+                    entityId: id,
+                    getEntityInfo: {}
+                }, timeout);
+
+                if (this.isRawResponseValid(fallbackResponse)) return fallbackResponse;
+            }
+
+            return response;
         }
         catch (e) {
             return e;
@@ -1618,8 +1743,11 @@ class RustPlus extends RustPlusLib {
         if (command.toLowerCase().startsWith(`${commandMarker} `)) {
             command = command.slice(`${commandMarker} `.length).trim();
         }
-        else {
+        else if (command.toLowerCase().startsWith(`${commandMarkerEn} `)) {
             command = command.slice(`${commandMarkerEn} `.length).trim();
+        }
+        else {
+            return null;
         }
         const subcommand = command.replace(/ .*/, '');
         const name = command.slice(subcommand.length + 1);
