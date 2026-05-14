@@ -503,8 +503,7 @@ async function alarmAlarm(client, guild, title, message, body) {
 
     if (!server || (server && !server.alarms[entityId])) return;
 
-    if ((!rustplus || (rustplus && (rustplus.serverId !== serverId))) &&
-        instance.generalSettings.fcmAlarmNotificationEnabled) {
+    if (!rustplus || (rustplus && (rustplus.serverId !== serverId))) {
         server.alarms[entityId].lastTrigger = Math.floor(new Date() / 1000);
         client.setInstance(guild.id, instance);
         await DiscordMessages.sendSmartAlarmTriggerMessage(guild.id, serverId, entityId);

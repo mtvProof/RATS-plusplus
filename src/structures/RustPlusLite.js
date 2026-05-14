@@ -31,6 +31,7 @@ class RustPlusLite extends RustPlusLib {
         this.guildId = guildId;
         this.logger = logger;
         this.rustplus = rustplus;
+        this.steamId = steamId;
 
         this.isActive = true;
 
@@ -108,6 +109,13 @@ async function rustPlusLiteConnectedEvent(rustplusLite) {
 
     const info = await rustplusLite.getInfoAsync();
     if (!rustplusLite.isResponseValid(info)) {
+        if (info && info.error === 'not_found') {
+            rustplusLite.isActive = false;
+            rustplusLite.log(Client.client.intlGet(null, 'warningCap'),
+                `Lite Rust+ token is no longer valid for SteamID ${rustplusLite.steamId} on ` +
+                `${rustplusLite.serverId}; reconnect disabled until that account is re-paired or leader changes.`);
+        }
+
         rustplusLite.log(Client.client.intlGet(null, 'errorCap'),
             Client.client.intlGet(null, 'somethingWrongWithConnection'), 'error');
         rustplusLite.disconnect();
@@ -125,6 +133,10 @@ async function rustPlusLiteConnectingEvent(rustplusLite) {
 async function rustPlusLiteDisconnectedEvent(rustplusLite) {
     rustplusLite.log(Client.client.intlGet(null, 'disconnectedCap'),
         Client.client.intlGet(null, 'disconnectedFromServer'));
+
+    if (!rustplusLite.isActive && rustplusLite.rustplus.leaderRustPlusInstance === rustplusLite) {
+        rustplusLite.rustplus.leaderRustPlusInstance = null;
+    }
 
     /* Was the disconnection unexpected? */
     if (rustplusLite.isActive && Client.client.activeRustplusInstances[rustplusLite.guildId]) {

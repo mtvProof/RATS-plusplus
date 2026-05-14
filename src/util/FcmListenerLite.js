@@ -18,6 +18,9 @@
 
 */
 
+const Discord = require('discord.js');
+const Path = require('path');
+
 const PushReceiverClient = require('@liamcottle/push-receiver/src/client');
 
 const Constants = require('../util/constants.js');
@@ -134,6 +137,24 @@ module.exports = async (client, guild, steamId) => {
                 }
             } break;
 
+            case 'alarm': {
+                switch (body.type) {
+                    case 'alarm': {
+                        client.log('FCM LITE', `GuildID: ${guild.id}, SteamID: ${steamId}, alarm: alarm`);
+                        alarmAlarm(client, guild, title, message, body);
+                    } break;
+
+                    default: {
+                        if (title === 'You\'re getting raided!') {
+                            client.log('FCM LITE',
+                                `GuildID: ${guild.id}, SteamID: ${steamId}, alarm: raid-alarm plugin`);
+                            alarmRaidAlarm(client, guild, title, message, body);
+                            break;
+                        }
+                    } break;
+                }
+            } break;
+
             case 'player': {
                 switch (body.type) {
                     case 'death': {
@@ -157,6 +178,49 @@ module.exports = async (client, guild, steamId) => {
 function isValidUrl(url) {
     if (url.startsWith('https') || url.startsWith('http')) return true;
     return false;
+}
+
+async function alarmAlarm(client, guild, title, message, body) {
+    const instance = client.getInstance(guild.id);
+    const serverId = `${body.ip}-${body.port}`;
+    const entityId = body.entityId;
+    const server = instance.serverList[serverId];
+    const rustplus = client.rustplusInstances[guild.id];
+
+    if (!server || (server && !server.alarms[entityId])) return;
+
+    if (!rustplus || (rustplus && (rustplus.serverId !== serverId))) {
+        server.alarms[entityId].lastTrigger = Math.floor(new Date() / 1000);
+        client.setInstance(guild.id, instance);
+        await DiscordMessages.sendSmartAlarmTriggerMessage(guild.id, serverId, entityId);
+        client.log(client.intlGet(null, 'infoCap'), `${title}: ${message}`);
+    }
+}
+
+async function alarmRaidAlarm(client, guild, title, message, body) {
+    const instance = client.getInstance(guild.id);
+    const serverId = `${body.ip}-${body.port}`;
+    const rustplus = client.rustplusInstances[guild.id];
+
+    if (!instance.serverList.hasOwnProperty(serverId)) return;
+
+    const files = [];
+    if (body.img === '') {
+        files.push(new Discord.AttachmentBuilder(Path.join(__dirname, '..', `resources/images/rocket.png`)));
+    }
+
+    const content = {
+        embeds: [DiscordEmbeds.getAlarmRaidAlarmEmbed({ title: title, message: message }, body)],
+        content: '@everyone',
+        files: files
+    }
+
+    if (rustplus && (serverId === rustplus.serverId)) {
+        await DiscordMessages.sendMessage(guild.id, content, null, instance.channelId.activity);
+        rustplus.sendInGameMessage(`${title}: ${message}`);
+    }
+
+    client.log(client.intlGet(null, 'infoCap'), `${title} ${message}`);
 }
 
 async function pairingServer(client, guild, steamId, title, message, body) {

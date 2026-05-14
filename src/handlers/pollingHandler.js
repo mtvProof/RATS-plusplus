@@ -30,18 +30,6 @@ const TeamHandler = require('../handlers/teamHandler.js');
 const Time = require('../structures/Time');
 const TimeHandler = require('../handlers/timeHandler.js');
 const VendingMachines = require('../handlers/vendingMachineHandler.js');
-const { getFailureKey } = require('../util/rustplusReconnect.js');
-
-const RPC_TIMEOUT_MS = 20000;
-const HANDLER_TIMEOUT_MS = 30000;
-
-async function withTimeout(fn, timeoutMs, label) {
-    return await Promise.race([
-        fn(),
-        new Promise((_, reject) =>
-            setTimeout(() => reject(new Error(`${label} timed out after ${timeoutMs} ms`)), timeoutMs))
-    ]);
-}
 
 module.exports = {
     pollingHandler: async function (rustplus, client) {
@@ -49,29 +37,13 @@ module.exports = {
         rustplus.isPollingHandlerRunning = true;
 
         try {
-            let info = await withTimeout(
-                () => rustplus.getInfoAsync(),
-                RPC_TIMEOUT_MS,
-                'getInfoAsync'
-            );
+            let info = await rustplus.getInfoAsync();
             if (!(await rustplus.isResponseValid(info))) return;
-            let mapMarkers = await withTimeout(
-                () => rustplus.getMapMarkersAsync(),
-                RPC_TIMEOUT_MS,
-                'getMapMarkersAsync'
-            );
+            let mapMarkers = await rustplus.getMapMarkersAsync();
             if (!(await rustplus.isResponseValid(mapMarkers))) return;
-            let teamInfo = await withTimeout(
-                () => rustplus.getTeamInfoAsync(),
-                RPC_TIMEOUT_MS,
-                'getTeamInfoAsync'
-            );
+            let teamInfo = await rustplus.getTeamInfoAsync();
             if (!(await rustplus.isResponseValid(teamInfo))) return;
-            let time = await withTimeout(
-                () => rustplus.getTimeAsync(),
-                RPC_TIMEOUT_MS,
-                'getTimeAsync'
-            );
+            let time = await rustplus.getTimeAsync();
             if (!(await rustplus.isResponseValid(time))) return;
 
             if (rustplus.isFirstPoll) {
@@ -81,87 +53,31 @@ module.exports = {
                 rustplus.mapMarkers = new MapMarkers(mapMarkers.mapMarkers, rustplus, client);
             }
 
-            await withTimeout(
-                () => module.exports.handlers(rustplus, client, info, mapMarkers, teamInfo, time),
-                HANDLER_TIMEOUT_MS,
-                'polling handlers'
-            );
+            await module.exports.handlers(rustplus, client, info, mapMarkers, teamInfo, time);
             rustplus.isFirstPoll = false;
         } catch (error) {
-            console.error('CRITICAL: Polling handler error:', error);
-            rustplus.log(null, `POLLING ERROR: ${error.message}`);
-
-            if (error.message && error.message.includes('timed out')) {
-                if (!client.rustplusConnectFailures) client.rustplusConnectFailures = {};
-                if (!client.rustplusLastConnectError) client.rustplusLastConnectError = {};
-                const failureKey = getFailureKey(rustplus);
-                client.rustplusConnectFailures[failureKey] =
-                    (client.rustplusConnectFailures[failureKey] || 0) + 1;
-                client.rustplusLastConnectError[failureKey] = 'RPC_TIMEOUT';
-                rustplus.disconnect();
-            }
+            console.error('POLLING HANDLER ERROR:', error);
+            rustplus.log(null, `POLLING HANDLER ERROR: ${error.message}`);
         } finally {
             rustplus.isPollingHandlerRunning = false;
         }
     },
 
     handlers: async function (rustplus, client, info, mapMarkers, teamInfo, time) {
-        try {
-            await withTimeout(
-                () => TeamHandler.handler(rustplus, client, teamInfo.teamInfo),
-                HANDLER_TIMEOUT_MS,
-                'TeamHandler.handler'
-            );
-            rustplus.team.updateTeam(teamInfo.teamInfo);
+        await TeamHandler.handler(rustplus, client, teamInfo.teamInfo);
+        rustplus.team.updateTeam(teamInfo.teamInfo);
 
-            await withTimeout(
-                () => SmartSwitchHandler.handler(rustplus, client, time.time),
-                HANDLER_TIMEOUT_MS,
-                'SmartSwitchHandler.handler'
-            );
-            TimeHandler.handler(rustplus, client, time.time);
-            await withTimeout(
-                () => VendingMachines.handler(rustplus, client, mapMarkers.mapMarkers),
-                HANDLER_TIMEOUT_MS,
-                'VendingMachines.handler'
-            );
+        await SmartSwitchHandler.handler(rustplus, client, time.time);
+        TimeHandler.handler(rustplus, client, time.time);
+        await VendingMachines.handler(rustplus, client, mapMarkers.mapMarkers);
 
-            rustplus.time.updateTime(time.time);
-            rustplus.info.updateInfo(info.info);
-            rustplus.mapMarkers.updateMapMarkers(mapMarkers.mapMarkers);
+        rustplus.time.updateTime(time.time);
+        rustplus.info.updateInfo(info.info);
+        rustplus.mapMarkers.updateMapMarkers(mapMarkers.mapMarkers);
 
-            await withTimeout(
-                () => SamSiteWarningHandler.handler(rustplus, client),
-                HANDLER_TIMEOUT_MS,
-                'SamSiteWarningHandler.handler'
-            );
-
-            StorageMonitorHandler.handler(rustplus, client).catch((error) => {
-                console.error('STORAGE MONITOR HANDLER ERROR:', error);
-                rustplus.log(null, `STORAGE MONITOR HANDLER ERROR: ${error.message}`);
-            });
-            await withTimeout(
-                () => SmartAlarmHandler.handler(rustplus, client),
-                HANDLER_TIMEOUT_MS,
-                'SmartAlarmHandler.handler'
-            );
-
-            if (rustplus.isFirstPoll) {
-                await withTimeout(
-                    () => InformationHandler.handler(rustplus),
-                    HANDLER_TIMEOUT_MS,
-                    'InformationHandler.handler'
-                );
-            }
-            else {
-                InformationHandler.handler(rustplus).catch((error) => {
-                    console.error('INFORMATION HANDLER ERROR:', error);
-                    rustplus.log(null, `INFORMATION HANDLER ERROR: ${error.message}`);
-                });
-            }
-        } catch (error) {
-            console.error('CRITICAL: Polling handlers error:', error);
-            rustplus.log(null, `HANDLERS ERROR: ${error.message}`);
-        }
+        await InformationHandler.handler(rustplus);
+        await SamSiteWarningHandler.handler(rustplus, client);
+        await StorageMonitorHandler.handler(rustplus, client);
+        await SmartAlarmHandler.handler(rustplus, client);
     },
 };

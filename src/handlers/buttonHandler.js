@@ -632,6 +632,13 @@ module.exports = async (client, interaction) => {
             return;
         }
 
+        await interaction.deferUpdate();
+
+        if (rustplus && rustplus.serverId === ids.serverId && rustplus.isOperational) {
+            await DiscordMessages.sendServerMessage(guildId, ids.serverId, 1);
+            return;
+        }
+
         client.resetRustplusVariables(guildId);
 
         if (instance.activeServer !== null) {
@@ -651,7 +658,7 @@ module.exports = async (client, interaction) => {
         const newRustplus = client.createRustplusInstance(
             guildId, server.serverIp, server.appPort, server.steamId, server.playerToken);
 
-        await DiscordMessages.sendServerMessage(guildId, ids.serverId, null, interaction);
+        await DiscordMessages.sendServerMessage(guildId, ids.serverId, null);
 
         newRustplus.isNewConnection = true;
     }
@@ -875,6 +882,9 @@ module.exports = async (client, interaction) => {
             await interaction.message.delete();
             return;
         }
+
+        await interaction.deferUpdate();
+
         instance.activeServer = null;
         client.setInstance(guildId, instance);
 
@@ -886,7 +896,7 @@ module.exports = async (client, interaction) => {
             delete client.rustplusInstances[guildId];
         }
 
-        await DiscordMessages.sendServerMessage(guildId, ids.serverId, null, interaction);
+        await DiscordMessages.sendServerMessage(guildId, ids.serverId, null);
     }
     else if (interaction.customId.startsWith('ServerDelete')) {
         const ids = JSON.parse(interaction.customId.replace('ServerDelete', ''));

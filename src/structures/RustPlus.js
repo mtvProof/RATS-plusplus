@@ -161,10 +161,23 @@ class RustPlus extends RustPlusLib {
         }
 
         const instance = Client.client.getInstance(this.guildId);
+        if (!this.team || !this.team.leaderSteamId) {
+            this.log(Client.client.intlGet(null, 'warningCap'),
+                'Skipping Lite leader connection update because team info is not available yet.');
+            return;
+        }
+
         const leader = this.team.leaderSteamId;
         if (leader === this.playerId) return;
+        if (!instance.serverListLite || !instance.serverListLite[this.serverId]) return;
         if (!(leader in instance.serverListLite[this.serverId])) return;
         const serverLite = instance.serverListLite[this.serverId][leader];
+
+        if (!serverLite || !serverLite.serverIp || !serverLite.appPort || !serverLite.steamId || !serverLite.playerToken) {
+            this.log(Client.client.intlGet(null, 'warningCap'),
+                `Skipping Lite leader connection update because leader credentials are incomplete for SteamID ${leader}.`);
+            return;
+        }
 
         this.leaderRustPlusInstance = new RustPlusLite(
             this.guildId,
