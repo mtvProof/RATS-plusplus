@@ -25,6 +25,7 @@ module.exports = {
     name: 'disconnected',
     async execute(rustplus, client) {
         rustplus.isOperational = false;
+        rustplus.isPollingHandlerRunning = false;
 
         if (!rustplus.isServerAvailable() && !rustplus.isDeleted) {
             rustplus.deleteThisRustplusInstance();

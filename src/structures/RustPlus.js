@@ -57,6 +57,7 @@ class RustPlus extends RustPlusLib {
         this.isDeleted = false;             /* Is the rustplus instance deleted? */
         this.isNewConnection = false;       /* Is it an actively selected connection (pressed CONNECT button)? */
         this.isFirstPoll = true;            /* Is this the first poll since connection started? */
+        this.isPollingHandlerRunning = false; /* Is the polling handler currently executing? */
 
         /* Interval ids */
         this.pollingTaskId = 0;             /* The id of the main polling mechanism of the rustplus instance. */

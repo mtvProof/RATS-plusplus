@@ -56,8 +56,8 @@ module.exports = {
             await module.exports.handlers(rustplus, client, info, mapMarkers, teamInfo, time);
             rustplus.isFirstPoll = false;
         } catch (error) {
-            console.error('POLLING HANDLER ERROR:', error);
-            rustplus.log(null, `POLLING HANDLER ERROR: ${error.message}`);
+            rustplus.log(client.intlGet(null, 'errorCap'),
+                `POLLING HANDLER ERROR: ${error.message}`, 'error');
         } finally {
             rustplus.isPollingHandlerRunning = false;
         }
