@@ -111,6 +111,10 @@ async function rustPlusLiteConnectedEvent(rustplusLite) {
     if (!rustplusLite.isResponseValid(info)) {
         if (info && info.error === 'not_found') {
             rustplusLite.isActive = false;
+            /* Mark these credentials as invalid to prevent future connection attempts */
+            if (rustplusLite.rustplus && rustplusLite.rustplus.invalidLiteCredentials) {
+                rustplusLite.rustplus.invalidLiteCredentials.add(rustplusLite.steamId);
+            }
             rustplusLite.log(Client.client.intlGet(null, 'warningCap'),
                 `Lite Rust+ token is no longer valid for SteamID ${rustplusLite.steamId} on ` +
                 `${rustplusLite.serverId}; reconnect disabled until that account is re-paired or leader changes.`);

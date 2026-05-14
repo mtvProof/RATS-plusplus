@@ -51,6 +51,7 @@ class RustPlus extends RustPlusLib {
 
         this.leaderRustPlusInstance = null;
         this.uptimeServer = null;
+        this.invalidLiteCredentials = new Set(); /* Steam IDs with known-invalid Rust+ tokens */
 
         /* Status flags */
         this.isOperational = false;         /* Connected to the server, and request is verified. */
@@ -172,6 +173,14 @@ class RustPlus extends RustPlusLib {
         if (leader === this.playerId) return;
         if (!instance.serverListLite || !instance.serverListLite[this.serverId]) return;
         if (!(leader in instance.serverListLite[this.serverId])) return;
+        
+        /* Skip if we already know this Steam ID has invalid credentials */
+        if (this.invalidLiteCredentials.has(leader)) {
+            this.log(Client.client.intlGet(null, 'warningCap'),
+                `Skipping Lite connection for SteamID ${leader} - credentials previously marked as invalid.`);
+            return;
+        }
+        
         const serverLite = instance.serverListLite[this.serverId][leader];
 
         if (!serverLite || !serverLite.serverIp || !serverLite.appPort || !serverLite.steamId || !serverLite.playerToken) {
