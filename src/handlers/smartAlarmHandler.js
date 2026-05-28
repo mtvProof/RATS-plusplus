@@ -48,18 +48,36 @@ module.exports = {
 
                 const info = await rustplus.getEntityInfoAsync(entityId);
                 if (!(await rustplus.isResponseValid(info))) {
-                    if (instance.serverList[serverId].alarms[entityId].reachable) {
-                        await DiscordMessages.sendSmartAlarmNotFoundMessage(guildId, serverId, entityId);
-                        instance.serverList[serverId].alarms[entityId].reachable = false;
-                        client.setInstance(guildId, instance);
-                        await DiscordMessages.sendSmartAlarmMessage(guildId, serverId, entityId);
+                    // Initialize failure counter if it doesn't exist
+                    if (!instance.serverList[serverId].alarms[entityId].failureCount) {
+                        instance.serverList[serverId].alarms[entityId].failureCount = 0;
                     }
+                    
+                    // Increment failure counter
+                    instance.serverList[serverId].alarms[entityId].failureCount += 1;
+                    
+                    // Only mark as unreachable after 3 consecutive failures
+                    if (instance.serverList[serverId].alarms[entityId].failureCount >= 3) {
+                        if (instance.serverList[serverId].alarms[entityId].reachable) {
+                            await DiscordMessages.sendSmartAlarmNotFoundMessage(guildId, serverId, entityId);
+                            instance.serverList[serverId].alarms[entityId].reachable = false;
+                            client.setInstance(guildId, instance);
+                            await DiscordMessages.sendSmartAlarmMessage(guildId, serverId, entityId);
+                        }
+                    }
+                    client.setInstance(guildId, instance);
                 }
                 else {
+                    // Reset failure counter on successful response
+                    instance.serverList[serverId].alarms[entityId].failureCount = 0;
+                    
                     if (!instance.serverList[serverId].alarms[entityId].reachable) {
                         instance.serverList[serverId].alarms[entityId].reachable = true;
                         client.setInstance(guildId, instance);
                         await DiscordMessages.sendSmartAlarmMessage(guildId, serverId, entityId);
+                    }
+                    else {
+                        client.setInstance(guildId, instance);
                     }
                 }
             }

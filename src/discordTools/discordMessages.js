@@ -477,7 +477,15 @@ module.exports = {
 
     sendSmartAlarmTriggerMessage: async function (guildId, serverId, entityId) {
         const instance = Client.client.getInstance(guildId);
-        const entity = instance.serverList[serverId].alarms[entityId];
+        const server = instance.serverList[serverId];
+        
+        if (!server || !server.alarms || !server.alarms[entityId]) {
+            Client.client.log(Client.client.intlGet(null, 'warningCap'),
+                `Smart Alarm ${entityId} not found on server ${serverId} for guild ${guildId}`);
+            return;
+        }
+        
+        const entity = server.alarms[entityId];
 
         const content = {
             embeds: [await DiscordEmbeds.getAlarmEmbed(guildId, serverId, entityId)],

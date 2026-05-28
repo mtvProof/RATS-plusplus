@@ -128,7 +128,8 @@ module.exports = async (client, interaction) => {
         });
     }
     else if (interaction.customId.startsWith('AutoDayNightOnOff')) {
-        const ids = JSON.parse(interaction.customId.replace('AutoDayNightOnOff', ''));
+        const [serverId, entityId] = interaction.customId.replace('AutoDayNightOnOff', '').split(':');
+        const ids = { serverId, entityId };
         const server = instance.serverList[ids.serverId];
 
         if (!server || (server && !server.switches.hasOwnProperty(ids.entityId))) {

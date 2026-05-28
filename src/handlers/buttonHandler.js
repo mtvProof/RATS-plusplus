@@ -1044,28 +1044,28 @@ module.exports = async (client, interaction) => {
         }
         client.setInstance(guildId, instance);
     }
-    else if (interaction.customId.startsWith('SmartAlarmEveryone')) {
-        const ids = JSON.parse(interaction.customId.replace('SmartAlarmEveryone', ''));
-        const server = instance.serverList[ids.serverId];
+    else if (interaction.customId.startsWith('SAEv|')) {
+        const [serverId, entityId] = interaction.customId.replace('SAEv|', '').split('|');
+        const server = instance.serverList[serverId];
 
-        if (!server || (server && !server.alarms.hasOwnProperty(ids.entityId))) {
+        if (!server || (server && !server.alarms.hasOwnProperty(entityId))) {
             await interaction.message.delete();
             return;
         }
 
-        server.alarms[ids.entityId].everyone = !server.alarms[ids.entityId].everyone;
+        server.alarms[entityId].everyone = !server.alarms[entityId].everyone;
         client.setInstance(guildId, instance);
 
         client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
             id: `${verifyId}`,
-            value: `${server.alarms[ids.entityId].everyone}`
+            value: `${server.alarms[entityId].everyone}`
         }));
 
-        await DiscordMessages.sendSmartAlarmMessage(guildId, ids.serverId, ids.entityId, interaction);
+        await DiscordMessages.sendSmartAlarmMessage(guildId, serverId, entityId, interaction);
     }
-    else if (interaction.customId.startsWith('SmartAlarmDelete')) {
-        const ids = JSON.parse(interaction.customId.replace('SmartAlarmDelete', ''));
-        const server = instance.serverList[ids.serverId];
+    else if (interaction.customId.startsWith('SADel|')) {
+        const [serverId, entityId] = interaction.customId.replace('SADel|', '').split('|');
+        const server = instance.serverList[serverId];
 
         if (Config.discord.needAdminPrivileges && !client.isAdministrator(interaction)) {
             await interaction.deferUpdate();
@@ -1074,7 +1074,7 @@ module.exports = async (client, interaction) => {
 
         await interaction.deferUpdate();
 
-        if (!server || (server && !server.alarms.hasOwnProperty(ids.entityId))) {
+        if (!server || (server && !server.alarms.hasOwnProperty(entityId))) {
             try {
                 await interaction.message.delete();
             }
@@ -1084,7 +1084,7 @@ module.exports = async (client, interaction) => {
             return;
         }
 
-        const messageId = server.alarms[ids.entityId].messageId;
+        const messageId = server.alarms[entityId].messageId;
 
         try {
             await interaction.message.delete();
@@ -1097,131 +1097,143 @@ module.exports = async (client, interaction) => {
             await DiscordTools.deleteMessageById(guildId, instance.channelId.alarms, messageId);
         }
 
-        delete server.alarms[ids.entityId];
+        delete server.alarms[entityId];
         client.setInstance(guildId, instance);
     }
-    else if (interaction.customId.startsWith('SmartAlarmEdit')) {
-        const ids = JSON.parse(interaction.customId.replace('SmartAlarmEdit', ''));
-        const server = instance.serverList[ids.serverId];
+    else if (interaction.customId.startsWith('SAEdit|')) {
+        const [serverId, entityId] = interaction.customId.replace('SAEdit|', '').split('|');
+        const server = instance.serverList[serverId];
 
-        if (!server || (server && !server.alarms.hasOwnProperty(ids.entityId))) {
+        if (!server || (server && !server.alarms.hasOwnProperty(entityId))) {
             await interaction.message.delete();
             return;
         }
 
-        const modal = DiscordModals.getSmartAlarmEditModal(guildId, ids.serverId, ids.entityId);
+        const modal = DiscordModals.getSmartAlarmEditModal(guildId, serverId, entityId);
         await interaction.showModal(modal);
     }
-    else if (interaction.customId.startsWith('StorageMonitorToolCupboardEveryone')) {
-        const ids = JSON.parse(interaction.customId.replace('StorageMonitorToolCupboardEveryone', ''));
-        const server = instance.serverList[ids.serverId];
+    else if (interaction.customId.startsWith('SMTCEv|')) {
+        const parts = interaction.customId.substring(7).split('|');
+        const serverId = parts[0];
+        const entityId = parts[1];
+        const server = instance.serverList[serverId];
 
-        if (!server || (server && !server.storageMonitors.hasOwnProperty(ids.entityId))) {
+        if (!server || (server && !server.storageMonitors.hasOwnProperty(entityId))) {
             await interaction.message.delete();
             return;
         }
 
-        server.storageMonitors[ids.entityId].everyone = !server.storageMonitors[ids.entityId].everyone;
+        server.storageMonitors[entityId].everyone = !server.storageMonitors[entityId].everyone;
         client.setInstance(guildId, instance);
 
         client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
             id: `${verifyId}`,
-            value: `${server.storageMonitors[ids.entityId].everyone}`
+            value: `${server.storageMonitors[entityId].everyone}`
         }));
 
-        await DiscordMessages.sendStorageMonitorMessage(guildId, ids.serverId, ids.entityId, interaction);
+        await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId, interaction);
     }
-    else if (interaction.customId.startsWith('StorageMonitorToolCupboardInGame')) {
-        const ids = JSON.parse(interaction.customId.replace('StorageMonitorToolCupboardInGame', ''));
-        const server = instance.serverList[ids.serverId];
+    else if (interaction.customId.startsWith('SMTCIn|')) {
+        const parts = interaction.customId.substring(7).split('|');
+        const serverId = parts[0];
+        const entityId = parts[1];
+        const server = instance.serverList[serverId];
 
-        if (!server || (server && !server.storageMonitors.hasOwnProperty(ids.entityId))) {
+        if (!server || (server && !server.storageMonitors.hasOwnProperty(entityId))) {
             await interaction.message.delete();
             return;
         }
 
-        server.storageMonitors[ids.entityId].inGame = !server.storageMonitors[ids.entityId].inGame;
+        server.storageMonitors[entityId].inGame = !server.storageMonitors[entityId].inGame;
         client.setInstance(guildId, instance);
 
         client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
             id: `${verifyId}`,
-            value: `${server.storageMonitors[ids.entityId].inGame}`
+            value: `${server.storageMonitors[entityId].inGame}`
         }));
 
-        await DiscordMessages.sendStorageMonitorMessage(guildId, ids.serverId, ids.entityId, interaction);
+        await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId, interaction);
     }
-    else if (interaction.customId.startsWith('StorageMonitorEdit')) {
-        const ids = JSON.parse(interaction.customId.replace('StorageMonitorEdit', ''));
-        const server = instance.serverList[ids.serverId];
+    else if (interaction.customId.startsWith('SMEdit|')) {
+        const parts = interaction.customId.substring(7).split('|');
+        const serverId = parts[0];
+        const entityId = parts[1];
+        const server = instance.serverList[serverId];
 
-        if (!server || (server && !server.storageMonitors.hasOwnProperty(ids.entityId))) {
+        if (!server || (server && !server.storageMonitors.hasOwnProperty(entityId))) {
             await interaction.message.delete();
             return;
         }
 
-        const modal = DiscordModals.getStorageMonitorEditModal(guildId, ids.serverId, ids.entityId);
+        const modal = DiscordModals.getStorageMonitorEditModal(guildId, serverId, entityId);
         await interaction.showModal(modal);
     }
-    else if (interaction.customId.startsWith('StorageMonitorToolCupboardDelete')) {
-        const ids = JSON.parse(interaction.customId.replace('StorageMonitorToolCupboardDelete', ''));
-        const server = instance.serverList[ids.serverId];
+    else if (interaction.customId.startsWith('SMTCDel|')) {
+        const parts = interaction.customId.substring(8).split('|');
+        const serverId = parts[0];
+        const entityId = parts[1];
+        const server = instance.serverList[serverId];
 
         if (Config.discord.needAdminPrivileges && !client.isAdministrator(interaction)) {
             interaction.deferUpdate();
             return;
         }
 
-        if (!server || (server && !server.storageMonitors.hasOwnProperty(ids.entityId))) {
+        if (!server || (server && !server.storageMonitors.hasOwnProperty(entityId))) {
             await interaction.message.delete();
             return;
         }
 
         await DiscordTools.deleteMessageById(guildId, instance.channelId.storageMonitors,
-            server.storageMonitors[ids.entityId].messageId);
+            server.storageMonitors[entityId].messageId);
 
-        delete server.storageMonitors[ids.entityId];
+        delete server.storageMonitors[entityId];
         client.setInstance(guildId, instance);
     }
-    else if (interaction.customId.startsWith('StorageMonitorRecycle')) {
-        const ids = JSON.parse(interaction.customId.replace('StorageMonitorRecycle', ''));
-        const server = instance.serverList[ids.serverId];
+    else if (interaction.customId.startsWith('SMRecy|')) {
+        const parts = interaction.customId.substring(7).split('|');
+        const serverId = parts[0];
+        const entityId = parts[1];
+        const server = instance.serverList[serverId];
 
-        if (!server || (server && !server.storageMonitors.hasOwnProperty(ids.entityId))) {
+        if (!server || (server && !server.storageMonitors.hasOwnProperty(entityId))) {
             await interaction.message.delete();
             return;
         }
 
         interaction.deferUpdate();
 
-        if (!rustplus || (rustplus && rustplus.serverId !== ids.serverId)) return;
+        if (!rustplus || (rustplus && rustplus.serverId !== serverId)) return;
 
-        const entityInfo = await rustplus.getEntityInfoAsync(ids.entityId);
+        const entityInfo = await rustplus.getEntityInfoAsync(entityId);
         if (!(await rustplus.isResponseValid(entityInfo))) {
-            if (server.storageMonitors[ids.entityId].reachable) {
-                await DiscordMessages.sendStorageMonitorNotFoundMessage(guildId, ids.serverId, ids.entityId);
+            if (server.storageMonitors[entityId].reachable) {
+                await DiscordMessages.sendStorageMonitorNotFoundMessage(guildId, serverId, entityId);
             }
-            server.storageMonitors[ids.entityId].reachable = false;
+            server.storageMonitors[entityId].reachable = false;
             client.setInstance(guildId, instance);
 
-            await DiscordMessages.sendStorageMonitorMessage(guildId, ids.serverId, ids.entityId);
+            await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
             return;
         }
 
-        server.storageMonitors[ids.entityId].reachable = true;
+        server.storageMonitors[entityId].reachable = true;
         client.setInstance(guildId, instance);
 
         const items = client.rustlabs.getRecycleDataFromArray(entityInfo.entityInfo.payload.items);
 
         const message = await DiscordMessages.sendStorageMonitorRecycleMessage(
-            guildId, ids.serverId, ids.entityId, items);
+            guildId, serverId, entityId, items);
 
         setTimeout(async () => {
             await DiscordTools.deleteMessageById(guildId, instance.channelId.storageMonitors, message.id);
         }, 30000);
     }
-    else if (interaction.customId.startsWith('StorageMonitorContainerDelete')) {
-        const ids = JSON.parse(interaction.customId.replace('StorageMonitorContainerDelete', ''));
-        const server = instance.serverList[ids.serverId];
+    else if (interaction.customId.startsWith('SMCDel|')) {
+        const parts = interaction.customId.substring(7).split('|');
+        const serverId = parts[0];
+        const entityId = parts[1];
+        const server = instance.serverList[serverId];
 
         if (Config.discord.needAdminPrivileges && !client.isAdministrator(interaction)) {
             interaction.deferUpdate();

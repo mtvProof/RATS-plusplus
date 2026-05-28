@@ -37,8 +37,9 @@ module.exports = {
         const connection = getVoiceConnection(guildId);
 
         if (!connection) {
-            Client.client.log(Client.client.intlGet(null, 'errorCap'),
-                `TTS: No active voice connection for guild ${guildId}`);
+            // Silently return false instead of logging error
+            // Client.client.log(Client.client.intlGet(null, 'errorCap'),
+            //     `TTS: No active voice connection for guild ${guildId}`);
             return false;
         }
 

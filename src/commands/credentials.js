@@ -153,9 +153,16 @@ async function addCredentials(client, interaction, verifyId) {
         }
     }
     else {
+        /* Clear invalid credentials flag when adding new credentials */
+        const rustplus = client.rustplusInstances[guildId];
+        if (rustplus && rustplus.invalidLiteCredentials && rustplus.invalidLiteCredentials.has(steamId)) {
+            rustplus.invalidLiteCredentials.delete(steamId);
+            rustplus.log(client.intlGet(null, 'infoCap'),
+                `Cleared invalid credentials flag for SteamID ${steamId} before starting FCM Lite listener.`);
+        }
+        
         require('../util/FcmListenerLite')(client, DiscordTools.getGuild(interaction.guildId), steamId);
 
-        const rustplus = client.rustplusInstances[guildId];
         if (rustplus && rustplus.team.leaderSteamId === steamId) {
             rustplus.updateLeaderRustPlusLiteInstance();
         }
@@ -223,6 +230,14 @@ async function removeCredentials(client, interaction, verifyId) {
             client.fcmListenersLite[guildId][steamId].destroy();
         }
         delete client.fcmListenersLite[guildId][steamId];
+        
+        /* Clear invalid credentials flag when removing credentials */
+        const rustplus = client.rustplusInstances[guildId];
+        if (rustplus && rustplus.invalidLiteCredentials && rustplus.invalidLiteCredentials.has(steamId)) {
+            rustplus.invalidLiteCredentials.delete(steamId);
+            rustplus.log(client.intlGet(null, 'infoCap'),
+                `Cleared invalid credentials flag for SteamID ${steamId} after credential removal.`);
+        }
     }
 
     delete credentials[steamId];

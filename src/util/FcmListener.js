@@ -501,9 +501,14 @@ async function alarmAlarm(client, guild, title, message, body) {
     const server = instance.serverList[serverId];
     const rustplus = client.rustplusInstances[guild.id];
 
-    if (!server || (server && !server.alarms[entityId])) return;
+    if (!server || !server.alarms || !server.alarms[entityId]) {
+        client.log(client.intlGet(null, 'warningCap'),
+            `Smart Alarm ${entityId} from FCM not registered on server ${serverId}`);
+        return;
+    }
 
-    if (!rustplus || (rustplus && (rustplus.serverId !== serverId))) {
+    if ((!rustplus || (rustplus && (rustplus.serverId !== serverId))) &&
+        instance.generalSettings.fcmAlarmNotificationEnabled) {
         server.alarms[entityId].lastTrigger = Math.floor(new Date() / 1000);
         client.setInstance(guild.id, instance);
         await DiscordMessages.sendSmartAlarmTriggerMessage(guild.id, serverId, entityId);

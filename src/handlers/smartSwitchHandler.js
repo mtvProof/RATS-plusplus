@@ -44,22 +44,40 @@ module.exports = {
             for (const entityId in instance.serverList[serverId].switches) {
                 const info = await rustplus.getEntityInfoAsync(entityId);
                 if (!(await rustplus.isResponseValid(info))) {
-                    if (instance.serverList[serverId].switches[entityId].reachable) {
-                        await DiscordMessages.sendSmartSwitchNotFoundMessage(guildId, serverId, entityId);
-                        instance.serverList[serverId].switches[entityId].reachable = false;
-                        client.setInstance(guildId, instance);
-
-                        await DiscordMessages.sendSmartSwitchMessage(guildId, serverId, entityId);
-                        changedSwitches.push(entityId);
+                    // Initialize failure counter if it doesn't exist
+                    if (!instance.serverList[serverId].switches[entityId].failureCount) {
+                        instance.serverList[serverId].switches[entityId].failureCount = 0;
                     }
+                    
+                    // Increment failure counter
+                    instance.serverList[serverId].switches[entityId].failureCount += 1;
+                    
+                    // Only mark as unreachable after 3 consecutive failures
+                    if (instance.serverList[serverId].switches[entityId].failureCount >= 3) {
+                        if (instance.serverList[serverId].switches[entityId].reachable) {
+                            await DiscordMessages.sendSmartSwitchNotFoundMessage(guildId, serverId, entityId);
+                            instance.serverList[serverId].switches[entityId].reachable = false;
+                            client.setInstance(guildId, instance);
+
+                            await DiscordMessages.sendSmartSwitchMessage(guildId, serverId, entityId);
+                            changedSwitches.push(entityId);
+                        }
+                    }
+                    client.setInstance(guildId, instance);
                 }
                 else {
+                    // Reset failure counter on successful response
+                    instance.serverList[serverId].switches[entityId].failureCount = 0;
+                    
                     if (!instance.serverList[serverId].switches[entityId].reachable) {
                         instance.serverList[serverId].switches[entityId].reachable = true;
                         client.setInstance(guildId, instance);
 
                         await DiscordMessages.sendSmartSwitchMessage(guildId, serverId, entityId);
                         changedSwitches.push(entityId);
+                    }
+                    else {
+                        client.setInstance(guildId, instance);
                     }
                 }
             }

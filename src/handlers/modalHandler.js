@@ -327,14 +327,14 @@ module.exports = async (client, interaction) => {
 
         await DiscordMessages.sendSmartSwitchGroupMessage(interaction.guildId, ids.serverId, ids.groupId);
     }
-    else if (interaction.customId.startsWith('SmartAlarmEdit')) {
-        const ids = JSON.parse(interaction.customId.replace('SmartAlarmEdit', ''));
-        const server = instance.serverList[ids.serverId];
+    else if (interaction.customId.startsWith('SAEdit|')) {
+        const [serverId, entityId] = interaction.customId.replace('SAEdit|', '').split('|');
+        const server = instance.serverList[serverId];
         const smartAlarmName = interaction.fields.getTextInputValue('SmartAlarmName');
         const smartAlarmMessage = interaction.fields.getTextInputValue('SmartAlarmMessage');
         const smartAlarmCommand = interaction.fields.getTextInputValue('SmartAlarmCommand');
 
-        if (!server || (server && !server.alarms.hasOwnProperty(ids.entityId))) {
+        if (!server || (server && !server.alarms.hasOwnProperty(entityId))) {
             try {
                 await interaction.deferUpdate();
             } catch (e) {
@@ -349,28 +349,30 @@ module.exports = async (client, interaction) => {
             client.log(client.intlGet(null, 'errorCap'), `Modal deferUpdate failed: ${e}`);
         }
 
-        server.alarms[ids.entityId].name = smartAlarmName;
-        server.alarms[ids.entityId].message = smartAlarmMessage;
+        server.alarms[entityId].name = smartAlarmName;
+        server.alarms[entityId].message = smartAlarmMessage;
 
-        if (smartAlarmCommand !== server.alarms[ids.entityId].command &&
-            !Keywords.getListOfUsedKeywords(client, guildId, ids.serverId).includes(smartAlarmCommand)) {
-            server.alarms[ids.entityId].command = smartAlarmCommand;
+        if (smartAlarmCommand !== server.alarms[entityId].command &&
+            !Keywords.getListOfUsedKeywords(client, guildId, serverId).includes(smartAlarmCommand)) {
+            server.alarms[entityId].command = smartAlarmCommand;
         }
         client.setInstance(guildId, instance);
 
         client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
             id: `${verifyId}`,
-            value: `${smartAlarmName}, ${smartAlarmMessage}, ${server.alarms[ids.entityId].command}`
+            value: `${smartAlarmName}, ${smartAlarmMessage}, ${server.alarms[entityId].command}`
         }));
 
-        await DiscordMessages.sendSmartAlarmMessage(interaction.guildId, ids.serverId, ids.entityId);
+        await DiscordMessages.sendSmartAlarmMessage(interaction.guildId, serverId, entityId);
     }
-    else if (interaction.customId.startsWith('StorageMonitorEdit')) {
-        const ids = JSON.parse(interaction.customId.replace('StorageMonitorEdit', ''));
-        const server = instance.serverList[ids.serverId];
+    else if (interaction.customId.startsWith('SMEdit|')) {
+        const parts = interaction.customId.substring(7).split('|');
+        const serverId = parts[0];
+        const entityId = parts[1];
+        const server = instance.serverList[serverId];
         const storageMonitorName = interaction.fields.getTextInputValue('StorageMonitorName');
 
-        if (!server || (server && !server.storageMonitors.hasOwnProperty(ids.entityId))) {
+        if (!server || (server && !server.storageMonitors.hasOwnProperty(entityId))) {
             try {
                 await interaction.deferUpdate();
             } catch (e) {
@@ -385,7 +387,7 @@ module.exports = async (client, interaction) => {
             client.log(client.intlGet(null, 'errorCap'), `Modal deferUpdate failed: ${e}`);
         }
 
-        server.storageMonitors[ids.entityId].name = storageMonitorName;
+        server.storageMonitors[entityId].name = storageMonitorName;
         client.setInstance(interaction.guildId, instance);
 
         client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'modalValueChange', {
@@ -393,7 +395,7 @@ module.exports = async (client, interaction) => {
             value: `${storageMonitorName}`
         }));
 
-        await DiscordMessages.sendStorageMonitorMessage(interaction.guildId, ids.serverId, ids.entityId);
+        await DiscordMessages.sendStorageMonitorMessage(interaction.guildId, serverId, entityId);
     }
     else if (interaction.customId.startsWith('TrackerEdit')) {
         await interaction.deferUpdate();

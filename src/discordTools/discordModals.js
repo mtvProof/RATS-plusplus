@@ -250,10 +250,10 @@ module.exports = {
     getSmartAlarmEditModal(guildId, serverId, entityId) {
         const instance = Client.client.getInstance(guildId);
         const entity = instance.serverList[serverId].alarms[entityId];
-        const identifier = JSON.stringify({ "serverId": serverId, "entityId": entityId });
+        const identifier = `${serverId}|${entityId}`;
 
         const modal = module.exports.getModal({
-            customId: `SmartAlarmEdit${identifier}`,
+            customId: `SAEdit|${identifier}`,
             title: Client.client.intlGet(guildId, 'editingOf', {
                 entity: entity.name.length > 18 ? `${entity.name.slice(0, 18)}..` : entity.name
             })
@@ -286,10 +286,10 @@ module.exports = {
     getStorageMonitorEditModal(guildId, serverId, entityId) {
         const instance = Client.client.getInstance(guildId);
         const entity = instance.serverList[serverId].storageMonitors[entityId];
-        const identifier = JSON.stringify({ "serverId": serverId, "entityId": entityId });
+        const identifier = `${serverId}|${entityId}`;
 
         const modal = module.exports.getModal({
-            customId: `StorageMonitorEdit${identifier}`,
+            customId: `SMEdit|${identifier}`,
             title: Client.client.intlGet(guildId, 'editingOf', {
                 entity: entity.name.length > 18 ? `${entity.name.slice(0, 18)}..` : entity.name
             })

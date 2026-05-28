@@ -38,22 +38,31 @@ module.exports = {
 
         try {
             let info = await rustplus.getInfoAsync();
-            if (!(await rustplus.isResponseValid(info))) return;
+            let infoValid = await rustplus.isResponseValid(info);
+            
             let mapMarkers = await rustplus.getMapMarkersAsync();
-            if (!(await rustplus.isResponseValid(mapMarkers))) return;
+            let mapMarkersValid = await rustplus.isResponseValid(mapMarkers);
+            
             let teamInfo = await rustplus.getTeamInfoAsync();
-            if (!(await rustplus.isResponseValid(teamInfo))) return;
+            let teamInfoValid = await rustplus.isResponseValid(teamInfo);
+            
             let time = await rustplus.getTimeAsync();
-            if (!(await rustplus.isResponseValid(time))) return;
+            let timeValid = await rustplus.isResponseValid(time);
 
+            // If this is the first poll and any critical data is missing, we need to wait for valid data
             if (rustplus.isFirstPoll) {
+                if (!infoValid || !mapMarkersValid || !teamInfoValid || !timeValid) {
+                    return;
+                }
                 rustplus.info = new Info(info.info);
                 rustplus.time = new Time(time.time, rustplus, client);
                 rustplus.team = new Team(teamInfo.teamInfo, rustplus);
                 rustplus.mapMarkers = new MapMarkers(mapMarkers.mapMarkers, rustplus, client);
             }
 
-            await module.exports.handlers(rustplus, client, info, mapMarkers, teamInfo, time);
+            // Pass both the data and validity flags to handlers
+            await module.exports.handlers(rustplus, client, info, mapMarkers, teamInfo, time, 
+                { infoValid, mapMarkersValid, teamInfoValid, timeValid });
             rustplus.isFirstPoll = false;
         } catch (error) {
             rustplus.log(client.intlGet(null, 'errorCap'),
@@ -63,18 +72,34 @@ module.exports = {
         }
     },
 
-    handlers: async function (rustplus, client, info, mapMarkers, teamInfo, time) {
-        await TeamHandler.handler(rustplus, client, teamInfo.teamInfo);
-        rustplus.team.updateTeam(teamInfo.teamInfo);
+    handlers: async function (rustplus, client, info, mapMarkers, teamInfo, time, validityFlags = {}) {
+        const { infoValid = true, mapMarkersValid = true, teamInfoValid = true, timeValid = true } = validityFlags;
+        
+        // Update team info if valid
+        if (teamInfoValid) {
+            await TeamHandler.handler(rustplus, client, teamInfo.teamInfo);
+            rustplus.team.updateTeam(teamInfo.teamInfo);
+        }
 
-        await SmartSwitchHandler.handler(rustplus, client, time.time);
-        TimeHandler.handler(rustplus, client, time.time);
-        await VendingMachines.handler(rustplus, client, mapMarkers.mapMarkers);
+        // Update smart switches and time if time data is valid
+        if (timeValid) {
+            await SmartSwitchHandler.handler(rustplus, client, time.time);
+            TimeHandler.handler(rustplus, client, time.time);
+            rustplus.time.updateTime(time.time);
+        }
+        
+        // Update vending machines if map markers are valid
+        if (mapMarkersValid) {
+            await VendingMachines.handler(rustplus, client, mapMarkers.mapMarkers);
+            rustplus.mapMarkers.updateMapMarkers(mapMarkers.mapMarkers);
+        }
 
-        rustplus.time.updateTime(time.time);
-        rustplus.info.updateInfo(info.info);
-        rustplus.mapMarkers.updateMapMarkers(mapMarkers.mapMarkers);
+        // Update server info if valid
+        if (infoValid) {
+            rustplus.info.updateInfo(info.info);
+        }
 
+        // Always try to update information displays (uses cached data if no new data)
         await InformationHandler.handler(rustplus);
         await SamSiteWarningHandler.handler(rustplus, client);
         await StorageMonitorHandler.handler(rustplus, client);

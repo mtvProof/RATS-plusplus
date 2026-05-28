@@ -45,6 +45,7 @@ module.exports = (client, guild) => {
                 alarms: null,
                 storageMonitors: null,
                 activity: null,
+                importantAlerts: null,
                 trackers: null
             },
             informationMessageId: {
@@ -138,6 +139,7 @@ module.exports = (client, guild) => {
                 alarms: null,
                 storageMonitors: null,
                 activity: null,
+                importantAlerts: null,
                 trackers: null
             }
         }

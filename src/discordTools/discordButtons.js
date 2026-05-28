@@ -277,21 +277,21 @@ module.exports = {
     getSmartAlarmButtons: function (guildId, serverId, entityId) {
         const instance = Client.client.getInstance(guildId);
         const entity = instance.serverList[serverId].alarms[entityId];
-        const identifier = JSON.stringify({ "serverId": serverId, "entityId": entityId });
+        const identifier = `${serverId}|${entityId}`;
 
         return new Discord.ActionRowBuilder().addComponents(
             module.exports.getButton({
-                customId: `SmartAlarmEveryone${identifier}`,
+                customId: `SAEv|${identifier}`,
                 label: '@everyone',
                 style: entity.everyone ? SUCCESS : DANGER
             }),
             module.exports.getButton({
-                customId: `SmartAlarmEdit${identifier}`,
+                customId: `SAEdit|${identifier}`,
                 label: Client.client.intlGet(guildId, 'editCap'),
                 style: PRIMARY
             }),
             module.exports.getButton({
-                customId: `SmartAlarmDelete${identifier}`,
+                customId: `SADel|${identifier}`,
                 style: SECONDARY,
                 emoji: '🗑️'
             }));
@@ -300,47 +300,47 @@ module.exports = {
     getStorageMonitorToolCupboardButtons: function (guildId, serverId, entityId) {
         const instance = Client.client.getInstance(guildId);
         const entity = instance.serverList[serverId].storageMonitors[entityId];
-        const identifier = JSON.stringify({ "serverId": serverId, "entityId": entityId });
+        const identifier = `${serverId}|${entityId}`;
 
         return new Discord.ActionRowBuilder().addComponents(
             module.exports.getButton({
-                customId: `StorageMonitorToolCupboardEveryone${identifier}`,
+                customId: `SMTCEv|${identifier}`,
                 label: '@everyone',
                 style: entity.everyone ? SUCCESS : DANGER
             }),
             module.exports.getButton({
-                customId: `StorageMonitorToolCupboardInGame${identifier}`,
+                customId: `SMTCIn|${identifier}`,
                 label: Client.client.intlGet(guildId, 'inGameCap'),
                 style: entity.inGame ? SUCCESS : DANGER
             }),
             module.exports.getButton({
-                customId: `StorageMonitorEdit${identifier}`,
+                customId: `SMEdit|${identifier}`,
                 label: Client.client.intlGet(guildId, 'editCap'),
                 style: PRIMARY,
             }),
             module.exports.getButton({
-                customId: `StorageMonitorToolCupboardDelete${identifier}`,
+                customId: `SMTCDel|${identifier}`,
                 style: SECONDARY,
                 emoji: '🗑️'
             }));
     },
 
     getStorageMonitorContainerButton: function (guildId, serverId, entityId) {
-        const identifier = JSON.stringify({ "serverId": serverId, "entityId": entityId });
+        const identifier = `${serverId}|${entityId}`;
 
         return new Discord.ActionRowBuilder().addComponents(
             module.exports.getButton({
-                customId: `StorageMonitorEdit${identifier}`,
+                customId: `SMEdit|${identifier}`,
                 label: Client.client.intlGet(guildId, 'editCap'),
                 style: PRIMARY,
             }),
             module.exports.getButton({
-                customId: `StorageMonitorRecycle${identifier}`,
+                customId: `SMRecy|${identifier}`,
                 label: Client.client.intlGet(guildId, 'recycleCap'),
                 style: PRIMARY,
             }),
             module.exports.getButton({
-                customId: `StorageMonitorContainerDelete${identifier}`,
+                customId: `SMCDel|${identifier}`,
                 style: SECONDARY,
                 emoji: '🗑️'
             }));
