@@ -22,9 +22,13 @@ COPY . .
 FROM node:18-alpine
 
 # Install only runtime dependencies
-RUN apk add --no-cache graphicsmagick
+RUN apk add --no-cache graphicsmagick tini
 
 WORKDIR /app
+
+# Create non-root user for security
+RUN addgroup -g 1001 -S ratspp && \
+    adduser -S -D -H -u 1001 -h /app -s /sbin/nologin -G ratspp -g ratspp ratspp
 
 # Copy installed node_modules from builder
 COPY --from=builder /app/node_modules ./node_modules
@@ -32,11 +36,25 @@ COPY --from=builder /app/node_modules ./node_modules
 # Copy application code
 COPY --from=builder /app .
 
-# Create volume directories
-VOLUME [ "/app/credentials" ]
-VOLUME [ "/app/instances" ]
-VOLUME [ "/app/database" ]
-VOLUME [ "/app/logs" ]
-VOLUME [ "/app/maps" ]
+# Create volume directories and set proper permissions
+RUN mkdir -p /app/credentials /app/instances /app/database /app/logs /app/maps && \
+    chown -R ratspp:ratspp /app
 
+# Use volumes for persistent data
+VOLUME ["/app/credentials", "/app/instances", "/app/database", "/app/logs", "/app/maps"]
+
+# Switch to non-root user
+USER ratspp
+
+# Expose Web UI port (default 3000)
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+    CMD node -e "process.exit(0)" || exit 1
+
+# Use tini as init system to handle signals properly
+ENTRYPOINT ["/sbin/tini", "--"]
+
+# Start the bot
 CMD ["npm", "start"]

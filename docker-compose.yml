@@ -1,16 +1,63 @@
+version: '3.8'
+
 services:
   rustplusbot:
-    image: ghcr.io/faithix/rustplusplus:master
+    # Build from YOUR local code (not FaiThiX fork)
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: mtvproof-ratspp:latest  # Tag it as YOUR image
     container_name: rustplusbot
+    restart: unless-stopped
+    
+    # Environment Variables - Configure your bot here
     environment:
-      - RPP_DISCORD_TOKEN=TOKEN
-      - RPP_DISCORD_CLIENT_ID=CLIENT_ID
-      - RPP_WEBUI_ENABLED=true
-      - RPP_WEBUI_PORT=3000
+      # Required: Discord Bot Configuration
+      - RPP_DISCORD_TOKEN=${RPP_DISCORD_TOKEN:-your_token_here}
+      - RPP_DISCORD_CLIENT_ID=${RPP_DISCORD_CLIENT_ID:-your_client_id_here}
+      - RPP_DISCORD_USERNAME=${RPP_DISCORD_USERNAME:-RATS++}
+      
+      # Optional: General Settings
+      - RPP_LANGUAGE=${RPP_LANGUAGE:-en}
+      - RPP_POLLING_INTERVAL=${RPP_POLLING_INTERVAL:-7000}
+      - RPP_LOG_CALL_STACK=${RPP_LOG_CALL_STACK:-false}
+      - RPP_RECONNECT_INTERVAL=${RPP_RECONNECT_INTERVAL:-15000}
+      - RPP_NEED_ADMIN_PRIVILEGES=${RPP_NEED_ADMIN_PRIVILEGES:-true}
+      
+      # Optional: Web UI Settings
+      - RPP_WEBUI_ENABLED=${RPP_WEBUI_ENABLED:-true}
+      - RPP_WEBUI_PORT=${RPP_WEBUI_PORT:-3000}
+      
+      # Optional: Advanced Settings
+      - NODE_ENV=${NODE_ENV:-production}
+      - TZ=${TZ:-UTC}
+    
+    # Persistent Data Volumes (bind mounts to your local directories)
+    # These directories on your host are mounted into the container
+    # Your data PERSISTS across container restarts and redeployments!
     volumes:
       - ./logs:/app/logs
       - ./instances:/app/instances
       - ./credentials:/app/credentials
       - ./database:/app/database
       - ./maps:/app/maps
-    restart: unless-stopped
+    
+    # Expose Web UI port (if enabled)
+    ports:
+      - "${RPP_WEBUI_PORT:-3000}:${RPP_WEBUI_PORT:-3000}"
+    
+    # Health check to ensure bot is running
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+

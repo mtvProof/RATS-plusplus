@@ -1,2 +1,88 @@
+# Git files
+.git
+.gitignore
+.gitattributes
+
+# Environment files (contains secrets)
+.env
+.env.*
+!.env.example
+
+# Node modules
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Development files
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Documentation
+*.md
+!README.md
 docs/
-node_modules/
+
+# Test files
+test/
+tests/
+*.test.js
+*.spec.js
+
+# Runtime files
+logs/*
+!logs/.gitkeep
+database/*
+!database/.gitkeep
+instances/*
+!instances/.gitkeep
+credentials/*
+!credentials/.gitkeep
+maps/*
+!maps/.gitkeep
+
+# Backup files
+*.backup
+*.bak
+*.old
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Build artifacts
+dist/
+build/
+
+# Scripts not needed in container
+*.bat
+*.sh
+!start-safe.sh
+setup-autostart.sh
+diagnose-startup.sh
+update.sh
+update.bat
+
+# Service files
+*.service
+
+# Docker files (not needed inside the image)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+.travis.yml
+
+# Crowdin
+crowdin.yml

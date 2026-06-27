@@ -18,21 +18,38 @@
 
 */
 
+// Helper function to convert string to boolean
+const parseBoolean = (value, defaultValue = false) => {
+    if (typeof value === 'boolean') return value;
+    if (typeof value === 'string') {
+        const lower = value.toLowerCase().trim();
+        if (lower === 'true' || lower === '1' || lower === 'yes') return true;
+        if (lower === 'false' || lower === '0' || lower === 'no') return false;
+    }
+    return defaultValue;
+};
+
+// Helper function to parse integer with default
+const parseIntWithDefault = (value, defaultValue) => {
+    const parsed = Number.parseInt(value, 10);
+    return Number.isNaN(parsed) ? defaultValue : parsed;
+};
+
 module.exports = {
     general: {
         language: process.env.RPP_LANGUAGE || 'en',
-        pollingIntervalMs: process.env.RPP_POLLING_INTERVAL || 7000,
-        showCallStackError: process.env.RPP_LOG_CALL_STACK || false,
-        reconnectIntervalMs: process.env.RPP_RECONNECT_INTERVAL || 15000,
+        pollingIntervalMs: parseIntWithDefault(process.env.RPP_POLLING_INTERVAL, 7000),
+        showCallStackError: parseBoolean(process.env.RPP_LOG_CALL_STACK, false),
+        reconnectIntervalMs: parseIntWithDefault(process.env.RPP_RECONNECT_INTERVAL, 15000),
     },
     discord: {
         username: process.env.RPP_DISCORD_USERNAME || 'RATS++',
-        clientId: process.env.RPP_DISCORD_CLIENT_ID || '1492324580394536960',
-        token: process.env.RPP_DISCORD_TOKEN || 'MTQ5MjMyNDU4MDM5NDUzNjk2MA.GU6gVx.g9rQOh3w9CTQaR-s_u7WQXR6A_8wm73s9GutSs',
-        needAdminPrivileges: process.env.RPP_NEED_ADMIN_PRIVILEGES || true, /* If true, only admins can delete (server, switch..), manage credentials and reset a channel */
+        clientId: process.env.RPP_DISCORD_CLIENT_ID || '',
+        token: process.env.RPP_DISCORD_TOKEN || '',
+        needAdminPrivileges: parseBoolean(process.env.RPP_NEED_ADMIN_PRIVILEGES, true),
     },
     webui: {
-        enabled: process.env.RPP_WEBUI_ENABLED !== 'false', /* Enable or disable the Web UI */
-        port: process.env.RPP_WEBUI_PORT || 3000, /* Port for the Web UI server */
+        enabled: parseBoolean(process.env.RPP_WEBUI_ENABLED, true),
+        port: parseIntWithDefault(process.env.RPP_WEBUI_PORT, 3000),
     }
 };

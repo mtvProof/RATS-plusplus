@@ -1,0 +1,127 @@
+# Docker Stack Configuration for RATS++ Bot
+# Deploy with: docker stack deploy -c docker-stack.yml ratspp
+# or use in Portainer/other Docker Swarm environments
+
+version: '3.8'
+
+services:
+  rustplusbot:
+    # Use YOUR locally-built image (not FaiThiX fork)
+    # Build first with: docker build -t mtvproof-ratspp:latest .
+    image: mtvproof-ratspp:latest
+    
+    # Deploy configuration for Docker Swarm
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+      placement:
+        constraints:
+          - node.role == manager
+    
+    # Environment Variables - Configure your bot here
+    # IMPORTANT: Set these in your stack environment or use Docker secrets
+    environment:
+      # Required: Discord Bot Configuration
+      - RPP_DISCORD_TOKEN=${RPP_DISCORD_TOKEN}
+      - RPP_DISCORD_CLIENT_ID=${RPP_DISCORD_CLIENT_ID}
+      - RPP_DISCORD_USERNAME=${RPP_DISCORD_USERNAME:-RATS++}
+      
+      # Optional: General Settings
+      - RPP_LANGUAGE=${RPP_LANGUAGE:-en}
+      - RPP_POLLING_INTERVAL=${RPP_POLLING_INTERVAL:-7000}
+      - RPP_LOG_CALL_STACK=${RPP_LOG_CALL_STACK:-false}
+      - RPP_RECONNECT_INTERVAL=${RPP_RECONNECT_INTERVAL:-15000}
+      - RPP_NEED_ADMIN_PRIVILEGES=${RPP_NEED_ADMIN_PRIVILEGES:-true}
+      
+      # Optional: Web UI Settings
+      - RPP_WEBUI_ENABLED=${RPP_WEBUI_ENABLED:-true}
+      - RPP_WEBUI_PORT=${RPP_WEBUI_PORT:-3000}
+      
+      # Optional: Advanced Settings
+      - NODE_ENV=${NODE_ENV:-production}
+      - TZ=${TZ:-UTC}
+    
+    # Persistent Data Volumes (Docker named volumes)
+    # These volumes PERSIST across stack redeployments!
+    # Your credentials and instances are SAFE
+    volumes:
+      - ratspp_logs:/app/logs
+      - ratspp_instances:/app/instances
+      - ratspp_credentials:/app/credentials
+      - ratspp_database:/app/database
+      - ratspp_maps:/app/maps
+    
+    # Expose Web UI port
+    ports:
+      - target: 3000
+        published: 3000
+        protocol: tcp
+        mode: host
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# Named volumes for persistent data
+# IMPORTANT: These volumes PERSIST across stack redeployments!
+# When you run 'docker stack rm ratspp', these volumes are NOT deleted
+# Your credentials, instances, and database are SAFE during updates
+# Only explicitly running 'docker volume rm ratspp_*' will delete them
+volumes:
+  ratspp_logs:
+    driver: local
+  ratspp_instances:
+    driver: local
+  ratspp_credentials:
+    driver: local
+  ratspp_database:
+    driver: local
+  ratspp_maps:
+    driver: local
+
+# Alternative configuration using Docker secrets (more secure)
+# Uncomment and configure the secrets section below if you want to use Docker secrets
+# Then update the environment section to reference the secrets
+
+# secrets:
+#   discord_token:
+#     external: true
+#   discord_client_id:
+#     external: true
+
+# In the service environment section, replace with:
+# - RPP_DISCORD_TOKEN_FILE=/run/secrets/discord_token
+# - RPP_DISCORD_CLIENT_ID_FILE=/run/secrets/discord_client_id
+
+# Create secrets with:
+# echo "your_discord_token" | docker secret create discord_token -
+# echo "your_client_id" | docker secret create discord_client_id -

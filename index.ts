@@ -36,12 +36,14 @@ const client = new DiscordBot({
         Discord.GatewayIntentBits.MessageContent,
         Discord.GatewayIntentBits.GuildMembers,
         Discord.GatewayIntentBits.GuildVoiceStates],
-    retryLimit: 2,
+    retryLimit: 3,
     restRequestTimeout: 60000,
     disableEveryone: false
 });
 
 client.build();
+
+let isShuttingDown = false;
 
 function ensureSingleInstance() {
     try {
@@ -102,6 +104,8 @@ function createMissingDirectories() {
 }
 
 process.on('unhandledRejection', error => {
+    if (isShuttingDown) return;
+    
     client.log(client.intlGet(null, 'errorCap'), client.intlGet(null, 'unhandledRejection', {
         error: error
     }), 'error');
@@ -112,18 +116,64 @@ process.on('unhandledRejection', error => {
 });
 
 process.on('uncaughtException', error => {
+    if (isShuttingDown) return;
+    
     const err = (error instanceof Error) ? error : new Error(String(error));
-    console.error(err.stack || err);
+    console.error('Uncaught Exception:', err.stack || err);
+    
+    // In production/Docker, attempt graceful shutdown on critical errors
+    if (process.env.NODE_ENV === 'production') {
+        gracefulShutdown('uncaughtException');
+    }
 });
 
+async function gracefulShutdown(signal) {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+    
+    console.log(`\n${signal} received. Starting graceful shutdown...`);
+    
+    try {
+        // Set a timeout for forced shutdown
+        const forceShutdownTimeout = setTimeout(() => {
+            console.error('Forced shutdown after timeout');
+            removeSingleInstanceLock();
+            process.exit(1);
+        }, 30000); // 30 seconds timeout
+        
+        // Disconnect all Rust+ connections
+        if (client.activeRustplusInstances) {
+            console.log('Disconnecting Rust+ connections...');
+            for (const [guildId, rustplus] of Object.entries(client.activeRustplusInstances)) {
+                try {
+                    if (rustplus && typeof rustplus.disconnect === 'function') {
+                        await rustplus.disconnect();
+                    }
+                } catch (err) {
+                    console.error(`Error disconnecting guild ${guildId}:`, err);
+                }
+            }
+        }
+        
+        // Destroy Discord client
+        if (client && typeof client.destroy === 'function') {
+            console.log('Disconnecting Discord client...');
+            await client.destroy();
+        }
+        
+        clearTimeout(forceShutdownTimeout);
+        console.log('Graceful shutdown completed');
+        removeSingleInstanceLock();
+        process.exit(0);
+    } catch (error) {
+        console.error('Error during graceful shutdown:', error);
+        removeSingleInstanceLock();
+        process.exit(1);
+    }
+}
+
 process.on('exit', removeSingleInstanceLock);
-process.on('SIGINT', () => {
-    removeSingleInstanceLock();
-    process.exit(0);
-});
-process.on('SIGTERM', () => {
-    removeSingleInstanceLock();
-    process.exit(0);
-});
+process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
 
 exports.client = client;
