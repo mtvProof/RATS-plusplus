@@ -1,0 +1,62 @@
+================================================================================
+RATS++ MINIPC DEPLOYMENT - ESSENTIAL COMMANDS
+================================================================================
+
+STEP 1: ON RASPBERRY PI - Transfer Data
+----------------------------------------
+scp ~/Desktop/RATS-plusplus/ratspp-migration-20260627-004417.tar.gz mtvproof@192.168.0.25:~/
+
+
+STEP 2: ON MINIPC (192.168.0.25) - Setup & Deploy
+--------------------------------------------------
+# Clone repo (has all your changes!)
+cd ~
+git clone https://github.com/mtvProof/RATS-plusplus.git
+cd RATS-plusplus
+
+# Import your data
+mv ~/ratspp-migration-20260627-004417.tar.gz .
+./migrate-data.sh import
+
+# Create .env file with Discord token & client ID
+nano .env
+# Add:
+# RPP_DISCORD_TOKEN=your_token_here
+# RPP_DISCORD_CLIENT_ID=your_client_id_here
+
+# Build & Deploy
+docker build -t mtvproof-ratspp:latest .
+docker swarm init
+docker stack deploy -c docker-stack.yml ratspp
+
+# View logs
+docker service logs -f ratspp_rustplusbot
+
+
+FUTURE UPDATES (After Code Changes)
+------------------------------------
+cd ~/RATS-plusplus
+git pull
+docker build -t mtvproof-ratspp:latest .
+docker service update --image mtvproof-ratspp:latest ratspp_rustplusbot
+
+
+VERIFICATION
+------------
+docker volume ls | grep ratspp        # Should show 5 volumes
+docker stack services ratspp          # Check service status
+docker service ps ratspp_rustplusbot  # Check container status
+
+
+WEB UI ACCESS
+-------------
+http://192.168.0.25:3000
+
+
+YOUR DATA PERSISTS AUTOMATICALLY!
+----------------------------------
+✓ Credentials, instances, and database stored in Docker volumes
+✓ Survives stack redeployments and code updates
+✓ Only deleted if you explicitly run: docker volume rm ratspp_*
+
+================================================================================

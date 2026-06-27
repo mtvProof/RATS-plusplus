@@ -1,0 +1,96 @@
+================================================================================
+MINIPC DEPLOYMENT COMMANDS
+================================================================================
+
+YOU'RE NOW ON MINIPC (192.168.0.25)
+Run these commands:
+
+OPTION 1: AUTOMATED SCRIPT (RECOMMENDED)
+-----------------------------------------
+cd ~
+chmod +x deploy-minipc.sh
+./deploy-minipc.sh
+
+The script will:
+✓ Clone your GitHub repo
+✓ Import your data (credentials, instances, database)
+✓ Create .env file with your Discord credentials
+✓ Build the Docker image
+✓ Initialize Docker Swarm
+✓ Deploy the stack with docker-stack.yml
+
+
+OPTION 2: MANUAL COMMANDS
+--------------------------
+# 1. Clone repo
+cd ~
+git clone https://github.com/mtvProof/RATS-plusplus.git
+cd RATS-plusplus
+
+# 2. Move and import data
+mv ~/ratspp-migration-20260627-004417.tar.gz .
+./migrate-data.sh import
+
+# 3. Create .env file
+nano .env
+# Add these lines:
+RPP_DISCORD_TOKEN=your_discord_token_here
+RPP_DISCORD_CLIENT_ID=your_client_id_here
+# Save: Ctrl+X, Y, Enter
+
+# 4. Build image
+docker build -t mtvproof-ratspp:latest .
+
+# 5. Initialize Swarm
+docker swarm init
+
+# 6. Deploy stack
+docker stack deploy -c docker-stack.yml ratspp
+
+
+VERIFICATION COMMANDS
+---------------------
+# Check stack status
+docker stack services ratspp
+
+# View logs
+docker service logs -f ratspp_rustplusbot
+
+# Check volumes (should show 5)
+docker volume ls | grep ratspp
+
+# Check data in volumes
+docker run --rm -v ratspp_credentials:/data:ro alpine ls -la /data
+docker run --rm -v ratspp_instances:/data:ro alpine ls -la /data
+
+# Access Web UI
+http://192.168.0.25:3000
+
+
+DOCKER STACK YAML LOCATION
+---------------------------
+The file is: ~/RATS-plusplus/docker-stack.yml
+It includes:
+✓ Named volumes for data persistence
+✓ Resource limits (1GB memory, 1 CPU)
+✓ Health checks
+✓ Auto-restart policies
+✓ Your image: mtvproof-ratspp:latest
+
+
+FUTURE UPDATES (NO DATA LOSS)
+------------------------------
+cd ~/RATS-plusplus
+git pull
+docker build -t mtvproof-ratspp:latest .
+docker service update --image mtvproof-ratspp:latest ratspp_rustplusbot
+
+
+YOUR DATA IS SAFE
+------------------
+✓ Stored in Docker named volumes
+✓ Persists across stack redeployments
+✓ Survives code updates
+✓ Only deleted if you run: docker volume rm ratspp_*
+
+================================================================================
