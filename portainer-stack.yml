@@ -1,0 +1,48 @@
+services:
+  rustplusbot:
+    # GitHub Container Registry - auto-built on push
+    image: ghcr.io/mtvproof/rats-plusplus:latest
+    container_name: rustplusbot
+    
+    # IMPORTANT: In Portainer UI, add these environment variables:
+    # Click "Add environment variable" for each:
+    environment:
+      # Required - Set these in Portainer UI:
+      - RPP_DISCORD_TOKEN=YOUR_TOKEN_HERE
+      - RPP_DISCORD_CLIENT_ID=YOUR_CLIENT_ID_HERE
+      
+      # Optional - Modify as needed:
+      - RPP_DISCORD_USERNAME=RATS++
+      - RPP_LANGUAGE=en
+      - RPP_WEBUI_ENABLED=true
+      - RPP_WEBUI_PORT=3000
+      - NODE_ENV=production
+      - TZ=America/New_York
+    
+    # Named volumes - your data persists across redeployments!
+    volumes:
+      - ratspp_credentials:/app/credentials
+      - ratspp_instances:/app/instances
+      - ratspp_database:/app/database
+      - ratspp_logs:/app/logs
+      - ratspp_maps:/app/maps
+    
+    ports:
+      - "3000:3000"
+    
+    restart: unless-stopped
+    
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+# Named volumes ensure data persistence
+volumes:
+  ratspp_credentials:
+  ratspp_instances:
+  ratspp_database:
+  ratspp_logs:
+  ratspp_maps:

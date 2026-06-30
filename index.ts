@@ -127,7 +127,7 @@ process.on('uncaughtException', error => {
     }
 });
 
-async function gracefulShutdown(signal) {
+async function gracefulShutdown(signal: string): Promise<void> {
     if (isShuttingDown) return;
     isShuttingDown = true;
     
@@ -146,8 +146,8 @@ async function gracefulShutdown(signal) {
             console.log('Disconnecting Rust+ connections...');
             for (const [guildId, rustplus] of Object.entries(client.activeRustplusInstances)) {
                 try {
-                    if (rustplus && typeof rustplus.disconnect === 'function') {
-                        await rustplus.disconnect();
+                    if (rustplus && typeof (rustplus as any).disconnect === 'function') {
+                        await (rustplus as any).disconnect();
                     }
                 } catch (err) {
                     console.error(`Error disconnecting guild ${guildId}:`, err);
