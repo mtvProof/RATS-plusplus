@@ -242,17 +242,8 @@ async function pairingServer(client, guild, steamId, title, message, body) {
     client.setInstance(guild.id, instance);
 
     const rustplus = client.rustplusInstances[guild.id];
-    if (rustplus && (rustplus.serverId === serverId)) {
-        /* Clear invalid credentials flag when re-pairing occurs */
-        if (rustplus.invalidLiteCredentials && rustplus.invalidLiteCredentials.has(steamId)) {
-            rustplus.invalidLiteCredentials.delete(steamId);
-            rustplus.log(client.intlGet(null, 'infoCap'),
-                `Cleared invalid credentials flag for SteamID ${steamId} after re-pairing.`);
-        }
-        
-        if (rustplus.team && rustplus.team.leaderSteamId === steamId) {
-            rustplus.updateLeaderRustPlusLiteInstance();
-        }
+    if (rustplus && (rustplus.serverId === serverId) && rustplus.team.leaderSteamId === steamId) {
+        rustplus.updateLeaderRustPlusLiteInstance();
     }
 }
 
