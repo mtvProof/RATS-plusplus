@@ -12,6 +12,10 @@ services:
     env_file:
       - .env
     
+    # Override environment variables for rate limiting
+    environment:
+      - RPP_POLLING_INTERVAL=${RPP_POLLING_INTERVAL:-15000}  # Default 15s to prevent rate limiting
+    
     # Persistent Data Volumes (bind mounts to your local directories)
     # These directories on your host are mounted into the container
     # Your data PERSISTS across container restarts and redeployments!

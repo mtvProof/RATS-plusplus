@@ -60,6 +60,15 @@ The bot was making requests too frequently with **burst patterns**:
 - Already set `RPP_POLLING_INTERVAL=15000` as recommended
 - Updated comments to reflect the new default
 
+### 8. Fixed Team Information Display Race Condition (July 15, 2026 - Evening)
+**Files:** `src/handlers/pollingHandler.js`, `src/handlers/informationHandler.js`
+- **Problem**: Team members randomly showed as AFK when all were offline
+- **Root Cause**: When API requests failed due to rate limiting, `teamInfoValid = false`, but the bot still tried to display team information using stale/partially updated data
+- **Fix**: 
+  - Store validity flags in `rustplus.lastPollValidityFlags` after each poll
+  - Only update team information message when `teamInfoValid = true`
+  - Prevents displaying incorrect AFK/online status from stale data during API failures
+
 ## New Request Rate
 With the new settings:
 - **15 second polling interval**: ~16 base requests per minute

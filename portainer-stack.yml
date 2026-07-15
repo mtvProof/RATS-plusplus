@@ -18,6 +18,7 @@ services:
       - RPP_WEBUI_PORT=3000
       - NODE_ENV=production
       - TZ=America/New_York
+      - RPP_POLLING_INTERVAL=15000  # 15s polling interval to prevent rate limiting (default: 12s)
     
     # Named volumes - your data persists across redeployments!
     volumes:

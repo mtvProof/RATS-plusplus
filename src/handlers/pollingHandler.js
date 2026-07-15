@@ -107,6 +107,9 @@ module.exports = {
             rustplus.info.updateInfo(info.info);
         }
 
+        // Store validity flags for information handler to use
+        rustplus.lastPollValidityFlags = validityFlags;
+
         // Always try to update information displays (uses cached data if no new data)
         await InformationHandler.handler(rustplus);
         await SamSiteWarningHandler.handler(rustplus, client);

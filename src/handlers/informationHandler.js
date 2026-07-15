@@ -23,9 +23,22 @@ const DiscordMessages = require('../discordTools/discordMessages.js');
 module.exports = {
     handler: async function (rustplus) {
         if (rustplus.informationIntervalCounter === 0) {
+            // Get validity flags from last poll (defaults to all true if not set)
+            const validityFlags = rustplus.lastPollValidityFlags || {
+                infoValid: true,
+                mapMarkersValid: true,
+                teamInfoValid: true,
+                timeValid: true
+            };
+
             await DiscordMessages.sendUpdateServerInformationMessage(rustplus);
             await DiscordMessages.sendUpdateEventInformationMessage(rustplus);
-            await DiscordMessages.sendUpdateTeamInformationMessage(rustplus);
+            
+            // Only update team information if we have valid team data
+            if (validityFlags.teamInfoValid) {
+                await DiscordMessages.sendUpdateTeamInformationMessage(rustplus);
+            }
+            
             await DiscordMessages.sendUpdateToolCupboardUpkeepInformationMessage(rustplus);
             await DiscordMessages.sendUpdateMarketWatchlistInformationMessage(rustplus);
             await DiscordMessages.sendUpdateLootInformationMessage(rustplus);
