@@ -38,7 +38,7 @@ const parseIntWithDefault = (value, defaultValue) => {
 module.exports = {
     general: {
         language: process.env.RPP_LANGUAGE || 'en',
-        pollingIntervalMs: parseIntWithDefault(process.env.RPP_POLLING_INTERVAL, 7000),
+        pollingIntervalMs: parseIntWithDefault(process.env.RPP_POLLING_INTERVAL, 15000),
         showCallStackError: parseBoolean(process.env.RPP_LOG_CALL_STACK, false),
         reconnectIntervalMs: parseIntWithDefault(process.env.RPP_RECONNECT_INTERVAL, 15000),
     },

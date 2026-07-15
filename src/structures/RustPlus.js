@@ -40,7 +40,7 @@ const TeamHandler = require('../handlers/teamHandler.js');
 const Timer = require('../util/timer.js');
 
 const TOKENS_LIMIT = 24;        /* Per player */
-const TOKENS_REPLENISH = 3;     /* Per second */
+const TOKENS_REPLENISH = 1.5;   /* Per second - very conservative to prevent rate limiting */
 
 class RustPlus extends RustPlusLib {
     constructor(guildId, serverIp, appPort, steamId, playerToken) {
@@ -329,7 +329,7 @@ class RustPlus extends RustPlusLib {
     async waitForAvailableTokens(cost) {
         let timeoutCounter = 0;
         while (this.tokens < cost) {
-            if (timeoutCounter === 90) return false;
+            if (timeoutCounter === 360) return false;  // 120 seconds timeout (360 × 333ms)
 
             await Timer.sleep(1000 / 3);
             timeoutCounter += 1;

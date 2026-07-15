@@ -1,0 +1,126 @@
+# Rate Limiting Fix - July 15, 2026 (Updated)
+
+## Problem
+The bot was experiencing severe rate limiting from the Rust+ API with errors:
+- "Tokens did not replenish in time"
+- "Timeout reached while waiting for response"
+- Frequent Battlemetrics API failures
+
+## Root Cause
+The Rust+ API uses a token bucket rate limiting system:
+- **24 tokens maximum** (per player)
+- **~2 tokens replenish per second** (actual rate accounting for latency)
+- Each API request costs 1-5 tokens depending on the endpoint
+
+The bot was making requests too frequently with **burst patterns**:
+1. **4 concurrent API calls every poll** - making requests simultaneously without delay
+2. **Smart device polling bursts** - checking ALL switches and storage monitors at once every 6 minutes
+3. **No request spacing** - requests were made in rapid succession, exhausting the token bucket
+
+## Changes Made (Updated July 15, 2026)
+
+### 1. Aggressive Token Replenishment Reduction
+**File:** `src/structures/RustPlus.js`
+- Changed `TOKENS_REPLENISH` from `2` to `1.5` tokens per second
+- This is more conservative and accounts for real-world network conditions
+- Ensures sustainable long-term operation without exhausting tokens
+
+### 2. Extended Token Wait Timeout
+**File:** `src/structures/RustPlus.js`
+- Increased `waitForAvailableTokens` timeout from 60 seconds to 120 seconds
+- Changed timeout counter from 180 iterations to 360 iterations
+- Provides more patience for tokens to replenish during high-load periods
+
+### 3. Increased Default Polling Interval
+**File:** `config/index.js`
+- Changed default `pollingIntervalMs` from `12000ms` to `15000ms` (15 seconds)
+- Reduces baseline API request frequency from ~20/minute to ~16/minute
+- Provides more breathing room for the token bucket to replenish
+
+### 4. Request Spacing in Polling Handler
+**File:** `src/handlers/pollingHandler.js`
+- Added 300ms delays between the 4 main polling requests
+- Prevents burst exhaustion of the token bucket
+- Spreads requests over ~1.2 seconds instead of firing simultaneously
+
+### 5. Smart Switch Check Spacing
+**File:** `src/handlers/smartSwitchHandler.js`
+- Added 500ms delays between individual switch health checks
+- Prevents token bucket exhaustion when checking many switches
+- Reduces burst impact when switch counter hits 0
+
+### 6. Storage Monitor Check Spacing
+**File:** `src/handlers/storageMonitorHandler.js`
+- Added 500ms delays between individual storage monitor checks
+- Prevents token bucket exhaustion when checking many monitors
+- Reduces burst impact when monitor counter hits 0
+
+### 7. Updated Docker Configurations
+**Files:** `docker-compose.yml`, `portainer-stack.yml`
+- Already set `RPP_POLLING_INTERVAL=15000` as recommended
+- Updated comments to reflect the new default
+
+## New Request Rate
+With the new settings:
+- **15 second polling interval**: ~16 base requests per minute
+- **Request spacing**: Spreads 4 requests over 1.2 seconds per poll
+- **Device checks**: Spaced 500ms apart when checking all devices
+
+At 1.5 tokens/second replenishment = **90 tokens per minute available**
+
+This provides a comfortable safety margin:
+- Regular polling (16 tokens/minute base)
+- Smart device burst checks (10-20 tokens/minute when triggered)
+- User commands and interactions (5-10 tokens/minute)
+- Map requests and heavy operations (5 tokens each, occasional)
+- **Total: ~35-50 tokens/minute peak usage vs 90 available**
+
+## How to Apply
+
+### Quick Fix (Restart Only)
+```bash
+# Stop the bot
+npm stop  # or docker compose down
+
+# Start the bot
+npm start  # or docker compose up -d
+```
+
+### For Docker Compose Deployments
+```bash
+# Rebuild and restart
+docker compose down
+docker compose build --no-cache
+docker compose up -d
+```
+
+### For Portainer Deployments
+1. Pull the latest image or rebuild the stack
+2. Redeploy the stack
+3. Or manually set `RPP_POLLING_INTERVAL=20000` for extra safety
+
+## Monitoring
+After applying this fix, monitor your logs for:
+- ✅ Absence of "Tokens did not replenish in time" errors
+- ✅ Absence of "Timeout reached while waiting for response" errors
+- ✅ Successful Battlemetrics API requests
+- ✅ Normal bot operation with slightly slower updates
+
+## Trade-offs
+- **Slower updates**: Information updates every 15 seconds instead of 12 seconds
+- **Slightly delayed device checks**: Small delays between checking multiple devices
+- **More reliable**: Eliminates rate limiting errors and prevents API bans
+- **Better API citizenship**: Respects Rust+ server limits
+
+## Additional Recommendations
+
+If you still experience rate limiting issues:
+1. **Increase polling interval** to `20000` (20 seconds): Set `RPP_POLLING_INTERVAL=20000` in environment variables
+2. **Reduce smart devices**: Unpair switches/monitors you don't actively use
+3. **Disable unused features**: Turn off features that make additional API calls
+- Respond to all commands reliably
+- Update information consistently without errors
+- Stay within rate limits even during peak usage
+
+---
+**Note**: These changes affect all users of this bot. If you're running a fork or custom version, ensure you merge these changes to avoid rate limiting issues.

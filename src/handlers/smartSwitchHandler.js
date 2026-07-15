@@ -41,8 +41,11 @@ module.exports = {
         /* Go through all Smart Switches and see if some of them do not answer on request. */
         const changedSwitches = [];
         if (rustplus.smartSwitchIntervalCounter === 0) {
+            const Timer = require('../util/timer.js');
             for (const entityId in instance.serverList[serverId].switches) {
                 const info = await rustplus.getEntityInfoAsync(entityId);
+                // Add delay between switch checks to prevent rate limiting
+                await Timer.sleep(500);
                 if (!(await rustplus.isResponseValid(info))) {
                     // Initialize failure counter if it doesn't exist
                     if (!instance.serverList[serverId].switches[entityId].failureCount) {

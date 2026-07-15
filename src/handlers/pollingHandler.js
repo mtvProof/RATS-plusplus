@@ -29,6 +29,7 @@ const Team = require('../structures/Team');
 const TeamHandler = require('../handlers/teamHandler.js');
 const Time = require('../structures/Time');
 const TimeHandler = require('../handlers/timeHandler.js');
+const Timer = require('../util/timer.js');
 const VendingMachines = require('../handlers/vendingMachineHandler.js');
 
 module.exports = {
@@ -40,11 +41,18 @@ module.exports = {
             let info = await rustplus.getInfoAsync();
             let infoValid = await rustplus.isResponseValid(info);
             
+            // Add small delay between requests to prevent token burst
+            await Timer.sleep(300);
+            
             let mapMarkers = await rustplus.getMapMarkersAsync();
             let mapMarkersValid = await rustplus.isResponseValid(mapMarkers);
             
+            await Timer.sleep(300);
+            
             let teamInfo = await rustplus.getTeamInfoAsync();
             let teamInfoValid = await rustplus.isResponseValid(teamInfo);
+            
+            await Timer.sleep(300);
             
             let time = await rustplus.getTimeAsync();
             let timeValid = await rustplus.isResponseValid(time);

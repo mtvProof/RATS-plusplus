@@ -55,6 +55,8 @@ module.exports = {
             else {
                 rustplus.storageMonitorIntervalCounter += 1;
             }
+            
+            const Timer = require('../util/timer.js');
 
             if (rustplus.storageMonitorIntervalCounter === 0) {
                 let instance = client.getInstance(guildId);
@@ -62,6 +64,8 @@ module.exports = {
                     instance = client.getInstance(guildId);
 
                     const info = await rustplus.getEntityInfoAsync(entityId);
+                    // Add delay between storage monitor checks to prevent rate limiting
+                    await Timer.sleep(500);
                     if (!(await rustplus.isResponseValid(info))) {
                         if (!suppressNotFound && instance.serverList[serverId].storageMonitors[entityId].reachable) {
                             await DiscordMessages.sendStorageMonitorNotFoundMessage(guildId, serverId, entityId);
