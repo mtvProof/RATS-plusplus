@@ -19,10 +19,10 @@ The bot was making requests too frequently with **burst patterns**:
 
 ## Changes Made (Updated July 15, 2026)
 
-### 1. Aggressive Token Replenishment Reduction
+### 1. Aggressive Token Replenishment Reduction (Updated July 15 - Evening)
 **File:** `src/structures/RustPlus.js`
-- Changed `TOKENS_REPLENISH` from `2` to `1.5` tokens per second
-- This is more conservative and accounts for real-world network conditions
+- **Changed `TOKENS_REPLENISH` from `2` to `1.0` tokens per second** (down from 1.5)
+- This is ULTRA conservative due to constant disconnects observed in production
 - Ensures sustainable long-term operation without exhausting tokens
 
 ### 2. Extended Token Wait Timeout
@@ -31,11 +31,11 @@ The bot was making requests too frequently with **burst patterns**:
 - Changed timeout counter from 180 iterations to 360 iterations
 - Provides more patience for tokens to replenish during high-load periods
 
-### 3. Increased Default Polling Interval
+### 3. Increased Default Polling Interval (Updated July 15 - Evening)
 **File:** `config/index.js`
-- Changed default `pollingIntervalMs` from `12000ms` to `15000ms` (15 seconds)
-- Reduces baseline API request frequency from ~20/minute to ~16/minute
-- Provides more breathing room for the token bucket to replenish
+- **Changed default `pollingIntervalMs` from `12000ms` to `20000ms` (20 seconds)** (up from 15s)
+- Reduces baseline API request frequency from ~20/minute to ~12/minute
+- More aggressive due to constant rate limiting observed in production
 
 ### 4. Request Spacing in Polling Handler
 **File:** `src/handlers/pollingHandler.js`
@@ -69,20 +69,19 @@ The bot was making requests too frequently with **burst patterns**:
   - Only update team information message when `teamInfoValid = true`
   - Prevents displaying incorrect AFK/online status from stale data during API failures
 
-## New Request Rate
-With the new settings:
-- **15 second polling interval**: ~16 base requests per minute
+## New Request Rate (Updated July 15 - Evening)
+With the ULTRA conservative settings:
+- **20 second polling interval**: ~12 base requests per minute
 - **Request spacing**: Spreads 4 requests over 1.2 seconds per poll
 - **Device checks**: Spaced 500ms apart when checking all devices
+- **Token replenishment**: 1.0 tokens/second = 60 tokens/minute available
 
-At 1.5 tokens/second replenishment = **90 tokens per minute available**
-
-This provides a comfortable safety margin:
-- Regular polling (16 tokens/minute base)
+This provides a very comfortable safety margin:
+- Regular polling (12 tokens/minute base)
 - Smart device burst checks (10-20 tokens/minute when triggered)
 - User commands and interactions (5-10 tokens/minute)
 - Map requests and heavy operations (5 tokens each, occasional)
-- **Total: ~35-50 tokens/minute peak usage vs 90 available**
+- **Total: ~30-45 tokens/minute peak usage vs 60 available**
 
 ## How to Apply
 
