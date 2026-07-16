@@ -221,7 +221,9 @@ class Battlemetrics {
             return await Axios.get(api_call);
         }
         catch (e) {
-            return {};
+            Client.client.log(Client.client.intlGet(null, 'errorCap'),
+                `Battlemetrics API error: ${e.response?.status || 'NO_STATUS'} - ${e.message}`, 'error');
+            return { status: e.response?.status || 500, data: null };
         }
     }
 

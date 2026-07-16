@@ -161,7 +161,7 @@ module.exports = {
                 Client.client.intlGet(guildId, 'empty') : ''}`;
             id += '\n';
 
-            if (!bmInstance.players.hasOwnProperty(player.playerId) || !successful) {
+            if (!bmInstance || !bmInstance.players || !bmInstance.players.hasOwnProperty(player.playerId) || !successful) {
                 status += `${Constants.NOT_FOUND_EMOJI}\n`;
             }
             else {
