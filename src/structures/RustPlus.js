@@ -40,7 +40,7 @@ const TeamHandler = require('../handlers/teamHandler.js');
 const Timer = require('../util/timer.js');
 
 const TOKENS_LIMIT = 24;        /* Per player */
-const TOKENS_REPLENISH = 1.0;   /* Per second - ULTRA conservative to prevent constant disconnects */
+const TOKENS_REPLENISH = 2.5;   /* Per second - Conservative rate to balance reliability with responsiveness */
 
 class RustPlus extends RustPlusLib {
     constructor(guildId, serverIp, appPort, steamId, playerToken) {
