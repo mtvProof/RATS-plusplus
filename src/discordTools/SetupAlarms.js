@@ -19,11 +19,16 @@
 */
 
 const DiscordMessages = require('./discordMessages.js');
+const DiscordTools = require('./discordTools.js');
 
 module.exports = async (client, rustplus) => {
     const instance = client.getInstance(rustplus.guildId);
     const guildId = rustplus.guildId;
     const serverId = rustplus.serverId;
+
+    if (rustplus.isNewConnection) {
+        await DiscordTools.clearTextChannel(guildId, instance.channelId.alarms, 100);
+    }
 
     for (const entityId in instance.serverList[serverId].alarms) {
         const entity = instance.serverList[serverId].alarms[entityId];
