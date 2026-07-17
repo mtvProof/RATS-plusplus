@@ -43,7 +43,7 @@ module.exports = async (client, rustplus) => {
         }
 
         // Skip API calls on reconnect to preserve tokens - let periodic handler check health later
-        if (!rustplus.isNewConnection) {
+        if (rustplus.isNewConnection) {
             const info = await rustplus.getEntityInfoAsync(entityId);
 
             if (!(await rustplus.isResponseValid(info))) {
