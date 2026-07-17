@@ -50,8 +50,8 @@ module.exports = async (client, rustplus) => {
             if (entity.reachable) entity.active = info.entityInfo.payload.value;
 
             client.setInstance(guildId, instance);
+            
+            await DiscordMessages.sendSmartSwitchMessage(guildId, serverId, entityId);
         }
-
-        await DiscordMessages.sendSmartSwitchMessage(guildId, serverId, entityId);
     }
 };

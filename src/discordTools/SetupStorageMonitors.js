@@ -76,8 +76,8 @@ module.exports = async (client, rustplus) => {
                     client.setInstance(guildId, instance);
                 }
             }
+            
+            await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
         }
-
-        await DiscordMessages.sendStorageMonitorMessage(guildId, serverId, entityId);
     }
 };
