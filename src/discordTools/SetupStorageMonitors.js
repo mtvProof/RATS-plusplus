@@ -33,41 +33,44 @@ module.exports = async (client, rustplus) => {
 
     for (const entityId in instance.serverList[serverId].storageMonitors) {
         const entity = instance.serverList[serverId].storageMonitors[entityId];
-        const info = await rustplus.getEntityInfoAsync(entityId);
+        
+        // Skip API calls on reconnect to preserve tokens - let periodic handler check health later
+        if (!rustplus.isNewConnection) {
+            const info = await rustplus.getEntityInfoAsync(entityId);
 
-        if (!(await rustplus.isResponseValid(info))) {
-            if (entity.reachable === true) {
-                await DiscordMessages.sendStorageMonitorNotFoundMessage(guildId, serverId, entityId);
-            }
-            entity.reachable = false;
-        }
-        else {
-            entity.reachable = true;
-        }
-        client.setInstance(guildId, instance);
-
-        if (entity.reachable) {
-            rustplus.storageMonitors[entityId] = {
-                items: info.entityInfo.payload.items,
-                expiry: info.entityInfo.payload.protectionExpiry,
-                capacity: info.entityInfo.payload.capacity,
-                hasProtection: info.entityInfo.payload.hasProtection
-            }
-
-            if (info.entityInfo.payload.capacity !== 0) {
-                if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_TOOL_CUPBOARD_CAPACITY) {
-                    entity.type = 'toolCupboard';
-                    if (info.entityInfo.payload.protectionExpiry === 0) {
-                        entity.decaying = true;
-                    }
-                    else {
-                        entity.decaying = false;
-                    }
+            if (!(await rustplus.isResponseValid(info))) {
+                if (entity.reachable === true) {
+                    await DiscordMessages.sendStorageMonitorNotFoundMessage(guildId, serverId, entityId);
                 }
-                else if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_VENDING_MACHINE_CAPACITY) {
-                    entity.type = 'vendingMachine';
+                entity.reachable = false;
+            }
+            else {
+                entity.reachable = true;
+            }
+            client.setInstance(guildId, instance);
+
+            if (entity.reachable) {
+                rustplus.storageMonitors[entityId] = {
+                    items: info.entityInfo.payload.items,
+                    expiry: info.entityInfo.payload.protectionExpiry,
+                    capacity: info.entityInfo.payload.capacity,
+                    hasProtection: info.entityInfo.payload.hasProtection
                 }
-                else if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_LARGE_WOOD_BOX_CAPACITY) {
+
+                if (info.entityInfo.payload.capacity !== 0) {
+                    if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_TOOL_CUPBOARD_CAPACITY) {
+                        entity.type = 'toolCupboard';
+                        if (info.entityInfo.payload.protectionExpiry === 0) {
+                            entity.decaying = true;
+                        }
+                        else {
+                            entity.decaying = false;
+                        }
+                    }
+                    else if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_VENDING_MACHINE_CAPACITY) {
+                        entity.type = 'vendingMachine';
+                    }
+                    else if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_LARGE_WOOD_BOX_CAPACITY) {
                     entity.type = 'largeWoodBox';
                 }
                 client.setInstance(guildId, instance);
