@@ -41,18 +41,11 @@ module.exports = {
             let info = await rustplus.getInfoAsync();
             let infoValid = await rustplus.isResponseValid(info);
             
-            // Add delay between requests to prevent token bucket depletion
-            await Timer.sleep(1000);
-            
             let mapMarkers = await rustplus.getMapMarkersAsync();
             let mapMarkersValid = await rustplus.isResponseValid(mapMarkers);
             
-            await Timer.sleep(1000);
-            
             let teamInfo = await rustplus.getTeamInfoAsync();
             let teamInfoValid = await rustplus.isResponseValid(teamInfo);
-            
-            await Timer.sleep(1000);
             
             let time = await rustplus.getTimeAsync();
             let timeValid = await rustplus.isResponseValid(time);
