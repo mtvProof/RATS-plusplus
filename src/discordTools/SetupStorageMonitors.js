@@ -71,9 +71,10 @@ module.exports = async (client, rustplus) => {
                         entity.type = 'vendingMachine';
                     }
                     else if (info.entityInfo.payload.capacity === Constants.STORAGE_MONITOR_LARGE_WOOD_BOX_CAPACITY) {
-                    entity.type = 'largeWoodBox';
+                        entity.type = 'largeWoodBox';
+                    }
+                    client.setInstance(guildId, instance);
                 }
-                client.setInstance(guildId, instance);
             }
         }
 
