@@ -32,21 +32,25 @@ module.exports = async (client, rustplus) => {
 
     for (const entityId in instance.serverList[serverId].switches) {
         const entity = instance.serverList[serverId].switches[entityId];
-        const info = await rustplus.getEntityInfoAsync(entityId);
+        
+        // Skip API calls on reconnect to preserve tokens - let periodic handler check health later
+        if (!rustplus.isNewConnection) {
+            const info = await rustplus.getEntityInfoAsync(entityId);
 
-        if (!(await rustplus.isResponseValid(info))) {
-            if (entity.reachable === true && !rustplus.isNewConnection) {
-                await DiscordMessages.sendSmartSwitchNotFoundMessage(guildId, serverId, entityId);
+            if (!(await rustplus.isResponseValid(info))) {
+                if (entity.reachable === true) {
+                    await DiscordMessages.sendSmartSwitchNotFoundMessage(guildId, serverId, entityId);
+                }
+                entity.reachable = false;
             }
-            entity.reachable = false;
-        }
-        else {
-            entity.reachable = true;
-        }
+            else {
+                entity.reachable = true;
+            }
 
-        if (entity.reachable) entity.active = info.entityInfo.payload.value;
+            if (entity.reachable) entity.active = info.entityInfo.payload.value;
 
-        client.setInstance(guildId, instance);
+            client.setInstance(guildId, instance);
+        }
 
         await DiscordMessages.sendSmartSwitchMessage(guildId, serverId, entityId);
     }
