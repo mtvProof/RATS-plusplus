@@ -49,7 +49,12 @@ module.exports = {
             const suppressNotFound = isReconnecting || (rustplus.uptimeServer &&
                 (Date.now() - rustplus.uptimeServer.getTime()) < 5 * 60 * 1000);
 
-            if (rustplus.storageMonitorIntervalCounter === 29) {
+            if (rustplus.storageMonitorIntervalCounter === undefined) {
+                /* Offset from the smart switch sweep so both entity-check bursts don't
+                   stack on the same poll cycle and drain the token bucket together. */
+                rustplus.storageMonitorIntervalCounter = 10;
+            }
+            else if (rustplus.storageMonitorIntervalCounter === 29) {
                 rustplus.storageMonitorIntervalCounter = 0;
             }
             else {

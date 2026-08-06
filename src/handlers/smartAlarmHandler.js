@@ -29,7 +29,13 @@ module.exports = {
 
         if (!instance.serverList.hasOwnProperty(serverId)) return;
 
-        if (rustplus.smartAlarmIntervalCounter === 29) {
+        if (rustplus.smartAlarmIntervalCounter === undefined) {
+            /* Offset from the smart switch and storage monitor sweeps so all three
+               entity-check bursts land on different poll cycles instead of stacking
+               together and draining the token bucket at once. */
+            rustplus.smartAlarmIntervalCounter = 20;
+        }
+        else if (rustplus.smartAlarmIntervalCounter === 29) {
             rustplus.smartAlarmIntervalCounter = 0;
         }
         else {
@@ -47,6 +53,8 @@ module.exports = {
                 }
 
                 const info = await rustplus.getEntityInfoAsync(entityId);
+                // Add delay between alarm checks to prevent rate limiting
+                await Timer.sleep(500);
                 if (!(await rustplus.isResponseValid(info))) {
                     // Initialize failure counter if it doesn't exist
                     if (!instance.serverList[serverId].alarms[entityId].failureCount) {

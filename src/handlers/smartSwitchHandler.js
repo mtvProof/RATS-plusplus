@@ -31,7 +31,10 @@ module.exports = {
 
         if (!instance.serverList.hasOwnProperty(serverId)) return;
 
-        if (rustplus.smartSwitchIntervalCounter === 29) {
+        if (rustplus.smartSwitchIntervalCounter === undefined) {
+            rustplus.smartSwitchIntervalCounter = 0;
+        }
+        else if (rustplus.smartSwitchIntervalCounter === 29) {
             rustplus.smartSwitchIntervalCounter = 0;
         }
         else {
