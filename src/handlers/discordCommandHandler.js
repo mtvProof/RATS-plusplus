@@ -98,10 +98,6 @@ module.exports = {
                 commandLowerCase === `${prefix}${client.intlGet(guildId, 'commandSyntaxMarkers')}`)) {
             response = client.intlGet(rustplus.guildId, 'commandNotPossibleDiscord');
         }
-        else if (commandLowerCase.startsWith(`${prefix}${client.intlGet('en', 'commandSyntaxMarket')} `) ||
-            commandLowerCase.startsWith(`${prefix}${client.intlGet(guildId, 'commandSyntaxMarket')} `)) {
-            response = client.intlGet(rustplus.guildId, 'commandNotPossibleDiscord');
-        }
         else if (commandLowerCase === `${prefix}${client.intlGet('en', 'commandSyntaxMute')}` ||
             commandLowerCase === `${prefix}${client.intlGet(guildId, 'commandSyntaxMute')}`) {
             response = rustplus.getCommandMute();

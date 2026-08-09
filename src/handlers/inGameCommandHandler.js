@@ -105,13 +105,6 @@ module.exports = {
                 commandLowerCase === `${prefix}${client.intlGet(guildId, 'commandSyntaxMarkers')}`)) {
             rustplus.sendInGameMessage(await rustplus.getCommandMarker(command, callerSteamId));
         }
-        else if (commandLowerCase.startsWith(`${prefix}${client.intlGet('en', 'commandSyntaxMarket')} `) ||
-            commandLowerCase.startsWith(`${prefix}${client.intlGet(guildId, 'commandSyntaxMarket')} `)) {
-                let response = rustplus.getCommandMarket(command);
-                if (typeof response === 'string' && response.length > 0) {
-                    rustplus.sendInGameMessage(response);
-                }
-        }
         else if (commandLowerCase === `${prefix}${client.intlGet('en', 'commandSyntaxMute')}` ||
             commandLowerCase === `${prefix}${client.intlGet(guildId, 'commandSyntaxMute')}`) {
             rustplus.sendInGameMessage(rustplus.getCommandMute());

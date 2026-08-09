@@ -62,11 +62,6 @@ module.exports = (client, guild) => {
             serverList: {},
             serverListLite: {},
             trackers: {},
-            marketSubscriptionList: {
-                all: [],
-                buy: [],
-                sell: []
-            },
             teamChatColors: {},
             blacklist: {
                 discordIds: [],
@@ -162,7 +157,6 @@ module.exports = (client, guild) => {
             instance.informationMessageId = {
                 map: null,
                 server: null,
-                event: null,
                 team: null,
                 battlemetricsPlayers: null,
                 toolCupboardUpkeep: null
@@ -187,14 +181,7 @@ module.exports = (client, guild) => {
         if (!instance.hasOwnProperty('serverList')) instance.serverList = {};
         if (!instance.hasOwnProperty('serverListLite')) instance.serverListLite = {};
         if (!instance.hasOwnProperty('trackers')) instance.trackers = {};
-        if (!instance.hasOwnProperty('marketSubscriptionList')) instance.marketSubscriptionList = {
-            all: [],
-            buy: [],
-            sell: []
-        }
-        if (!instance.marketSubscriptionList.hasOwnProperty('all')) instance.marketSubscriptionList['all'] = [];
-        if (!instance.marketSubscriptionList.hasOwnProperty('buy')) instance.marketSubscriptionList['buy'] = [];
-        if (!instance.marketSubscriptionList.hasOwnProperty('sell')) instance.marketSubscriptionList['sell'] = [];
+        delete instance.marketSubscriptionList;
         if (!instance.hasOwnProperty('teamChatColors')) instance.teamChatColors = {};
         if (!instance.hasOwnProperty('blacklist')) instance.blacklist = {
             discordIds: [],

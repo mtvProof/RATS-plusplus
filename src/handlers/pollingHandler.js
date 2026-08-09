@@ -30,7 +30,6 @@ const TeamHandler = require('../handlers/teamHandler.js');
 const Time = require('../structures/Time');
 const TimeHandler = require('../handlers/timeHandler.js');
 const Timer = require('../util/timer.js');
-const VendingMachines = require('../handlers/vendingMachineHandler.js');
 
 module.exports = {
     pollingHandler: async function (rustplus, client) {
@@ -89,9 +88,8 @@ module.exports = {
             rustplus.time.updateTime(time.time);
         }
         
-        // Update vending machines if map markers are valid
+        // Update map markers if valid
         if (mapMarkersValid) {
-            await VendingMachines.handler(rustplus, client, mapMarkers.mapMarkers);
             rustplus.mapMarkers.updateMapMarkers(mapMarkers.mapMarkers);
         }
 
