@@ -455,7 +455,6 @@
     "isNoLongerConnected": "{device} больше не подключен к электричеству!",
     "item": "Предмет",
     "itemAvailableInVendingMachine": "Только что {items} стал доступен в торговом автомате [{location}].",
-    "itemAvailableNotifyInGameSetting": "Когда предмет из списка подписки становится доступным в торговом автомате, уведомлять об этом в игре?",
     "junkyard": "Свалке",
     "justSubscribedToItem": "Вы подписались на предмет: ({name}).",
     "languageCode": "Языковой код: {code}",

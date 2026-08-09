@@ -433,7 +433,6 @@
     "isNoLongerConnected": "{device} n'est plus connecté électriquement !",
     "item": "Item",
     "itemAvailableInVendingMachine": "{items} Vient d'être disponible dans une vending Machine en [{location}].",
-    "itemAvailableNotifyInGameSetting": "Lorsqu'un item de la liste d'abonnement devient disponible dans une vending Machine, le prévenir en jeu ?",
     "junkyard": "Décharge",
     "justSubscribedToItem": "Vous venez de vous abonner à l'item {name}.",
     "languageCode": "Code de langue: {code}",

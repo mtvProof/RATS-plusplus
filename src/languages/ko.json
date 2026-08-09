@@ -435,7 +435,6 @@
     "isNoLongerConnected": "{device}이(가) 더 이상 연결되어 있지 않습니다!",
     "item": "아이템",
     "itemAvailableInVendingMachine": "{items}이(가) [{location}]에 있는 자동 판매기에서 발견 되었습니다.",
-    "itemAvailableNotifyInGameSetting": "자동 판매기에서 구독 목록의 항목이 발견 되면 게임 내에 알림을 보내시겠습니까?",
     "junkyard": "폐차장",
     "justSubscribedToItem": "{name}을 구독했습니다.",
     "languageCode": "언어 코드: {code}",

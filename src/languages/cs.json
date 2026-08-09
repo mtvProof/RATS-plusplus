@@ -435,7 +435,6 @@
     "isNoLongerConnected": "{device} is no longer electrically connected!",
     "item": "Item",
     "itemAvailableInVendingMachine": "{items} just became available in a Vending Machine at [{location}].",
-    "itemAvailableNotifyInGameSetting": "When an item from the subscription list becomes available in a Vending Machine, notify In-Game?",
     "junkyard": "Junkyard",
     "justSubscribedToItem": "Just subscribed to item {name}.",
     "languageCode": "Language code: {code}",

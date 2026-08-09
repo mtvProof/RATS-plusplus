@@ -581,17 +581,6 @@ module.exports = {
             }));
     },
 
-    getItemAvailableNotifyInGameButton: function (guildId, enabled) {
-        return new Discord.ActionRowBuilder().addComponents(
-            module.exports.getButton({
-                customId: 'ItemAvailableNotifyInGame',
-                label: enabled ?
-                    Client.client.intlGet(guildId, 'enabledCap') :
-                    Client.client.intlGet(guildId, 'disabledCap'),
-                style: enabled ? SUCCESS : DANGER
-            }));
-    },
-
     getHelpButtons: function () {
         return [
             new Discord.ActionRowBuilder().addComponents(

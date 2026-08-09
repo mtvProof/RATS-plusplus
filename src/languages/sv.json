@@ -431,7 +431,6 @@
     "isNoLongerConnected": "{device} är inte längre elektroniskt kopplad!",
     "item": "Föremål",
     "itemAvailableInVendingMachine": "{items} blev precis tillgänglig i en varuautomat vid [{location}].",
-    "itemAvailableNotifyInGameSetting": "När ett föremål från prenumerationslistan blir tillgängligt i en varuautomat, meddela i spelet?",
     "junkyard": "Skrotupplag",
     "justSubscribedToItem": "Prenumererade precis på föremålet {name}.",
     "languageCode": "Språk kod: {code}",

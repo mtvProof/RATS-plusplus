@@ -431,7 +431,6 @@
     "isNoLongerConnected": "{device} já não está conectado eletricamente!",
     "item": "Item",
     "itemAvailableInVendingMachine": "{items} acabou de ficar disponível numa Máquina de Venda Automática em [{location}].",
-    "itemAvailableNotifyInGameSetting": "Quando um item da lista de subscrição ficar disponível numa Máquina de Venda, notificar no jogo?",
     "junkyard": "Ferro-velho",
     "justSubscribedToItem": "Subscreveu o item {name}.",
     "languageCode": "Código de idioma: {code}",

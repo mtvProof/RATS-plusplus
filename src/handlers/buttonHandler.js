@@ -480,24 +480,6 @@ module.exports = async (client, interaction) => {
             components: [DiscordButtons.getMapWipeNotifyEveryoneButton(instance.generalSettings.mapWipeNotifyEveryone)]
         });
     }
-    else if (interaction.customId === 'ItemAvailableNotifyInGame') {
-        instance.generalSettings.itemAvailableInVendingMachineNotifyInGame =
-            !instance.generalSettings.itemAvailableInVendingMachineNotifyInGame;
-        client.setInstance(guildId, instance);
-
-        if (rustplus) rustplus.generalSettings.itemAvailableInVendingMachineNotifyInGame =
-            instance.generalSettings.itemAvailableInVendingMachineNotifyInGame;
-
-        client.log(client.intlGet(null, 'infoCap'), client.intlGet(null, 'buttonValueChange', {
-            id: `${verifyId}`,
-            value: `${instance.generalSettings.itemAvailableInVendingMachineNotifyInGame}`
-        }));
-
-        await client.interactionUpdate(interaction, {
-            components: [DiscordButtons.getItemAvailableNotifyInGameButton(guildId,
-                instance.generalSettings.itemAvailableInVendingMachineNotifyInGame)]
-        });
-    }
     else if (interaction.customId === 'DisplayInformationBattlemetricsAllOnlinePlayers') {
         instance.generalSettings.displayInformationBattlemetricsAllOnlinePlayers =
             !instance.generalSettings.displayInformationBattlemetricsAllOnlinePlayers;

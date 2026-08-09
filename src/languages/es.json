@@ -436,7 +436,6 @@
     "isNoLongerConnected": "¡{device} ya no está conectado eléctricamente!",
     "item": "Item",
     "itemAvailableInVendingMachine": "{items} está disponible en una Máquina Expendedora en [{location}].",
-    "itemAvailableNotifyInGameSetting": "Cuándo un item de la lista esté disponible en una Máquina Expendedora, ¿notificar en el juego?",
     "junkyard": "Vertedero",
     "justSubscribedToItem": "Acaba de suscribirse al item {name}.",
     "languageCode": "El código del idioma: {code}",

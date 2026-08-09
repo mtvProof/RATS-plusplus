@@ -431,7 +431,6 @@
     "isNoLongerConnected": "{device} elektrik bağlantısını kaybetti!",
     "item": "Öge",
     "itemAvailableInVendingMachine": "{items}, [{location}] adresindeki bir Otomatta kullanıma sunuldu.",
-    "itemAvailableNotifyInGameSetting": "Abonelik listesinden bir öğe bir Otomatta kullanılabilir olduğunda, Oyun İçi bilgilendirilsin mi?",
     "junkyard": "Hurdalık",
     "justSubscribedToItem": "Ögeye abone olundu - {name}.",
     "languageCode": "Dil Kodu: {code}",

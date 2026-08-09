@@ -435,7 +435,6 @@
     "isNoLongerConnected": "{device} ist nicht mehr elektrisch verbunden!",
     "item": "Gegenstand",
     "itemAvailableInVendingMachine": "{items} ist gerade in einem Verkaufsautomaten [{location}] verfügbar geworden.",
-    "itemAvailableNotifyInGameSetting": "In-Game benachrichtigen, wenn ein abonnierter Gegenstand in einem Verkaufsautomaten verfügbar wird?",
     "junkyard": "Schrottplatz",
     "justSubscribedToItem": "Gegenstand `{name}` ist jetzt abonniert.",
     "languageCode": "Sprachkennzeichen: {code}",

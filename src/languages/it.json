@@ -435,7 +435,6 @@
     "isNoLongerConnected": "{device} non è più connesso elettricamente!",
     "item": "Oggetto",
     "itemAvailableInVendingMachine": "{items} è appena diventato disponibile in un Distributore Automatico in [{location}].",
-    "itemAvailableNotifyInGameSetting": "Quando un oggetto dall'elenco di iscrizione diventa disponibile in un Distributore Automatico, notificare in gioco?",
     "junkyard": "Discarica",
     "justSubscribedToItem": "Appena iscritto all'oggetto {name}.",
     "languageCode": "Codice lingua: {code}",
