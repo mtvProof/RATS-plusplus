@@ -51,11 +51,9 @@ module.exports = (client, guild) => {
             informationMessageId: {
                 map: null,
                 server: null,
-                event: null,
                 team: null,
                 battlemetricsPlayers: null,
                 toolCupboardUpkeep: null,
-                marketWatchlist: null,
                 loot: null
             },
             switchGroupsMessageId: null,
@@ -173,13 +171,13 @@ module.exports = (client, guild) => {
         else {
             if (!instance.informationMessageId.hasOwnProperty('map')) instance.informationMessageId.map = null;
             if (!instance.informationMessageId.hasOwnProperty('server')) instance.informationMessageId.server = null;
-            if (!instance.informationMessageId.hasOwnProperty('event')) instance.informationMessageId.event = null;
             if (!instance.informationMessageId.hasOwnProperty('team')) instance.informationMessageId.team = null;
             if (!instance.informationMessageId.hasOwnProperty('team'))
                 instance.informationMessageId.battlemetricsPlayers = null;
             if (!instance.informationMessageId.hasOwnProperty('toolCupboardUpkeep')) instance.informationMessageId.toolCupboardUpkeep = null;
-            if (!instance.informationMessageId.hasOwnProperty('marketWatchlist')) instance.informationMessageId.marketWatchlist = null;
             if (!instance.informationMessageId.hasOwnProperty('loot')) instance.informationMessageId.loot = null;
+            delete instance.informationMessageId.event;
+            delete instance.informationMessageId.marketWatchlist;
         }
 
         if (!instance.hasOwnProperty('switchGroupsMessageId')) instance.switchGroupsMessageId = null;

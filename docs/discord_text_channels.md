@@ -18,7 +18,7 @@
 
 ## Information Channel
 
-> The Information Channel present information about the currently connected Rust Server. It is split up into four sections, `The Map`, `Server Information`, `Event Information` and `Team Member Information` (See below).
+> The Information Channel present information about the currently connected Rust Server. It is split up into three sections, `The Map`, `Server Information` and `Team Member Information` (See below).
 
 **The Map** is simple an image of the Rust Server Map.
 <br>
@@ -33,14 +33,6 @@
 - Map Salt
 - Map Name
 - Connect information for join through In-Game console
-<br>
-
-**Event Information** shows event activities In-Game such as:
-- Cargoship
-- Patrol Helicopter
-- Small Oil Rig
-- Large Oil Rig
-- Chinookk 47
 <br>
 
 **Team Member Information** shows the entire team. Whos online/offline/afk/alive/dead, location, leader and paired.

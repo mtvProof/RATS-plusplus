@@ -32,7 +32,6 @@ module.exports = {
             };
 
             await DiscordMessages.sendUpdateServerInformationMessage(rustplus);
-            await DiscordMessages.sendUpdateEventInformationMessage(rustplus);
             
             // Only update team information if we have valid team data
             if (validityFlags.teamInfoValid) {
@@ -40,7 +39,6 @@ module.exports = {
             }
             
             await DiscordMessages.sendUpdateToolCupboardUpkeepInformationMessage(rustplus);
-            await DiscordMessages.sendUpdateMarketWatchlistInformationMessage(rustplus);
             await DiscordMessages.sendUpdateLootInformationMessage(rustplus);
         }
 

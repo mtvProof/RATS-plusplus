@@ -681,25 +681,6 @@ module.exports = {
         }
     },
 
-    sendUpdateEventInformationMessage: async function (rustplus) {
-        const instance = Client.client.getInstance(rustplus.guildId);
-
-        const content = {
-            embeds: [DiscordEmbeds.getUpdateEventInformationEmbed(rustplus)],
-            files: [new Discord.AttachmentBuilder(
-                Path.join(__dirname, '..', 'resources/images/event_info_logo.png')
-            )]
-        }
-
-        const message = await module.exports.sendMessage(rustplus.guildId, content,
-            instance.informationMessageId.event, instance.channelId.information);
-
-        if (message && message.id !== instance.informationMessageId.event) {
-            instance.informationMessageId.event = message.id;
-            Client.client.setInstance(rustplus.guildId, instance);
-        }
-    },
-
     sendUpdateTeamInformationMessage: async function (rustplus) {
         const instance = Client.client.getInstance(rustplus.guildId);
 
@@ -750,22 +731,6 @@ module.exports = {
 
         if (message && message.id !== instance.informationMessageId.toolCupboardUpkeep) {
             instance.informationMessageId.toolCupboardUpkeep = message.id;
-            Client.client.setInstance(rustplus.guildId, instance);
-        }
-    },
-
-    sendUpdateMarketWatchlistInformationMessage: async function (rustplus) {
-        const instance = Client.client.getInstance(rustplus.guildId);
-
-        const content = {
-            embeds: [DiscordEmbeds.getUpdateMarketWatchlistInformationEmbed(rustplus)]
-        }
-
-        const message = await module.exports.sendMessage(rustplus.guildId, content,
-            instance.informationMessageId.marketWatchlist, instance.channelId.information);
-
-        if (message && message.id !== instance.informationMessageId.marketWatchlist) {
-            instance.informationMessageId.marketWatchlist = message.id;
             Client.client.setInstance(rustplus.guildId, instance);
         }
     },
