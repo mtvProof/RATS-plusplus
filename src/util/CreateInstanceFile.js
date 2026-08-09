@@ -170,6 +170,14 @@ module.exports = (client, guild) => {
                 instance.informationMessageId.battlemetricsPlayers = null;
             if (!instance.informationMessageId.hasOwnProperty('toolCupboardUpkeep')) instance.informationMessageId.toolCupboardUpkeep = null;
             if (!instance.informationMessageId.hasOwnProperty('loot')) instance.informationMessageId.loot = null;
+            if (instance.informationMessageId.event) {
+                const DiscordTools = require('../discordTools/discordTools.js');
+                DiscordTools.deleteMessageById(guild.id, instance.channelId.information, instance.informationMessageId.event);
+            }
+            if (instance.informationMessageId.marketWatchlist) {
+                const DiscordTools = require('../discordTools/discordTools.js');
+                DiscordTools.deleteMessageById(guild.id, instance.channelId.information, instance.informationMessageId.marketWatchlist);
+            }
             delete instance.informationMessageId.event;
             delete instance.informationMessageId.marketWatchlist;
         }

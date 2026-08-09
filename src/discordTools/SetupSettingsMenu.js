@@ -27,7 +27,7 @@ const DiscordEmbeds = require('./discordEmbeds.js');
 const DiscordSelectMenus = require('./discordSelectMenus.js');
 const DiscordTools = require('./discordTools.js');
 
-const SETTINGS_MENU_VERSION = 1; // bump when settings UI options change
+const SETTINGS_MENU_VERSION = 2; // bump when settings UI options change
 
 module.exports = async (client, guild, forced = false) => {
     const instance = client.getInstance(guild.id);
