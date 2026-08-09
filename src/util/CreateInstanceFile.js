@@ -116,6 +116,21 @@ module.exports = (client, guild) => {
                     }
                 }
             }
+
+            // Remove obsolete event/vending machine notification settings (no longer supported by Rust+)
+            const obsoleteNotificationSettings = [
+                'cargoShipDetectedSetting', 'cargoShipLeftSetting', 'cargoShipEgressSetting',
+                'cargoShipDockingAtHarborSetting', 'patrolHelicopterDetectedSetting',
+                'patrolHelicopterLeftSetting', 'patrolHelicopterDestroyedSetting',
+                'lockedCrateOilRigUnlockedSetting', 'heavyScientistCalledSetting',
+                'chinook47DetectedSetting', 'travelingVendorDetectedSetting',
+                'travelingVendorHaltedSetting', 'travelingVendorLeftSetting',
+                'deepSeaDetectedSetting', 'deepSeaLeftMapSetting', 'deepSeaLeftSetting',
+                'vendingMachineDetectedSetting'
+            ];
+            for (const key of obsoleteNotificationSettings) {
+                delete instance.notificationSettings[key];
+            }
         }
 
         if (!instance.hasOwnProperty('channelId')) {
